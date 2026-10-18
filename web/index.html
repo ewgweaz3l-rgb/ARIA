@@ -3081,8 +3081,11 @@ function pageDef(side) {
   const warn = keysOff ? '<div class="mw amber">KEYS OFF · PRACTICE</div>' : '';
   if (p === 'MENU') {
     const o = {...common, 1: {l: 'SHLD', go: 'SHLD'}, 2: {l: 'PWR', go: 'PWR'}, 3: {l: 'NAV', go: 'NAV'}, 4: {l: 'JOB', go: 'JOB'}, 5: {l: 'MACR', go: 'MACR'},
-      6: {l: 'VOICE', go: 'VOICE'}, 7: {l: 'SYS', go: 'SYS'}, 8: {l: 'GAME', go: 'GAME'}, 9: {l: 'UFC', go: 'UFC'}, 16: {l: 'SWAP', fn: () => { const a = MFDS.L.page, b = MFDS.R.page; mfdGo('L', b); mfdGo('R', a); }}};
-    delete o[15];
+      6: {l: 'VOICE', go: 'VOICE'}, 7: {l: 'SYS', go: 'SYS'}, 8: {l: 'GAME', go: 'GAME'}, 9: {l: 'UFC', go: 'UFC'}, 16: {l: 'SWAP', fn: () => { const a = MFDS.L.page, b = MFDS.R.page; mfdGo('L', b); mfdGo('R', a); }},
+      // bottom row (left → right): HOME SET VR ALGN SOI · left column (top → bottom): HELP LOG … SWAP
+      15: {l: 'HOME', fn: () => $('#ckHome').click()}, 14: {l: 'SET', fn: () => openSettings()}, 13: {l: VR.session ? 'VR OFF' : 'VR', fn: () => enterVR()},
+      12: {l: 'ALGN', fn: () => startCal()}, 20: {l: 'HELP', fn: () => openManual()},
+      19: {l: 'LOG', fn: () => { UFC.mode = 'log'; const t = MFDS.C.page === 'UFC' || side === 'C' ? 'C' : side; mfdGo(t, 'UFC'); }}};
     const st = DB.status || {}, uex = Object.values(st).find(s => s.src === 'uex'), wiki = Object.values(st).find(s => s.src === 'wiki');
     const done = P ? P.stops.slice(0, MFDS.stop + 1).flatMap(s => s.actions).reduce((a, x) => a + (x.profit || 0), 0) : 0;
     return {title: 'MENU', osb: o, body: `<div class="mbig">${esc(AI().toUpperCase())}</div>
@@ -3338,13 +3341,13 @@ const UFC_KEYS = {
     ['NEXT', 'Reinvest: next leg from the sell point', () => { const b = $('[data-next="0"]'); if (b) b.click(); }],
     ['RTB', 'Course home', () => rtb()], ['MAP', 'Open the job view', () => { show('starmap'); setSystem('job'); }],
     ['SAY', 'Read it out', S => say(UFC.msg || (S ? S.name : 'Nothing to report.'))], ['LOG', 'Key press log', () => { UFC.mode = 'log'; ufcRender(); }],
-    ['ALGN', 'Line up the MFD windows', () => startCal()], ['DIM', 'Screen brightness: 100 → 70 → 45 → 25 → 100', () => { const d = TH.get().dim; setDim(d > .9 ? .7 : d > .6 ? .45 : d > .35 ? .25 : 1); }], ['VR', 'Put the panels in your headset (WebXR)', () => enterVR()], ['SET', 'Settings', () => openSettings()], ['HOME', 'Leave cockpit mode', () => $('#ckHome').click()], ['HELP', 'Open the manual', () => openManual()]],
+    ['DIM', 'Screen brightness: 100 → 70 → 45 → 25 → 100', () => { const d = TH.get().dim; setDim(d > .9 ? .7 : d > .6 ? .45 : d > .35 ? .25 : 1); }]],
   log: [['CLR', 'Clear log', () => { UFC.keylog = []; store.set('keylog', []); ufcRender(); }], ['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]],
   shld: [['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]]};
 // the center MFD's UFC page: route summary + mini starmap (or shield pulse / key log), soft keys on the OSBs
 function ufcPage(side, common) {
   const S = ufcSummary(), keys = UFC_KEYS[UFC.mode];
-  const slots = UFC.mode === 'route' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16, 17] : [1, 2];
+  const slots = UFC.mode === 'route' ? [1, 2, 3, 4, 5, 6, 7] : [1, 2];
   const o = {...common};
   keys.forEach(([l, tip, fn], i) => { if (slots[i]) o[slots[i]] = {l, fn: () => fn(S)}; });
   const cells = S ? S.cells.map(([k, v]) => `<div class="ucell"><span>${k}</span><b>${esc(String(v))}</b></div>`).join('') : '';
