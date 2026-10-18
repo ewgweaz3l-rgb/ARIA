@@ -3175,10 +3175,11 @@ const GAME = {
   msl: ['missile operator mode', 'missile mode', 'toggle missile mode'], mslCyc: ['cycle missile type', 'cycle missiles', 'missile type next'],
   mslUp: ['increase armed missiles', 'arm missiles', 'missiles increase'], mslDn: ['decrease armed missiles', 'missiles decrease', 'reset armed missiles'],
   mslFire: ['launch missiles', 'fire missiles', 'launch missile'], cmD: ['launch decoy', 'countermeasure decoy', 'decoy'], cmN: ['launch noise', 'countermeasure noise', 'noise'],
+  ping: ['ping', 'radar ping', 'scanning ping', 'activate ping'], scanMode: ['scanning mode', 'scan mode', 'toggle scanning', 'scanning operator mode'],
   bomb: ['bomb operator mode', 'bombing mode', 'bomb mode'], bombDrop: ['drop bomb', 'release bomb', 'launch bomb'], gimbal: ['gimbal mode', 'cycle gimbal', 'toggle gimbal']
 };
 const GAME_LBL = {atc: 'HAIL ATC', gear: 'GEAR', auto: 'AUTOLAND', vtol: 'VTOL', fr: 'FLIGHT READY', lite: 'LIGHTS', svc: 'SERVICES',
-  msl: 'MISSILE MODE', mslCyc: 'CYCLE TYPE', mslUp: 'ARM +', mslDn: 'ARM −', mslFire: 'LAUNCH', cmD: 'DECOY', cmN: 'NOISE', bomb: 'BOMB MODE', bombDrop: 'DROP', gimbal: 'GIMBAL',
+  ping: 'PING', scanMode: 'SCAN MODE', msl: 'MISSILE MODE', mslCyc: 'CYCLE TYPE', mslUp: 'ARM +', mslDn: 'ARM −', mslFire: 'LAUNCH', cmD: 'DECOY', cmN: 'NOISE', bomb: 'BOMB MODE', bombDrop: 'DROP', gimbal: 'GIMBAL',
   dOpen: 'OPEN ALL', dClose: 'CLOSE ALL', dTog: 'TOGGLE ALL', dLock: 'LOCK ALL', dUnlock: 'UNLOCK ALL', dLockT: 'TOGGLE LOCKS'};
 // one OSB that presses a game action found by name; `hold` forces a press-and-hold (autoland is hold-N by default)
 function gameBtn(side, id, l, opts = {}) {
@@ -4485,7 +4486,9 @@ function scanPage(side, common) {
   const key = d => ({l: String(d), fn: () => { if (SCAN.entry.length < 7) SCAN.entry += d; sigSay(SCAN.entry, true); }});
   const o = {...common, 1: {l: 'CLR', fn: () => { SCAN.entry = ''; SCAN.last = null; mfdRenderAll(); renderSigOut(); }}, 2: {l: 'DEL', fn: () => { SCAN.entry = SCAN.entry.slice(0, -1); if (SCAN.entry) sigSay(SCAN.entry, true); else { SCAN.last = null; mfdRenderAll(); } }},
     3: {l: SCAN.list ? 'DECODE' : 'LIST', on: SCAN.list, fn: () => { SCAN.list = !SCAN.list; SCAN.page = 0; mfdRenderAll(); }}, 4: {l: 'SAY', fn: () => { if (SCAN.last) sigSay(SCAN.last.v); }},
-    6: key(1), 7: key(2), 8: key(3), 9: key(4), 10: key(5), 20: key(6), 19: key(7), 18: key(8), 17: key(9), 16: key(0)};
+    6: key(1), 7: key(2), 8: key(3), 9: key(4), 10: key(5), 20: key(6), 19: key(7), 18: key(8), 17: key(9), 16: key(0),
+    // in-game: SCAN toggles scanning mode, PING fires a ping (clears the keypad for the new number)
+    14: gameBtn(side, 'scanMode', 'SCAN'), 12: (b => ({l: 'PING', fn: async m => { SCAN.entry = ''; SCAN.last = null; await b.fn(m); mfdRenderAll(); }}))(gameBtn(side, 'ping', 'PING'))};
   let body;
   if (SCAN.list) {
     const per = 9, pages = Math.ceil(SIGS.length / per); SCAN.page = Math.min(SCAN.page, pages - 1);
