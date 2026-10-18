@@ -238,6 +238,7 @@ body.cockpit #jobBar{margin:0!important}
 .calbox{position:fixed;border:2px dashed var(--cyan);background:rgba(79,209,224,.08);pointer-events:auto;cursor:move;display:grid;place-items:center;color:var(--cyan);font:600 12px var(--head);letter-spacing:.14em;text-align:center}
 .calbox.sel{border-color:var(--amber);color:var(--amber);background:rgba(242,168,59,.1)}
 .calbox.auto{border-style:dotted;cursor:default;opacity:.6}.calbox.auto .calgrip{display:none}
+.calbox.ghost{pointer-events:none;background:none}.calbox.ghost span{display:none}.calbox.ghost .calgrip{display:none}
 .calbox small{font:11px var(--mono);letter-spacing:0;display:block}
 .calgrip{position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;background:var(--cyan);cursor:nwse-resize}
 .calbox.sel .calgrip{background:var(--amber)}
@@ -281,6 +282,11 @@ body.cockpit .ufc{display:flex}
 .ukeys button{background:#06110a;border:1px solid #2a5a3a;border-radius:3px;color:#5ef08a;font:600 11px var(--mono);letter-spacing:.14em;padding:5px 12px;cursor:pointer;min-width:62px}
 .ukeys button:hover{background:#5ef08a;color:#031;text-shadow:none}
 .ulog{flex:1;overflow:auto;font-size:11px;min-height:150px}
+.ucal{flex:1;overflow:auto;min-height:150px}
+.ucal .caltools{position:static;transform:none;width:auto;background:none;border:none;padding:0;color:#8fd9a8}
+.ucal .calhead b{color:#f2a83b}.ucal .calsel button{color:#8fd9a8;border-color:#2a5a3a}.ucal .calsel button.on{color:#f2a83b;border-color:#f2a83b}
+.ucal .calgrid label{color:#dfe6ee}.ucal .calgrid span{color:#8fd9a8}.ucal .calgrid i button{background:#06110a;border-color:#2a5a3a;color:#5ef08a}
+.ucal .sub{color:#8fd9a8;opacity:.8}
 .ulog>div{display:grid;grid-template-columns:72px 52px 1fr 1fr;gap:8px;padding:2px 0;border-bottom:1px solid rgba(94,240,138,.15)}
 .ulog b{color:#dfe6ee}.ulog i{opacity:.6;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.cockpit .cocktop #brief{display:none}
@@ -2677,9 +2683,9 @@ function renderCal() {
   const R = ckRects(), cal = $('#calib');
   const names = {L: 'LEFT MFD screen', R: 'RIGHT MFD screen', TOP: 'Center console', APP: 'Bottom band'};
   if (store.get('ckAutoBottom', false) && CK.sel === 'APP') CK.sel = 'TOP';
-  cal.innerHTML = Object.keys(names).map(k => `<div class="calbox${CK.sel === k ? ' sel' : ''}${k === 'APP' && store.get('ckAutoBottom', false) ? ' auto' : ''}" data-k="${k}" style="left:${R[k].x}vw;top:${R[k].y}vh;width:${R[k].w}vw;height:${R[k].h}vh">
+  cal.innerHTML = Object.keys(names).map(k => `<div class="calbox${CK.sel === k ? ' sel' : ''}${k === 'APP' && store.get('ckAutoBottom', false) ? ' auto' : ''}${k === 'TOP' && CK.on ? ' ghost' : ''}" data-k="${k}" style="left:${R[k].x}vw;top:${R[k].y}vh;width:${R[k].w}vw;height:${R[k].h}vh">
       <span>${names[k]}<br><small>${Math.round(R[k].w * innerWidth / 100)}×${Math.round(R[k].h * innerHeight / 100)} px</small></span><i class="calgrip"></i></div>`).join('') +
-    calPanel();
+    (CK.on ? '' : calPanel());
   $$('.calbox', cal).forEach(box => {
     const k = box.dataset.k;
     box.onmousedown = ev => {
@@ -2697,7 +2703,7 @@ function renderCal() {
       ev.preventDefault();
     };
   });
-  wireCalPanel();
+  if (CK.on) { UFC.mode = 'cal'; ufcRender(); } else wireCalPanel();
 }
 function calPanel() {
   const R = ckRects(), k = CK.sel, r = R[k];
@@ -2727,7 +2733,7 @@ function calPanel() {
 function wireCalPanel() {
   const R = ckRects(), k = CK.sel, cal = $('#calib');
   const update = () => { ckLayoutLite(); const box = $(`.calbox[data-k="${k}"]`, cal); if (box) { Object.assign(box.style, {left: R[k].x + 'vw', top: R[k].y + 'vh', width: R[k].w + 'vw', height: R[k].h + 'vh'}); $('small', box).textContent = `${Math.round(R[k].w * innerWidth / 100)}×${Math.round(R[k].h * innerHeight / 100)} px`; } };
-  const refresh = () => { $('#calTools').outerHTML = calPanel(); wireCalPanel(); };
+  const refresh = () => { if (UFC.mode === 'cal') ufcRender(); else { $('#calTools').outerHTML = calPanel(); wireCalPanel(); } };
   const save = () => store.set('ckRects', R);
   $$('[data-cs]').forEach(b => b.onclick = () => { CK.sel = b.dataset.cs; renderCal(); });
   for (const [id, f] of [['#cx', 'x'], ['#cy', 'y'], ['#cw', 'w'], ['#ch', 'h']]) {
@@ -2751,7 +2757,7 @@ function wireCalPanel() {
     R.TOP = {x: l + 0.8, y: top, w: Math.max(10, r - l - 1.6), h: Math.max(10, bot - top)}; save(); ckLayout(); refresh();
   };
   $('#calAuto').onchange = () => { store.set('ckAutoBottom', $('#calAuto').checked); if ($('#calAuto').checked && CK.sel === 'APP') CK.sel = 'TOP'; ckLayout(); };
-  $('#calDone').onclick = () => { CK.cal = false; cal.innerHTML = ''; save(); toast('Cockpit layout saved.'); };
+  $('#calDone').onclick = () => { CK.cal = false; cal.innerHTML = ''; save(); toast('Cockpit layout saved.'); if (UFC.mode === 'cal') { UFC.mode = 'route'; ufcRender(); } };
   $('#calReset').onclick = () => { CK.rects = JSON.parse(JSON.stringify(CK_DEFAULT)); store.set('ckRects', CK.rects); ckLayout(); };
 }
 function ckLayoutLite() { const R = ckRects(); ckPlace($('#mfdL'), R.L); ckPlace($('#mfdR'), R.R); ckPlace($('#cockTop'), R.TOP); ckPlace($('#appShell'), R.APP); }
@@ -2985,7 +2991,7 @@ function connectMFD() {
     MFDC.es.addEventListener('state', ev => { MFDC.state = JSON.parse(ev.data); });
   } catch {}
 }
-setInterval(() => { if (CK.on) { mfdRender('L'); mfdRender('R'); if (UFC.mode !== 'shld' && UFC.typed >= UFC.msg.length) ufcRender(); } }, 1000);
+setInterval(() => { if (CK.on) { mfdRender('L'); mfdRender('R'); if (UFC.mode === 'route' && UFC.typed >= UFC.msg.length) ufcRender(); } }, 1000);
 
 /* OSB editor: put your own key/bind on any button of any page */
 function openOsbEditor() {
@@ -3067,12 +3073,16 @@ function ufcRender() {
   const keys = {route: [['ACPT', 'Make the best haul a job', () => { if (S && S.top) { addToJob(haulFromRow(S.top)); ufcSay(`Job accepted. ${S.top.name} to ${termLabel(S.top.ts, S.top.s)}.`); } }],
     ['NEXT', 'Reinvest: next leg from the sell point', () => { const b = $('[data-next="0"]'); if (b) b.click(); }],
     ['RTB', 'Course home', () => rtb()], ['MAP', 'Open the job view', () => { show('starmap'); setSystem('job'); }],
-    ['SAY', 'Read it out', () => say(UFC.msg || (S ? S.name : 'Nothing to report.'))], ['LOG', 'Key press log', () => { UFC.mode = 'log'; ufcRender(); }]],
+    ['SAY', 'Read it out', () => say(UFC.msg || (S ? S.name : 'Nothing to report.'))], ['LOG', 'Key press log', () => { UFC.mode = 'log'; ufcRender(); }],
+    ['ALGN', 'Line up the MFD windows', () => startCal()], ['SET', 'Settings', () => openSettings()]],
+    cal: [['DONE', 'Save layout', () => $('#calDone') && $('#calDone').click()]],
     log: [['CLR', 'Clear log', () => { UFC.keylog = []; store.set('keylog', []); ufcRender(); }], ['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]],
     shld: [['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]]}[UFC.mode];
   const cells = S ? S.cells.map(([k, v]) => `<div class="ucell"><span>${k}</span><b>${esc(String(v))}</b></div>`).join('') : '';
   let body = '';
-  if (UFC.mode === 'log') {
+  if (UFC.mode === 'cal') {
+    body = `<div class="ucal">${calPanel()}</div>`;
+  } else if (UFC.mode === 'log') {
     body = `<div class="ulog">${UFC.keylog.length ? UFC.keylog.map(k => `<div><span>${new Date(k.t).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}</span><span>${esc(k.src)}</span><b>${esc(k.keys)}</b><i>${esc(k.note)}</i></div>`).join('') : '<div class="faint">NO KEY PRESSES SENT YET</div>'}</div>`;
   } else {
     body = `<div class="ugrid"><div class="ucells">${S ? `<div class="utitle">${S.title}</div><div class="uname">${esc(S.name)}</div>${cells}` : '<div class="utitle">STANDBY</div><div class="uname">ASK A ROUTE: “C2 HERCULES 750K FROM AREA18” · “NAV TO RUIN STATION” · “RTB”</div>'}</div>
@@ -3085,6 +3095,7 @@ function ufcRender() {
     <div class="ukeys">${keys.map(([l, tip]) => `<button title="${esc(tip)}">${l}</button>`).join('')}</div>`;
   $$('.ukeys button', el).forEach((b, i) => b.onclick = () => keys[i][2]());
   const c = $('#ufcCanvas'); if (c) { if (UFC.mode === 'shld') drawShieldAnim(c); else drawMini(c, S && S.plan, S && S.top); }
+  if (UFC.mode === 'cal') wireCalPanel();
   if (UFC.typed < UFC.msg.length) ufcType();
 }
 function miniCanvas(c) {
