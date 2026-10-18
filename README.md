@@ -68,6 +68,18 @@ Each skin has a **personality** (Settings → Personality, with a strength slide
 (RSI, Origin, MISC, Crusader) — soft fades, no scanlines, no flicker; **Glitch** (Drake) — CRT
 static, a rolling bar, occasional tears and jitter.
 
+## VR (WebXR)
+
+**VR** on the deck (or SYS → VR, or Settings → Enter VR) puts the two MFDs, the deck and the app
+band in a floating arc in your headset. Point a controller and pull the trigger to click anything
+on them; squeeze the grip to recenter. Cougar buttons, voice and push-to-talk keep working.
+Settings → VR has distance, height, spread, panel size and tilt, live while you're in.
+
+Needs Chrome or Edge (the ARIA app window is Edge/Chrome already) and a running OpenXR runtime:
+SteamVR, Pimax Play, Oculus/Meta. Windows Mixed Reality headsets work only on Windows builds
+before 24H2 (Microsoft removed WMR). Star Citizen itself stays on your monitor or in whatever VR
+mod you use; ARIA's panels are a separate overlay-style space.
+
 **GAME page — the arcade.** Something to do in quantum. MENU → GAME. Pick a game on the side OSBs;
 the rockers are the d-pad (left pair up/down, right pair left/right), the lower rockers are A and
 B. Keyboard arrows / space / shift work when that MFD is the SOI. NEW, PAUSE, TOP10 on the top row.
