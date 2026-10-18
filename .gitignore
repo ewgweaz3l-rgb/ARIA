@@ -12,3 +12,5 @@ web/voice/*
 scdata/*
 !scdata/README.txt
 scores.json
+lobbies.json
+squad_config.json

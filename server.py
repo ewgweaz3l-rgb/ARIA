@@ -61,29 +61,8 @@ TTL_RULES = [
 ]
 
 MACROS = os.path.join(ROOT, "macros.json")
-SCORES = os.path.join(ROOT, "scores.json")
-_scores_lock = threading.Lock()
-
-
-def load_scores():
-    try:
-        with open(SCORES, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-
-def add_score(game, name, score, extra):
-    """Squad leaderboard kept by the host: top 25 per game, newest wins ties."""
-    with _scores_lock:
-        all_ = load_scores()
-        lst = all_.get(game, [])
-        lst.append({"name": str(name)[:12], "score": int(score), "extra": str(extra or "")[:24], "t": int(time.time() * 1000)})
-        lst.sort(key=lambda e: (-e["score"], -e["t"]))
-        all_[game] = lst[:25]
-        with open(SCORES, "w", encoding="utf-8") as f:
-            json.dump(all_, f, indent=1)
-        return all_[game]
+import squad as squadmod
+SQUAD = squadmod.Squad(ROOT, lambda: load_config().get("squad_key") or "", lambda: AI_NAME())
 
 
 def local_ips():
@@ -339,15 +318,14 @@ class Handler(SimpleHTTPRequestHandler):
                 })
             elif kind == "macros":
                 return self.send_json(200, {"macros": load_macros(), "file": os.path.basename(MACROS)})
-            elif kind == "scores":
+            elif kind in ("scores", "lobby"):
                 cfg = load_config()
-                q = dict(qs)
                 if not cfg.get("squad_host"):
                     return self.send_json(404, {"error": "This ARIA isn't hosting a squad board."}, CORS)
-                if (cfg.get("squad_key") or "") != (q.get("key") or ""):
-                    return self.send_json(403, {"error": "Wrong squad key."}, CORS)
-                allsc = load_scores()
-                return self.send_json(200, {"scores": {q["game"]: allsc.get(q["game"], [])} if q.get("game") else allsc, "host": AI_NAME()}, CORS)
+                r = SQUAD.handle("GET", u.path, dict(qs), {})
+                if r:
+                    return self.send_json(r[0], r[1], CORS)
+                return self.send_json(404, {"error": "unknown"}, CORS)
             elif kind == "voicepack":
                 vdir = os.path.join(WEB, "voice")
                 files = sorted(f for f in os.listdir(vdir) if f.lower().endswith((".wav", ".mp3", ".ogg", ".m4a", ".flac"))) if os.path.isdir(vdir) else []
@@ -424,26 +402,16 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         u = urllib.parse.urlsplit(self.path)
-        if u.path == "/api/scores":  # squad board: friends post here from their own ARIA
+        if u.path == "/api/scores" or u.path.startswith("/api/lobby"):  # squad: friends post here from their own ARIA
             n = int(self.headers.get("Content-Length") or 0)
             try:
                 payload = json.loads(self.rfile.read(n) if n else b"{}")
             except Exception:
                 payload = {}
-            cfg = load_config()
-            if not cfg.get("squad_host"):
+            if not load_config().get("squad_host"):
                 return self.send_json(404, {"error": "Not hosting."}, CORS)
-            if (cfg.get("squad_key") or "") != str(payload.get("key") or ""):
-                return self.send_json(403, {"error": "Wrong squad key."}, CORS)
-            game = str(payload.get("game") or "")[:20]
-            try:
-                score = int(payload.get("score"))
-            except (TypeError, ValueError):
-                return self.send_json(400, {"error": "bad score"}, CORS)
-            if not game or score <= 0 or score > 10**9:
-                return self.send_json(400, {"error": "bad score"}, CORS)
-            lst = add_score(game, payload.get("name") or "CMDR", score, payload.get("extra"))
-            return self.send_json(200, {"ok": True, "scores": lst}, CORS)
+            r = SQUAD.handle("POST", u.path, {}, payload if isinstance(payload, dict) else {})
+            return self.send_json(r[0], r[1], CORS) if r else self.send_json(404, {"error": "unknown"}, CORS)
         if not self.from_aria_page() or "json" not in (self.headers.get("Content-Type") or ""):
             return self.send_json(403, {"error": "forbidden"})
         n = int(self.headers.get("Content-Length") or 0)

@@ -3371,7 +3371,7 @@ function chNew(human) {
   chSave();
   if (CH.st.turn !== CH.human) setTimeout(chAriaMove, 400);
 }
-function chSave() { store.set('chess', {st: CH.st, human: CH.human, hist: CH.hist}); }
+function chSave() { if (!CH.vs) store.set('chess', {st: CH.st, human: CH.human, hist: CH.hist}); }
 function chLoad() { const s = store.get('chess', null); if (s && s.st) { CH.st = s.st; CH.human = s.human; CH.hist = s.hist || []; } }
 const sq = (r, c) => r * 8 + c, rc = i => [i >> 3, i & 7], inB = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
 const alg = i => 'abcdefgh'[i & 7] + (8 - (i >> 3));
@@ -3490,15 +3490,16 @@ function chPlay(m) {
   CH.hist.push((p[1] === 'p' ? '' : p[1].toUpperCase()) + (n.cap ? 'x' : '') + alg(m.to) + (m.promo ? '=Q' : ''));
   CH.st = n; CH.sel = null; CH.page = 0;
   const S = chStatus(n);
-  if (S) { n.over = S.over; CH.msg = S.why; const k = S.over === 'd' ? 'd' : S.over === CH.human ? 'w' : 'l'; CH.stats[k]++; store.set('chessStats', CH.stats);
-    say(S.over === 'd' ? 'Draw.' : S.over === CH.human ? 'Checkmate. Well played, Commander.' : 'Checkmate. Better luck next jump.'); }
+  if (S) { n.over = S.over; CH.msg = S.why; const k = S.over === 'd' ? 'd' : S.over === CH.human ? 'w' : 'l';
+    if (CH.vs) { if (window.chessVsOver) chessVsOver(S); } else { CH.stats[k]++; store.set('chessStats', CH.stats);
+    say(S.over === 'd' ? 'Draw.' : S.over === CH.human ? 'Checkmate. Well played, Commander.' : 'Checkmate. Better luck next jump.'); } }
   else if (inCheck(n)) CH.msg = 'CHECK';
   else CH.msg = '';
   chSave();
   if (!n.over && n.turn !== CH.human) setTimeout(chAriaMove, 350);
 }
 function chAriaMove() {
-  if (!CH.st || CH.st.over || CH.st.turn === CH.human) return;
+  if (!CH.st || CH.st.over || CH.st.turn === CH.human || CH.vs) return;
   CH.thinking = true; mfdRenderAll();
   setTimeout(() => { const m = ariaPick(CH.st); CH.thinking = false; if (m) chPlay(m); mfdRenderAll(); }, 30);
 }
@@ -3507,23 +3508,12 @@ function chCursorMove(dr, dc) { const [r, c] = rc(CH.cur); if (inB(r + dr, c + d
 function chSelect() {
   const st = CH.st; if (!st || st.over || st.turn !== CH.human || CH.thinking) return;
   const p = st.b[CH.cur];
-  if (CH.sel !== null) { const mv = legal(st, CH.sel).find(m => m.to === CH.cur); if (mv) { chPlay(mv); return; } }
+  if (CH.sel !== null) { const mv = legal(st, CH.sel).find(m => m.to === CH.cur); if (mv) { if (CH.vs) { CH.sel = null; CH.pending = true; LOBBY.send({chess: mv}); mfdRenderAll(); } else chPlay(mv); return; } }
   if (p && p[0] === CH.human) { CH.sel = CH.sel === CH.cur ? null : CH.cur; CH.page = 0; }
   else CH.sel = null;
   mfdRenderAll();
 }
-function chessPage(side, common) {
-  if (!CH.st) chLoad();
-  if (!CH.st) chNew('w');
-  const st = CH.st, flip = CH.human === 'b';
-  const moves = CH.sel !== null && st.turn === CH.human ? legal(st, CH.sel) : [];
-  const slots = [6, 7, 8, 9, 10, 16, 17, 18, 19, 20], per = slots.length, pages = Math.max(1, Math.ceil(moves.length / per));
-  CH.page = Math.min(CH.page, pages - 1);
-  const o = {...common, 1: {l: 'NEW', fn: () => { chNew('w'); mfdRenderAll(); }}, 2: {l: 'BLK', fn: () => { chNew('b'); mfdRenderAll(); }},
-    3: {l: CH.sel !== null ? 'MOVE' : 'SEL', fn: () => chSelect()}, 4: {l: ['ROOK', 'EASY', 'MED', 'HARD'][CH.level], fn: () => { CH.level = (CH.level + 1) % 4; store.set('chessLevel', CH.level); mfdRenderAll(); }},
-    5: {l: 'UNDO', fn: () => { /* undo two plies */ const h = store.get('chessUndo', null); if (h) { CH.st = h.st; CH.hist = h.hist; CH.sel = null; store.set('chessUndo', null); chSave(); mfdRenderAll(); } }}};
-  moves.slice(CH.page * per, CH.page * per + per).forEach((m, n) => { o[slots[n]] = {l: alg(m.to).toUpperCase() + (st.b[m.to] ? '×' : '') + (m.castle ? ' O-O' : ''), fn: () => chPlay(m) && mfdRenderAll()}; });
-  if (pages > 1) { o[12] = {l: `◀${CH.page + 1}/${pages}`, fn: () => { CH.page = (CH.page - 1 + pages) % pages; mfdRenderAll(); }}; o[14] = {l: '▶', fn: () => { CH.page = (CH.page + 1) % pages; mfdRenderAll(); }}; }
+function chessCells(st, flip, moves) {
   const targets = new Set(moves.map(m => m.to));
   let cells = '';
   for (let k = 0; k < 64; k++) {
@@ -3531,6 +3521,22 @@ function chessPage(side, common) {
     const cls = ['csq', (r + c) % 2 ? 'dk' : 'lt', i === CH.cur ? 'cur' : '', i === CH.sel ? 'sel' : '', targets.has(i) ? 'tgt' : '', p && p[0] === 'b' ? 'blk' : ''].filter(Boolean).join(' ');
     cells += `<div class="${cls}" data-sq="${i}">${p ? GLYPH[p] : ''}</div>`;
   }
+  return cells;
+}
+function chessPage(side, common) {
+  if (!CH.st) chLoad();
+  if (!CH.st) chNew('w');
+  if (CH.vs && window.chessVsPage) return chessVsPage(side, common);
+  const st = CH.st, flip = CH.human === 'b';
+  const moves = CH.sel !== null && st.turn === CH.human ? legal(st, CH.sel) : [];
+  const slots = [6, 7, 8, 9, 10, 16, 17, 18, 19, 20], per = slots.length, pages = Math.max(1, Math.ceil(moves.length / per));
+  CH.page = Math.min(CH.page, pages - 1);
+  const o = {...common, 1: {l: 'NEW', fn: () => { chNew('w'); mfdRenderAll(); }}, 2: {l: 'BLK', fn: () => { chNew('b'); mfdRenderAll(); }},
+    3: {l: CH.sel !== null ? 'MOVE' : 'SEL', fn: () => chSelect()}, 4: {l: ['ROOK', 'EASY', 'MED', 'HARD'][CH.level], fn: () => { CH.level = (CH.level + 1) % 4; store.set('chessLevel', CH.level); mfdRenderAll(); }},
+    5: {l: 'UNDO', fn: () => { /* undo two plies */ const h = store.get('chessUndo', null); if (h) { CH.st = h.st; CH.hist = h.hist; CH.sel = null; store.set('chessUndo', null); chSave(); mfdRenderAll(); } }}};
+  moves.slice(CH.page * per, CH.page * per + per).forEach((m, n) => { o[slots[n]] = {l: alg(m.to).toUpperCase() + (st.b[m.to] ? '×' : '') + (m.castle ? ' O-O' : ''), fn: () => { if (CH.vs) { CH.sel = null; CH.pending = true; LOBBY.send({chess: m}); } else chPlay(m); mfdRenderAll(); }}; });
+  if (pages > 1) { o[12] = {l: `◀${CH.page + 1}/${pages}`, fn: () => { CH.page = (CH.page - 1 + pages) % pages; mfdRenderAll(); }}; o[14] = {l: '▶', fn: () => { CH.page = (CH.page + 1) % pages; mfdRenderAll(); }}; }
+  const cells = chessCells(st, flip, moves);
   const you = CH.human === 'w' ? 'WHITE' : 'BLACK';
   const status = st.over ? `${CH.msg} · ${st.over === 'd' ? 'DRAW' : st.over === CH.human ? 'YOU WIN' : AI().toUpperCase() + ' WINS'}` : CH.thinking ? `${AI().toUpperCase()} THINKING…` : st.turn === CH.human ? `YOUR MOVE · ${alg(CH.cur).toUpperCase()}${CH.msg ? ' · ' + CH.msg : ''}` : `${AI().toUpperCase()} TO MOVE`;
   return {title: 'GAME', osb: o, body: `<div class="cstat">${status}</div><div class="cboard">${cells}</div>
@@ -3579,13 +3585,14 @@ const BOARD = {
 };
 const ARC = {game: null, id: store.get('arcGame', 'menu'), side: null, raf: 0, last: 0, keys: {}, paused: false, showBoard: false, best: null, pulse: 0};
 const GAME_LIST = [['chess', 'CHESS', 'vs ARIA'], ['tetris', 'CARGO', 'tetris'], ['dino', 'RUNNER', 'dino'], ['asteroids', 'ROIDS', 'asteroids']];
+const ARC_GAMES = {tetris: () => Tetris(), dino: () => Dino(), asteroids: () => Roids()};  // squad.js adds TANKS and FLEET
 function arcCanvas() { const c = $('#arcCanvas'); if (!c) return null; const dpr = devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight; if (!W) return null;
   if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
   const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return {c, ctx, W, H}; }
 function arcStart(id, side) {
   arcStop(); ARC.id = id; store.set('arcGame', id); ARC.side = side; ARC.paused = false; ARC.showBoard = false; ARC.best = null;
-  if (id === 'menu' || id === 'chess') { mfdRender(side); return; }
-  ARC.game = {tetris: Tetris, dino: Dino, asteroids: Roids}[id](); ARC.game.init();
+  if (id === 'menu' || id === 'chess' || id === 'lobby') { mfdRender(side); return; }
+  ARC.game = ARC_GAMES[id](); ARC.game.init(ARC.vs || null); ARC.vs = null;
   ARC.last = performance.now(); mfdRender(side);
   const loop = t => { const dt = Math.min(.05, (t - ARC.last) / 1000); ARC.last = t; if (!ARC.paused && ARC.game && !ARC.game.over) ARC.game.tick(dt, ARC.keys); const k = arcCanvas(); if (k && ARC.game) { ARC.game.draw(k.ctx, k.W, k.H); arcHud(k); } ARC.raf = requestAnimationFrame(loop); };
   ARC.raf = requestAnimationFrame(loop);
@@ -3595,15 +3602,15 @@ function arcOver(score, extra) { const g = ARC.game; if (!g || g.scored) return;
 function arcHud(k) {
   const {ctx, W, H} = k, g = ARC.game, C = themeColor('--mg'), Wt = themeColor('--mw');
   ctx.font = '600 11px IBM Plex Mono, monospace'; ctx.textAlign = 'left'; ctx.fillStyle = C;
-  ctx.fillText(`SCORE ${fmt(g.score || 0)}`, 6, 13); ctx.textAlign = 'right'; ctx.fillText(`BEST ${fmt((BOARD.get(ARC.id)[0] || {}).score || 0)}`, W - 6, 13);
+  if (!g.noHud) { ctx.fillText(`SCORE ${fmt(g.score || 0)}`, 6, 13); ctx.textAlign = 'right'; ctx.fillText(`BEST ${fmt((BOARD.get(ARC.id)[0] || {}).score || 0)}`, W - 6, 13); }
   if (ARC.paused || g.over || ARC.showBoard) {
     ctx.fillStyle = 'rgba(0,0,0,.72)'; ctx.fillRect(0, 0, W, H); ctx.textAlign = 'center'; ctx.fillStyle = Wt;
     if (ARC.showBoard) { const sq = SQUAD.board(ARC.id); ctx.font = '700 13px Oxanium, sans-serif'; ctx.fillText(`${GAME_LIST.find(x => x[0] === ARC.id)[1]} · ${sq ? 'SQUAD' : 'LOCAL'} TOP 10`, W / 2, 30); ctx.font = '11px IBM Plex Mono, monospace';
       const l = (sq || BOARD.get(ARC.id)).slice(0, 10); if (!l.length) ctx.fillText('NO SCORES YET', W / 2, 60);
       l.forEach((e, i) => { const me = e.name === PILOT(); ctx.fillStyle = me ? C : Wt; ctx.textAlign = 'left'; ctx.fillText(`${i + 1}. ${e.name}${me ? ' ◀' : ''}`, W * .12, 50 + i * 15); ctx.textAlign = 'right'; ctx.fillText(fmt(e.score), W * .88, 50 + i * 15); });
       if (SQUAD.on() && SQUAD.err) { ctx.fillStyle = C; ctx.textAlign = 'center'; ctx.font = '9px IBM Plex Mono, monospace'; ctx.fillText('SQUAD OFFLINE · ' + SQUAD.err.toUpperCase().slice(0, 30), W / 2, H - 8); } }
-    else { ctx.font = '700 18px Oxanium, sans-serif'; ctx.fillText(g.over ? 'GAME OVER' : 'PAUSED', W / 2, H / 2 - 10); ctx.font = '11px IBM Plex Mono, monospace';
-      ctx.fillText(g.over ? (ARC.best === 1 ? (SQUAD.on() ? 'SQUAD RECORD' : 'NEW RECORD') : ARC.best ? (SQUAD.on() ? 'SQUAD RANK ' : 'RANK ') + ARC.best : '') + '  ·  NEW = AGAIN' : 'PAUSE = RESUME', W / 2, H / 2 + 12); }
+    else { ctx.font = '700 18px Oxanium, sans-serif'; ctx.fillText(g.over ? (g.overText || 'GAME OVER') : 'PAUSED', W / 2, H / 2 - 10); ctx.font = '11px IBM Plex Mono, monospace';
+      ctx.fillText(g.over ? (g.overSub !== undefined ? g.overSub : ARC.best === 1 ? (SQUAD.on() ? 'SQUAD RECORD' : 'NEW RECORD') : ARC.best ? (SQUAD.on() ? 'SQUAD RANK ' : 'RANK ') + ARC.best : '') + '  ·  NEW = AGAIN' : 'PAUSE = RESUME', W / 2, H / 2 + 12); }
   }
 }
 // input: rockers / OSBs / keyboard → the running game
@@ -3612,7 +3619,7 @@ function arcInput(k, down) {
   if (down && ARC.game && !ARC.game.over && !ARC.paused && ARC.game.press) ARC.game.press(k);
 }
 addEventListener('keydown', e => {
-  if (!CK.on || MFDS[MFDS.soi].page !== 'GAME' || ARC.id === 'menu' || ARC.id === 'chess' || e.target.tagName === 'INPUT') return;
+  if (!CK.on || MFDS[MFDS.soi].page !== 'GAME' || ARC.id === 'menu' || ARC.id === 'chess' || ARC.id === 'lobby' || e.target.tagName === 'INPUT') return;
   const m = {ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', ' ': 'a', Shift: 'b', p: 'pause', P: 'pause'}[e.key];
   if (!m) return; e.preventDefault(); if (m === 'pause') { ARC.paused = !ARC.paused; return; } if (!e.repeat) arcInput(m, true);
 });
@@ -3622,9 +3629,11 @@ function arcRocker(side, n, down) {
 }
 function gamePage(side, common) {
   if (ARC.id === 'chess') { const d = chessPage(side, common); d.osb[12] = d.osb[1]; d.osb[1] = {l: 'GAMES', fn: () => arcStart('menu', side)}; return d; }
+  if (ARC.id === 'lobby' && window.lobbyPage) return lobbyPage(side, common);
   if (ARC.id === 'menu') {
     const o = {...common}; const slots = [16, 17, 18, 19, 20, 6, 7, 8, 9, 10];
     GAME_LIST.forEach(([id, name], i) => { o[slots[i]] = {l: name, fn: () => arcStart(id, side)}; });
+    if (typeof LOBBY !== 'undefined') o[3] = {l: 'SQUAD', on: !!LOBBY.id, fn: () => arcStart('lobby', side)};
     o[4] = {l: 'PILOT', fn: () => { const n = prompt('Pilot name for the leaderboards:', PILOT()); if (n) store.set('pilot', n.trim().slice(0, 10).toUpperCase() || 'CMDR'); mfdRender(side); }};
     if (SQUAD.on() && Date.now() - SQUAD.lastPull > 15000) { SQUAD.lastPull = Date.now(); SQUAD.pull().then(() => mfdRender(side)); }
     const best = GAME_LIST.filter(g => g[0] !== 'chess').map(([id, name]) => { const t = BOARD.top(id) || {}; return `<div class="mrow"><span>${name}</span><b>${fmt(t.score || 0)} ${esc(t.name || '')}</b></div>`; }).join('');
@@ -3632,6 +3641,7 @@ function gamePage(side, common) {
   }
   const o = {...common, 1: {l: 'GAMES', fn: () => arcStart('menu', side)}, 2: {l: 'NEW', fn: () => arcStart(ARC.id, side)}, 3: {l: ARC.paused ? 'GO' : 'PAUSE', fn: () => { ARC.paused = !ARC.paused; mfdRender(side); }},
     4: {l: 'TOP10', on: ARC.showBoard, fn: () => { ARC.showBoard = !ARC.showBoard; if (ARC.showBoard) SQUAD.pull(ARC.id); }}, 6: {l: 'A', fn: () => { arcInput('a', true); setTimeout(() => arcInput('a', false), 80); }}, 7: {l: 'B', fn: () => { arcInput('b', true); setTimeout(() => arcInput('b', false), 80); }}};
+  if (ARC.game && ARC.game.osb) Object.assign(o, ARC.game.osb(side));
   return {title: GAME_LIST.find(x => x[0] === ARC.id)[1], osb: o, body: `<canvas id="arcCanvas" class="arc"></canvas>`, keepCanvas: true};
 }
 
@@ -3825,7 +3835,7 @@ async function openSettings() {
       <label class="f" style="width:140px">Squad key<input id="sqKey" type="text" placeholder="from the host"></label>
       <button class="btn ghost small" id="sqTest" style="margin-top:12px">Test</button><span class="sub" id="sqState" style="margin-top:14px"></span>
     </div>
-    <p>One of you hosts; the rest join. Scores post to the host and every game's TOP10 shows the whole squad. Same network or VPN (Tailscale, Hamachi) just works; over the open internet the host forwards the port. Hosting needs ARIA restarted once to open the port.</p>
+    <p>One of you hosts; the rest join. Scores post to the host, every game's TOP10 shows the whole squad, and GAME → SQUAD on the MFD hosts or joins a versus match (chess, tanks, fleet) through the same host. Same network or VPN (Tailscale, Hamachi) just works; over the open internet the host forwards the port. Hosting needs ARIA restarted once to open the port. A box that only hosts can run <span class="mono">squad_server.py</span> instead of the whole app.</p>
     <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-vr">VR (WebXR)</h2>
     <div class="row" style="align-items:center">
       <button class="btn small" id="vrEnter">Enter VR</button><span class="sub" id="vrState">Checking headset…</span>
@@ -4085,5 +4095,6 @@ async function bootFinish() {
 })();
 </script>
 <script src="vr.js"></script>
+<script src="squad.js"></script>
 </body>
 </html>
