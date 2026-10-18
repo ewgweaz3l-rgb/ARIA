@@ -19,7 +19,9 @@ A local Star Citizen assistant that runs on your own PC. Five rooms:
 
 ## Install it (once)
 
-Double-click **install.bat**. It installs Python if you don't have it, copies ARIA to
+Double-click **install.bat**. If there's no Python 3.9+ on the PC it installs Python 3.12 for
+you (winget if available, otherwise the official python.org installer, silently, for your user
+only). Then it copies ARIA to
 `%LOCALAPPDATA%\ARIA`, and puts an **ARIA** shortcut on your desktop and Start menu. From then on,
 click the shortcut: ARIA checks GitHub for a newer version, updates itself, starts, and opens
 on your chosen screen. No console window. Log in `aria.log` if something goes wrong.
