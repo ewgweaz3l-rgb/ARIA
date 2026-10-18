@@ -61,6 +61,48 @@ TTL_RULES = [
 ]
 
 MACROS = os.path.join(ROOT, "macros.json")
+SCORES = os.path.join(ROOT, "scores.json")
+_scores_lock = threading.Lock()
+
+
+def load_scores():
+    try:
+        with open(SCORES, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def add_score(game, name, score, extra):
+    """Squad leaderboard kept by the host: top 25 per game, newest wins ties."""
+    with _scores_lock:
+        all_ = load_scores()
+        lst = all_.get(game, [])
+        lst.append({"name": str(name)[:12], "score": int(score), "extra": str(extra or "")[:24], "t": int(time.time() * 1000)})
+        lst.sort(key=lambda e: (-e["score"], -e["t"]))
+        all_[game] = lst[:25]
+        with open(SCORES, "w", encoding="utf-8") as f:
+            json.dump(all_, f, indent=1)
+        return all_[game]
+
+
+def local_ips():
+    import socket
+    ips = []
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ip = info[4][0]
+            if not ip.startswith("127.") and ip not in ips:
+                ips.append(ip)
+    except Exception:
+        pass
+    try:  # the interface that reaches the internet
+        s_ = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s_.connect(("8.8.8.8", 80)); ip = s_.getsockname()[0]; s_.close()
+        if ip not in ips:
+            ips.insert(0, ip)
+    except Exception:
+        pass
+    return ips
 # Starter profile. Bindings differ per player and per patch: check these against
 # your own Star Citizen keybinds and edit them in the Voice Macros room.
 DEFAULT_MACROS = [
@@ -228,6 +270,13 @@ def wiki_fetch_all(path, query):
     return json.dumps({"data": out, "meta": {"total": len(out)}}).encode()
 
 
+CORS = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type"}
+
+
+def AI_NAME():
+    return load_config().get("squad_name") or "ARIA"
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=WEB, **kw)
@@ -235,6 +284,13 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         if args and "/api/" in str(args[0]):
             sys.stderr.write("[aria] " + (fmt % args) + "\n")
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        for k, v in CORS.items():
+            self.send_header(k, v)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def send_json(self, code, obj, extra=None):
         body = json.dumps(obj).encode() if not isinstance(obj, bytes) else obj
@@ -278,9 +334,20 @@ class Handler(SimpleHTTPRequestHandler):
                     "platform": sys.platform,
                     "version": updater.current_version(),
                     "update_repo": updater.settings()[0],
+                    "squad_host": bool(cfg.get("squad_host")), "squad_key": cfg.get("squad_key", ""), "squad_url": cfg.get("squad_url", ""),
+                    "ips": local_ips() if cfg.get("squad_host") else [], "port": self.server.server_address[1],
                 })
             elif kind == "macros":
                 return self.send_json(200, {"macros": load_macros(), "file": os.path.basename(MACROS)})
+            elif kind == "scores":
+                cfg = load_config()
+                q = dict(qs)
+                if not cfg.get("squad_host"):
+                    return self.send_json(404, {"error": "This ARIA isn't hosting a squad board."}, CORS)
+                if (cfg.get("squad_key") or "") != (q.get("key") or ""):
+                    return self.send_json(403, {"error": "Wrong squad key."}, CORS)
+                allsc = load_scores()
+                return self.send_json(200, {"scores": {q["game"]: allsc.get(q["game"], [])} if q.get("game") else allsc, "host": AI_NAME()}, CORS)
             elif kind == "voicepack":
                 vdir = os.path.join(WEB, "voice")
                 files = sorted(f for f in os.listdir(vdir) if f.lower().endswith((".wav", ".mp3", ".ogg", ".m4a", ".flac"))) if os.path.isdir(vdir) else []
@@ -357,6 +424,26 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         u = urllib.parse.urlsplit(self.path)
+        if u.path == "/api/scores":  # squad board: friends post here from their own ARIA
+            n = int(self.headers.get("Content-Length") or 0)
+            try:
+                payload = json.loads(self.rfile.read(n) if n else b"{}")
+            except Exception:
+                payload = {}
+            cfg = load_config()
+            if not cfg.get("squad_host"):
+                return self.send_json(404, {"error": "Not hosting."}, CORS)
+            if (cfg.get("squad_key") or "") != str(payload.get("key") or ""):
+                return self.send_json(403, {"error": "Wrong squad key."}, CORS)
+            game = str(payload.get("game") or "")[:20]
+            try:
+                score = int(payload.get("score"))
+            except (TypeError, ValueError):
+                return self.send_json(400, {"error": "bad score"}, CORS)
+            if not game or score <= 0 or score > 10**9:
+                return self.send_json(400, {"error": "bad score"}, CORS)
+            lst = add_score(game, payload.get("name") or "CMDR", score, payload.get("extra"))
+            return self.send_json(200, {"ok": True, "scores": lst}, CORS)
         if not self.from_aria_page() or "json" not in (self.headers.get("Content-Type") or ""):
             return self.send_json(403, {"error": "forbidden"})
         n = int(self.headers.get("Content-Length") or 0)
@@ -367,9 +454,14 @@ class Handler(SimpleHTTPRequestHandler):
             payload = {}
         if u.path == "/api/config":
             cfg = load_config()
-            for k in ("uex_token", "sc_path", "update_repo"):
+            for k in ("uex_token", "sc_path", "update_repo", "squad_key", "squad_url", "squad_name"):
                 if k in payload:
                     cfg[k] = str(payload[k]).strip()
+            if "squad_host" in payload:
+                cfg["squad_host"] = bool(payload["squad_host"])
+                if cfg["squad_host"] and not cfg.get("squad_key"):
+                    import secrets
+                    cfg["squad_key"] = secrets.token_hex(4)
             if "vjoy_instance" in payload:
                 v = str(payload["vjoy_instance"]).strip()
                 if v.isdigit():
@@ -580,6 +672,8 @@ def main(argv=None):
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--normal-browser", action="store_true", help="open in your default browser instead of an app window")
     a = ap.parse_args(argv)
+    if load_config().get("squad_host") and a.host == "127.0.0.1":
+        a.host = "0.0.0.0"  # hosting the squad board: reachable from the network
     try:
         srv = ThreadingHTTPServer((a.host, a.port), Handler)
     except OSError:  # already running: just bring up a window

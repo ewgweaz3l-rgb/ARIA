@@ -3461,6 +3461,26 @@ function chessPage(side, common) {
    game MFD is the SOI. OSB 1 = game menu, 2 = new, 3 = pause, 4 = scores.
    ===================================================================== */
 const PILOT = () => store.get('pilot', 'CMDR');
+/* squad leaderboards: one ARIA hosts (Settings → Squad), the others post to it */
+const SQUAD = {
+  url() { const u = (STAT.squad_url || '').replace(/\/+$/, ''); return STAT.squad_host ? location.origin : u; },
+  key() { return STAT.squad_key || ''; },
+  on() { return !!(STAT.squad_host || STAT.squad_url); },
+  cache: {}, err: '', lastPull: 0,
+  async pull(game) {
+    if (!this.on()) return null;
+    try { const r = await fetch(`${this.url()}/api/scores?key=${encodeURIComponent(this.key())}${game ? '&game=' + encodeURIComponent(game) : ''}`, {cache: 'no-store'});
+      const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); Object.assign(this.cache, j.scores || {}); this.err = ''; this.lastPull = Date.now(); return j.scores; }
+    catch (e) { this.err = e.message; return null; }
+  },
+  async push(game, score, extra) {
+    if (!this.on()) return;
+    try { const r = await fetch(`${this.url()}/api/scores`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({key: this.key(), game, name: PILOT(), score, extra})});
+      const j = await r.json(); if (r.ok && j.scores) { this.cache[game] = j.scores; this.err = ''; } else this.err = j.error || ('HTTP ' + r.status); }
+    catch (e) { this.err = e.message; }
+  },
+  board(game) { return this.on() && this.cache[game] ? this.cache[game] : null; }
+};
 const BOARD = {
   get(g) { return store.get('scores', {})[g] || []; },
   add(g, score, extra) {
@@ -3468,9 +3488,11 @@ const BOARD = {
     const all = store.get('scores', {}), list = all[g] || [];
     list.push({name: PILOT(), score: Math.round(score), extra: extra || '', t: Date.now()});
     list.sort((a, b) => b.score - a.score); all[g] = list.slice(0, 10); store.set('scores', all);
+    SQUAD.push(g, Math.round(score), extra);
     return all[g].findIndex(e => e.t === list[list.length - 1]?.t && e.score === Math.round(score));
   },
-  rank(g, score) { const l = this.get(g); return l.filter(e => e.score > score).length + 1; }
+  rank(g, score) { const l = SQUAD.board(g) || this.get(g); return l.filter(e => e.score > score).length + 1; },
+  top(g) { const sq = SQUAD.board(g); return (sq && sq[0]) || this.get(g)[0] || null; }
 };
 const ARC = {game: null, id: store.get('arcGame', 'menu'), side: null, raf: 0, last: 0, keys: {}, paused: false, showBoard: false, best: null, pulse: 0};
 const GAME_LIST = [['chess', 'CHESS', 'vs ARIA'], ['tetris', 'CARGO', 'tetris'], ['dino', 'RUNNER', 'dino'], ['asteroids', 'ROIDS', 'asteroids']];
@@ -3486,18 +3508,19 @@ function arcStart(id, side) {
   ARC.raf = requestAnimationFrame(loop);
 }
 function arcStop() { cancelAnimationFrame(ARC.raf); ARC.raf = 0; if (ARC.game && ARC.game.stop) ARC.game.stop(); ARC.game = null; }
-function arcOver(score, extra) { const g = ARC.game; if (!g || g.scored) return; g.scored = true; const rank = BOARD.rank(ARC.id, score); BOARD.add(ARC.id, score, extra); ARC.best = rank; say(rank === 1 ? 'New record, Commander.' : `Game over. Rank ${rank}.`); }
+function arcOver(score, extra) { const g = ARC.game; if (!g || g.scored) return; g.scored = true; const rank = BOARD.rank(ARC.id, score); BOARD.add(ARC.id, score, extra); ARC.best = rank; setTimeout(() => SQUAD.pull(ARC.id), 800); say(rank === 1 ? 'New record, Commander.' : `Game over. Rank ${rank}.`); }
 function arcHud(k) {
   const {ctx, W, H} = k, g = ARC.game, C = themeColor('--mg'), Wt = themeColor('--mw');
   ctx.font = '600 11px IBM Plex Mono, monospace'; ctx.textAlign = 'left'; ctx.fillStyle = C;
   ctx.fillText(`SCORE ${fmt(g.score || 0)}`, 6, 13); ctx.textAlign = 'right'; ctx.fillText(`BEST ${fmt((BOARD.get(ARC.id)[0] || {}).score || 0)}`, W - 6, 13);
   if (ARC.paused || g.over || ARC.showBoard) {
     ctx.fillStyle = 'rgba(0,0,0,.72)'; ctx.fillRect(0, 0, W, H); ctx.textAlign = 'center'; ctx.fillStyle = Wt;
-    if (ARC.showBoard) { ctx.font = '700 13px Oxanium, sans-serif'; ctx.fillText(`${GAME_LIST.find(x => x[0] === ARC.id)[1]} · TOP 10`, W / 2, 30); ctx.font = '11px IBM Plex Mono, monospace';
-      const l = BOARD.get(ARC.id); if (!l.length) ctx.fillText('NO SCORES YET', W / 2, 60);
-      l.forEach((e, i) => { ctx.textAlign = 'left'; ctx.fillText(`${i + 1}. ${e.name}`, W * .15, 50 + i * 15); ctx.textAlign = 'right'; ctx.fillText(fmt(e.score), W * .85, 50 + i * 15); }); }
+    if (ARC.showBoard) { const sq = SQUAD.board(ARC.id); ctx.font = '700 13px Oxanium, sans-serif'; ctx.fillText(`${GAME_LIST.find(x => x[0] === ARC.id)[1]} · ${sq ? 'SQUAD' : 'LOCAL'} TOP 10`, W / 2, 30); ctx.font = '11px IBM Plex Mono, monospace';
+      const l = (sq || BOARD.get(ARC.id)).slice(0, 10); if (!l.length) ctx.fillText('NO SCORES YET', W / 2, 60);
+      l.forEach((e, i) => { const me = e.name === PILOT(); ctx.fillStyle = me ? C : Wt; ctx.textAlign = 'left'; ctx.fillText(`${i + 1}. ${e.name}${me ? ' ◀' : ''}`, W * .12, 50 + i * 15); ctx.textAlign = 'right'; ctx.fillText(fmt(e.score), W * .88, 50 + i * 15); });
+      if (SQUAD.on() && SQUAD.err) { ctx.fillStyle = C; ctx.textAlign = 'center'; ctx.font = '9px IBM Plex Mono, monospace'; ctx.fillText('SQUAD OFFLINE · ' + SQUAD.err.toUpperCase().slice(0, 30), W / 2, H - 8); } }
     else { ctx.font = '700 18px Oxanium, sans-serif'; ctx.fillText(g.over ? 'GAME OVER' : 'PAUSED', W / 2, H / 2 - 10); ctx.font = '11px IBM Plex Mono, monospace';
-      ctx.fillText(g.over ? (ARC.best === 1 ? 'NEW RECORD' : ARC.best ? 'RANK ' + ARC.best : '') + '  ·  NEW = AGAIN' : 'PAUSE = RESUME', W / 2, H / 2 + 12); }
+      ctx.fillText(g.over ? (ARC.best === 1 ? (SQUAD.on() ? 'SQUAD RECORD' : 'NEW RECORD') : ARC.best ? (SQUAD.on() ? 'SQUAD RANK ' : 'RANK ') + ARC.best : '') + '  ·  NEW = AGAIN' : 'PAUSE = RESUME', W / 2, H / 2 + 12); }
   }
 }
 // input: rockers / OSBs / keyboard → the running game
@@ -3520,11 +3543,12 @@ function gamePage(side, common) {
     const o = {...common}; const slots = [16, 17, 18, 19, 20, 6, 7, 8, 9, 10];
     GAME_LIST.forEach(([id, name], i) => { o[slots[i]] = {l: name, fn: () => arcStart(id, side)}; });
     o[4] = {l: 'PILOT', fn: () => { const n = prompt('Pilot name for the leaderboards:', PILOT()); if (n) store.set('pilot', n.trim().slice(0, 10).toUpperCase() || 'CMDR'); mfdRender(side); }};
-    const best = GAME_LIST.filter(g => g[0] !== 'chess').map(([id, name]) => `<div class="mrow"><span>${name}</span><b>${fmt((BOARD.get(id)[0] || {}).score || 0)} ${(BOARD.get(id)[0] || {}).name || ''}</b></div>`).join('');
-    return {title: 'GAME', osb: o, body: `<div class="mbig sm">ARCADE</div><div class="msub">PILOT ${esc(PILOT())}</div>${best}<div class="mrow"><span>CHESS</span><b>W${CH.stats.w} L${CH.stats.l} D${CH.stats.d}</b></div><div class="mnote">ROCKERS = D-PAD · A/B = LOWER ROCKERS</div>`};
+    if (SQUAD.on() && Date.now() - SQUAD.lastPull > 15000) { SQUAD.lastPull = Date.now(); SQUAD.pull().then(() => mfdRender(side)); }
+    const best = GAME_LIST.filter(g => g[0] !== 'chess').map(([id, name]) => { const t = BOARD.top(id) || {}; return `<div class="mrow"><span>${name}</span><b>${fmt(t.score || 0)} ${esc(t.name || '')}</b></div>`; }).join('');
+    return {title: 'GAME', osb: o, body: `<div class="mbig sm">ARCADE</div><div class="msub">PILOT ${esc(PILOT())}${SQUAD.on() ? ' · SQUAD ' + (SQUAD.err ? 'OFFLINE' : 'LINKED') : ''}</div>${best}<div class="mrow"><span>CHESS</span><b>W${CH.stats.w} L${CH.stats.l} D${CH.stats.d}</b></div><div class="mnote">ROCKERS = D-PAD · A/B = LOWER ROCKERS</div>`};
   }
   const o = {...common, 1: {l: 'GAMES', fn: () => arcStart('menu', side)}, 2: {l: 'NEW', fn: () => arcStart(ARC.id, side)}, 3: {l: ARC.paused ? 'GO' : 'PAUSE', fn: () => { ARC.paused = !ARC.paused; mfdRender(side); }},
-    4: {l: 'TOP10', on: ARC.showBoard, fn: () => { ARC.showBoard = !ARC.showBoard; }}, 6: {l: 'A', fn: () => { arcInput('a', true); setTimeout(() => arcInput('a', false), 80); }}, 7: {l: 'B', fn: () => { arcInput('b', true); setTimeout(() => arcInput('b', false), 80); }}};
+    4: {l: 'TOP10', on: ARC.showBoard, fn: () => { ARC.showBoard = !ARC.showBoard; if (ARC.showBoard) SQUAD.pull(ARC.id); }}, 6: {l: 'A', fn: () => { arcInput('a', true); setTimeout(() => arcInput('a', false), 80); }}, 7: {l: 'B', fn: () => { arcInput('b', true); setTimeout(() => arcInput('b', false), 80); }}};
   return {title: GAME_LIST.find(x => x[0] === ARC.id)[1], osb: o, body: `<canvas id="arcCanvas" class="arc"></canvas>`, keepCanvas: true};
 }
 
@@ -3709,6 +3733,14 @@ async function openSettings() {
       <button class="btn small" id="updApply" style="margin-top:12px;display:none">Update & restart</button>
     </div>
     <p>ARIA <b id="verNow"></b>. The desktop app checks the repo every launch and updates itself; this is the manual way.</p>
+    <h2 style="margin-top:22px">Squad leaderboards</h2>
+    <div class="row" style="align-items:center"><label class="chk"><input type="checkbox" id="sqHost"> Host the squad board on this PC</label><span class="sub" id="sqHostInfo"></span></div>
+    <div class="row" style="margin-top:8px">
+      <label class="f" style="flex:1;min-width:220px">Join a friend's board — address<input id="sqUrl" type="text" placeholder="http://100.80.1.5:8777"></label>
+      <label class="f" style="width:140px">Squad key<input id="sqKey" type="text" placeholder="from the host"></label>
+      <button class="btn ghost small" id="sqTest" style="margin-top:12px">Test</button><span class="sub" id="sqState" style="margin-top:14px"></span>
+    </div>
+    <p>One of you hosts; the rest join. Scores post to the host and every game's TOP10 shows the whole squad. Same network or VPN (Tailscale, Hamachi) just works; over the open internet the host forwards the port. Hosting needs ARIA restarted once to open the port.</p>
     <h2 style="margin-top:22px">VR (WebXR)</h2>
     <div class="row" style="align-items:center">
       <button class="btn small" id="vrEnter">Enter VR</button><span class="sub" id="vrState">Checking headset…</span>
@@ -3754,6 +3786,13 @@ async function openSettings() {
   $('#modal').classList.add('on');
   $('#modalClose').onclick = () => $('#modal').classList.remove('on');
   $('#ckOn').checked = CK.on; $('#ckOn').onchange = () => setCockpit($('#ckOn').checked);
+  $('#sqHost').checked = !!st.squad_host; $('#sqUrl').value = st.squad_url || ''; $('#sqKey').value = st.squad_key || '';
+  const sqInfo = () => { $('#sqHostInfo').innerHTML = st.squad_host ? `Friends join with <span class="mono">${(st.ips || []).map(ip => 'http://' + ip + ':' + st.port).join('</span> or <span class="mono">') || 'your IP:' + st.port}</span> · key <span class="mono">${esc(st.squad_key || '')}</span>` : ''; };
+  sqInfo();
+  const sqSave = async () => { const r = await fetch('/api/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({squad_host: $('#sqHost').checked, squad_url: $('#sqUrl').value.trim(), squad_key: $('#sqKey').value.trim()})}); await r.json(); const s2 = await (await fetch('/api/status')).json(); Object.assign(st, s2); Object.assign(STAT, s2); $('#sqKey').value = st.squad_key || ''; sqInfo(); SQUAD.cache = {}; };
+  $('#sqHost').onchange = async () => { await sqSave(); if ($('#sqHost').checked) toast('Hosting on. Restart ARIA once so friends can reach it.', 6000); };
+  $('#sqUrl').onchange = sqSave; $('#sqKey').onchange = sqSave;
+  $('#sqTest').onclick = async () => { await sqSave(); $('#sqState').textContent = 'Testing…'; const r = await SQUAD.pull(); $('#sqState').textContent = r ? `Linked — ${Object.keys(r).length} game board${Object.keys(r).length === 1 ? '' : 's'} on the host.` : 'No answer: ' + SQUAD.err; };
   vrCheck().then(() => { $('#vrState').textContent = VR.status; $('#vrEnter').textContent = VR.session ? 'Leave VR' : 'Enter VR'; });
   $('#vrEnter').onclick = () => enterVR();
   const vf = () => { const c = VR.cfg(); $('#vrDist').value = c.dist * 100; $('#vrDistV').textContent = c.dist.toFixed(2) + ' m'; $('#vrH').value = c.height * 100; $('#vrHV').textContent = c.height.toFixed(2) + ' m'; $('#vrSp').value = c.spread; $('#vrSpV').textContent = c.spread + '°'; $('#vrSc').value = c.scale * 100; $('#vrScV').textContent = Math.round(c.scale * 100) + '%'; $('#vrPi').value = c.pitch; $('#vrPiV').textContent = c.pitch + '°'; };

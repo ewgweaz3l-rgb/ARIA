@@ -11,3 +11,4 @@ web/voice/*
 !web/voice/README.txt
 scdata/*
 !scdata/README.txt
+scores.json

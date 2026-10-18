@@ -92,6 +92,12 @@ Every game has a top-10 leaderboard under your pilot name (Settings → Pilot na
 - **ROIDS** — asteroids. Left/right turn, up thrusts, A fires, B hyperspace.
 More games land one or two per version.
 
+**Squad leaderboards.** One of you hosts: Settings ⚙ → Squad → "Host the squad board on this PC",
+restart ARIA once, and give friends the address and key it shows. Friends paste both into their
+Settings → Squad → Test. From then on every score posts to the host and every game's TOP10 is the
+whole squad, your own entries marked ◀. Same LAN or a VPN (Tailscale, Hamachi) works as is; over
+the open internet the host forwards port 8777. The board lives in the host's `scores.json`.
+
 The Cougars are detected by their USB id. If the SYS page says NOT FOUND, use SYS → SET L / SET R
 (or Settings ⚙ → Set left/right MFD) and press any button on that MFD.
 
