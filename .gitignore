@@ -1,0 +1,13 @@
+# your own stuff never goes to GitHub
+config.json
+macros.json
+aria.log
+cache/*
+!cache/.keep
+backups/
+browser-profile/
+__pycache__/
+web/voice/*
+!web/voice/README.txt
+scdata/*
+!scdata/README.txt
