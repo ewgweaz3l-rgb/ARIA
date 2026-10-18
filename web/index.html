@@ -357,7 +357,7 @@ body[data-fx=analog] .mbar i{transition:width .8s cubic-bezier(.2,.9,.3,1.3)}
 .ufc{display:none;filter:brightness(var(--mdim));background:var(--mbg1);border:1px solid var(--mline);border-radius:8px;padding:8px 10px;color:var(--mg);font-family:var(--mono);text-shadow:0 0 6px rgba(var(--mgrgb),0.35);position:relative;overflow:hidden;flex-direction:column;gap:6px}
 .ufc::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,var(--mscan)) 0 1px,transparent 1px 3px)}
 .uhead{display:flex;align-items:center;gap:8px;font:600 10px var(--mono);letter-spacing:.18em}
-.usp{flex:1}.ugood{color:var(--mg)}.uwarn{color:var(--macc)}
+.usp{flex:1}.ukeystog{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}.ukeystog:hover{filter:brightness(1.4)}.ugood{color:var(--mg)}.uwarn{color:var(--macc)}
 .ulamp{width:8px;height:8px;border-radius:50%;background:var(--mline)}.ulamp.on{background:var(--mg);box-shadow:0 0 8px var(--mg)}
 .upad{min-height:38px;max-height:56px;overflow:hidden;font:500 13px/1.4 var(--mono);color:var(--mw);border-top:1px solid var(--mline);border-bottom:1px solid var(--mline);padding:5px 2px}
 .ugrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,42%);gap:10px;flex:1;min-height:150px}
@@ -3498,9 +3498,15 @@ const STAT = {};
    and keeps a log of every key press ARIA sends.
    ===================================================================== */
 const SCG = {running: false, windows: null};
+function setKeysLive(on) {
+  $('#keysLive').checked = on; store.set('keysLive', on);
+  ufcSay(on ? 'Keys live. I will press keys in the game.' : 'Practice mode. I will only say what I would press.');
+  if (typeof updateKeysNote === 'function') updateKeysNote();
+  ufcRender(); mfdRenderAll();
+}
 async function pollGame() {
   try { const g = await (await fetch('/api/game')).json(); const was = SCG.running; SCG.running = !!g.running; SCG.windows = !!g.windows;
-    if (was !== SCG.running && CK.on) { ufcRender(); mfdRender('L'); mfdRender('R'); if (SCG.running) say('Star Citizen detected.'); } } catch {}
+    if (was !== SCG.running && CK.on) { ufcRender(); mfdRender('L'); mfdRender('R'); if (SCG.running) say($('#keysLive').checked ? 'Star Citizen detected.' : 'Star Citizen detected. Keys are in practice mode — tap practice on the deck to go live.'); } } catch {}
 }
 setInterval(() => { if (CK.on || document.visibilityState === 'visible') pollGame(); }, 12000); setTimeout(pollGame, 2500);
 const UFC = {msg: '', typed: 0, mode: 'route', pulse: null, keylog: store.get('keylog', []).slice(0, 60), raf: 0, lastAnswer: null, answers: []};
@@ -3693,13 +3699,14 @@ function ufcRender() {
   const el = $('#ufc'); if (!el || !CK.on) return;
   const live = $('#keysLive').checked, S = ufcSummary();
   el.innerHTML = `<div class="uhead"><span class="ulamp ${VOICE.on ? 'on' : ''}"></span><b>${esc(AI().toUpperCase())}</b>
-      <span class="${live ? 'ugood' : 'uwarn'}" title="${live ? 'Press keys in game is on' : 'Practice mode: ARIA says what she would press but presses nothing (Voice Macros → Press keys in game)'}">${live ? 'KEYS LIVE' : 'PRACTICE'}</span><span>${PTTC.held ? '<span class="uwarn">● TALK</span>' : VOICE.on ? (pttMode() ? 'PTT' : 'OPEN MIC') : 'VOICE OFF'}</span>
+      <span class="${live ? 'ugood' : 'uwarn'} ukeystog" title="${live ? 'Keys go to the game. Click for practice mode.' : 'Practice mode: ARIA says what she would press but presses nothing. Click to go live.'}">${live ? 'KEYS LIVE' : 'PRACTICE ▸ GO LIVE'}</span><span>${PTTC.held ? '<span class="uwarn">● TALK</span>' : VOICE.on ? (pttMode() ? 'PTT' : 'OPEN MIC') : 'VOICE OFF'}</span>
       <span class="${SCG.running ? 'ugood' : ''}" title="${SCG.running ? 'StarCitizen.exe is running — keys go to it' : 'Star Citizen is not running (ARIA checks every few seconds)'}">${SCG.running ? 'SC LINKED' : SCG.windows === false ? 'SC —' : 'SC NOT RUNNING'}</span>
       </div>
     <div class="umain"><div class="uhint">${S ? `<b>${S.title}</b> · ${esc(S.name)} · ${S.cells.slice(0, 4).map(([k, v]) => `${k} <b>${esc(String(v))}</b>`).join(' · ')}` : `<b>STANDBY</b> · ASK A ROUTE: “C2 HERCULES 750K FROM AREA18” · “NAV TO RUIN STATION” · “RTB” · OR JUST TALK`}</div>
     <div class="upad" id="ufcPad">${esc(UFC.msg.slice(0, UFC.typed))}</div></div>
     <div class="ukeys"><button>SAY</button><button>RTB</button><button>MAP</button></div>`;
   const acts = [() => say(UFC.msg || 'Nothing to report.'), () => rtb(), () => { show('starmap'); setSystem('job'); }];
+  const kt = $('.ukeystog', el); if (kt) kt.onclick = () => setKeysLive(!$('#keysLive').checked);
   $$('.ukeys button', el).forEach((b, i) => b.onclick = acts[i]);
   if (UFC.typed < UFC.msg.length) ufcType();
   if (MFDS.C.page === 'UFC') mfdRender('C');
@@ -4688,7 +4695,7 @@ $('#listenBtn').onclick = () => setListening(!VOICE.on);
 $('#listenMode').onchange = () => { store.set('listenMode', $('#listenMode').value); if (VOICE.on) { setListening(false); setListening(true); } updateVoiceUI(); };
 $('#wakeOn').onchange = () => { store.set('wakeOn', $('#wakeOn').checked); updateVoiceUI(); };
 $('#wakeWord').onchange = () => store.set('wakeWord', $('#wakeWord').value.trim().toLowerCase());
-$('#keysLive').onchange = () => { store.set('keysLive', $('#keysLive').checked); vlog($('#keysLive').checked ? 'keys LIVE' : 'practice mode'); };
+$('#keysLive').onchange = () => { store.set('keysLive', $('#keysLive').checked); vlog($('#keysLive').checked ? 'keys LIVE' : 'practice mode'); ufcRender(); mfdRenderAll(); };
 $('#voiceMode').onchange = () => store.set('voiceMode', $('#voiceMode').value);
 $('#mAdd').onclick = () => { VOICE.macros.push({phrases: [], keys: '', reply: ''}); renderMacroTable(); const ins = $$('#macroTable input[data-f="phrases"]'); ins[ins.length - 1].focus(); };
 $('#mSave').onclick = saveMacros;
