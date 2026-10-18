@@ -52,6 +52,12 @@ answers on the scratchpad teletype-style, with cash / time / stops / jumps, a mi
 the route lit, and soft keys: ACPT (make it a job), NEXT (reinvest leg), RTB, MAP, SAY, LOG. Shield
 reroutes from the SHLD page animate here. LOG keeps the last 60 key presses ARIA sent.
 
+**GAME page — chess vs ARIA.** Something to do in quantum. MENU → GAME. The rockers move the
+cursor (left pair up/down, right pair left/right), the next rocker selects; the legal moves for
+the selected piece appear on the OSBs — press one to play it. NEW / BLK (play black) / level
+(ROOK → EASY → MED → HARD) / UNDO. The game and your W-L-D record survive restarts. Mouse clicks
+on squares work too.
+
 The Cougars are detected by their USB id. If the SYS page says NOT FOUND, use SYS → SET L / SET R
 (or Settings ⚙ → Set left/right MFD) and press any button on that MFD.
 

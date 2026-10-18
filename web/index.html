@@ -239,6 +239,16 @@ body.cockpit #jobBar{margin:0!important}
 .calbox.sel .calgrip{background:var(--amber)}
 .caltools{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);pointer-events:auto;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--dim);display:flex;gap:10px;align-items:center;z-index:81;white-space:nowrap}
 .caltools b{color:var(--amber);font:700 11px var(--head);letter-spacing:.2em}
+/* chess on the MFD */
+.cstat{font-size:10px;letter-spacing:.12em;text-align:center;color:var(--mw);white-space:nowrap;overflow:hidden}
+.cboard{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;max-height:78%;margin:2px auto;border:1px solid rgba(94,240,138,.5);align-self:center;width:min(100%,calc(78% * 1))}
+.csq{display:grid;place-items:center;font-size:clamp(10px,3.1cqw,22px);line-height:1;cursor:pointer;color:var(--mw);text-shadow:none;position:relative}
+.csq.lt{background:rgba(94,240,138,.16)}.csq.dk{background:rgba(94,240,138,.04)}
+.csq.blk{color:#5ef08a}
+.csq.cur{outline:2px solid #fff;outline-offset:-2px;z-index:1}
+.csq.sel{background:rgba(242,168,59,.45)}
+.csq.tgt::after{content:'';position:absolute;width:28%;height:28%;border-radius:50%;background:rgba(242,168,59,.8)}
+.cfoot{display:flex;justify-content:space-between;font-size:9px;opacity:.8;white-space:nowrap;overflow:hidden;gap:6px}
 /* UFC center deck */
 .ufc{display:none;background:#030805;border:1px solid #1c3a26;border-radius:8px;padding:8px 10px;color:#5ef08a;font-family:var(--mono);text-shadow:0 0 6px rgba(94,240,138,.35);position:relative;overflow:hidden;min-height:250px;flex-direction:column;gap:6px}
 .ufc::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px)}
@@ -2687,7 +2697,7 @@ const MFDS = {L: {page: store.get('mfdPageL', 'MENU')}, R: {page: store.get('mfd
   soi: store.get('mfdSoi', 'L'), brt: store.get('mfdBrt', {L: 1, R: 1}), flash: {},
   shld: {f: 0, a: 0, l: 0, r: 0}, pwr: {w: 0, s: 0, e: 0}, stop: store.get('jobStop', 0), mpage: 0,
   test: null, resolved: {}, lastPress: {}};
-const PAGE_CYCLE = ['MENU', 'SHLD', 'PWR', 'NAV', 'JOB', 'MACR', 'VOICE', 'SYS'];
+const PAGE_CYCLE = ['MENU', 'SHLD', 'PWR', 'NAV', 'JOB', 'MACR', 'VOICE', 'SYS', 'GAME'];
 function osbPos(n) {
   if (n <= 5) return {side: 'top', k: n - 1};
   if (n <= 10) return {side: 'right', k: n - 6};
@@ -2737,7 +2747,7 @@ function pageDef(side) {
   const warn = keysOff ? '<div class="mw amber">KEYS OFF · PRACTICE</div>' : '';
   if (p === 'MENU') {
     const o = {...common, 1: {l: 'SHLD', go: 'SHLD'}, 2: {l: 'PWR', go: 'PWR'}, 3: {l: 'NAV', go: 'NAV'}, 4: {l: 'JOB', go: 'JOB'}, 5: {l: 'MACR', go: 'MACR'},
-      6: {l: 'VOICE', go: 'VOICE'}, 7: {l: 'SYS', go: 'SYS'}, 16: {l: 'SWAP', fn: () => { const a = MFDS.L.page, b = MFDS.R.page; mfdGo('L', b); mfdGo('R', a); }}};
+      6: {l: 'VOICE', go: 'VOICE'}, 7: {l: 'SYS', go: 'SYS'}, 8: {l: 'GAME', go: 'GAME'}, 16: {l: 'SWAP', fn: () => { const a = MFDS.L.page, b = MFDS.R.page; mfdGo('L', b); mfdGo('R', a); }}};
     delete o[15];
     const st = DB.status || {}, uex = Object.values(st).find(s => s.src === 'uex'), wiki = Object.values(st).find(s => s.src === 'wiki');
     const done = P ? P.stops.slice(0, MFDS.stop + 1).flatMap(s => s.actions).reduce((a, x) => a + (x.profit || 0), 0) : 0;
@@ -2824,6 +2834,7 @@ function pageDef(side) {
         <div class="msub">HEARD</div><div class="mline">${esc(($('#heard').textContent || '—').toUpperCase())}</div>
         <div class="msub">LOG</div>${VOICE.log.slice(0, 4).map(l => `<div class="mline sm">${esc(l.slice(10).toUpperCase())}</div>`).join('')}`};
   }
+  if (p === 'GAME') return chessPage(side, common);
   if (p === 'SYS') {
     return {title: 'SYS', osb: {...common, 6: {l: 'REFR', fn: () => refreshAll()}, 7: {l: 'CAL', fn: () => startCal()}, 8: {l: 'TEST', fn: () => { MFDS.test = {until: Date.now() + 15000}; mfdRender('L'); mfdRender('R'); }},
       9: {l: 'FULL', fn: () => toggleFullscreen()}, 10: {l: 'EDIT', fn: () => openOsbEditor()},
@@ -2859,6 +2870,7 @@ function mfdRender(side) {
       <div class="mtitle">${esc(d.title)}</div>${MFDS.soi === side ? '<div class="msoi" title="Sensor of interest">◆</div>' : ''}
       ${labels.join('')}<div class="mbody">${d.body}</div>${overlay}</div>`;
   $$('.osb', el).forEach(b => b.onclick = () => mfdPress(side, +b.dataset.n, true));
+  $$('.csq', el).forEach(c => c.onclick = () => { CH.cur = +c.dataset.sq; chSelect(); });
   MFDS.cur = MFDS.cur || {}; MFDS.cur[side] = d;
 }
 async function mfdPress(side, n, fromMouse) {
@@ -2873,6 +2885,11 @@ async function mfdPress(side, n, fromMouse) {
   else if (o.fn) await o.fn(fromMouse);
 }
 function mfdRocker(side, n) {
+  if (MFDS[side].page === 'GAME') {
+    if (n === 21) return chCursorMove(CH.human === 'b' ? 1 : -1, 0); if (n === 22) return chCursorMove(CH.human === 'b' ? -1 : 1, 0);
+    if (n === 23) return chCursorMove(0, CH.human === 'b' ? 1 : -1); if (n === 24) return chCursorMove(0, CH.human === 'b' ? -1 : 1);
+    if (n === 25 || n === 26) return chSelect();
+  }
   // rockers: 21/22 brightness · 23/24 page cycle · 25/26 macro page · 27/28 make this the SOI
   if (n === 21 || n === 22) { MFDS.brt[side] = Math.max(.3, Math.min(1.6, MFDS.brt[side] + (n === 21 ? .1 : -.1))); store.set('mfdBrt', MFDS.brt); }
   else if (n === 23 || n === 24) { const i = PAGE_CYCLE.indexOf(MFDS[side].page); mfdGo(side, PAGE_CYCLE[(i + (n === 23 ? 1 : PAGE_CYCLE.length - 1)) % PAGE_CYCLE.length]); return; }
@@ -3061,6 +3078,201 @@ function drawShieldAnim(c) {
   ctx.fillStyle = G; ctx.font = '600 10px IBM Plex Mono, monospace'; ctx.textAlign = 'center';
   ctx.fillText(`SHIELDS  F+${s.f} A+${s.a} L+${s.l} R+${s.r}`, cx, H - 6);
   ctx.fillText(face === 'x' ? 'RESET' : face ? 'REROUTE ' + ({f: 'FWD', a: 'AFT', l: 'LEFT', r: 'RIGHT'})[face] : '', cx, 14);
+}
+
+/* =====================================================================
+   GAME page: chess vs ARIA on the MFD. Rockers move the cursor, OSBs play
+   the legal moves. Something to do in quantum.
+   ===================================================================== */
+const CH = {
+  st: null, cur: 52, sel: null, page: 0, thinking: false, msg: '', hist: [],
+  level: store.get('chessLevel', 2), human: 'w',
+  stats: store.get('chessStats', {w: 0, l: 0, d: 0})
+};
+const PV = {p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000};
+const GLYPH = {wk: '♔', wq: '♕', wr: '♖', wb: '♗', wn: '♘', wp: '♙', bk: '♚', bq: '♛', br: '♜', bb: '♝', bn: '♞', bp: '♟'};
+// piece-square tables (white's view, a8 first), a classic set
+const PST = {
+  p: [0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
+  n: [-50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,0,0,0,-20,-40, -30,0,10,15,15,10,0,-30, -30,5,15,20,20,15,5,-30, -30,0,15,20,20,15,0,-30, -30,5,10,15,15,10,5,-30, -40,-20,0,5,5,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50],
+  b: [-20,-10,-10,-10,-10,-10,-10,-20, -10,0,0,0,0,0,0,-10, -10,0,5,10,10,5,0,-10, -10,5,5,10,10,5,5,-10, -10,0,10,10,10,10,0,-10, -10,10,10,10,10,10,10,-10, -10,5,0,0,0,0,5,-10, -20,-10,-10,-10,-10,-10,-10,-20],
+  r: [0,0,0,0,0,0,0,0, 5,10,10,10,10,10,10,5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, 0,0,0,5,5,0,0,0],
+  q: [-20,-10,-10,-5,-5,-10,-10,-20, -10,0,0,0,0,0,0,-10, -10,0,5,5,5,5,0,-10, -5,0,5,5,5,5,0,-5, 0,0,5,5,5,5,0,-5, -10,5,5,5,5,5,0,-10, -10,0,5,0,0,0,0,-10, -20,-10,-10,-5,-5,-10,-10,-20],
+  k: [-30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -20,-30,-30,-40,-40,-30,-30,-20, -10,-20,-20,-20,-20,-20,-20,-10, 20,20,0,0,0,0,20,20, 20,30,10,0,0,10,30,20]
+};
+function chNew(human) {
+  const b = new Array(64).fill(null);
+  const back = 'rnbqkbnr';
+  for (let i = 0; i < 8; i++) { b[i] = 'b' + back[i]; b[8 + i] = 'bp'; b[48 + i] = 'wp'; b[56 + i] = 'w' + back[i]; }
+  CH.st = {b, turn: 'w', castle: {wk: true, wq: true, bk: true, bq: true}, ep: -1, half: 0, over: null};
+  CH.human = human || 'w'; CH.sel = null; CH.page = 0; CH.hist = []; CH.msg = ''; CH.cur = CH.human === 'w' ? 52 : 12;
+  chSave();
+  if (CH.st.turn !== CH.human) setTimeout(chAriaMove, 400);
+}
+function chSave() { store.set('chess', {st: CH.st, human: CH.human, hist: CH.hist}); }
+function chLoad() { const s = store.get('chess', null); if (s && s.st) { CH.st = s.st; CH.human = s.human; CH.hist = s.hist || []; } }
+const sq = (r, c) => r * 8 + c, rc = i => [i >> 3, i & 7], inB = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+const alg = i => 'abcdefgh'[i & 7] + (8 - (i >> 3));
+function attacked(b, i, by) {
+  const [r, c] = rc(i);
+  const pd = by === 'w' ? 1 : -1;  // pawns of `by` attack toward smaller rank index if white
+  for (const dc of [-1, 1]) { const rr = r + pd, cc = c + dc; if (inB(rr, cc) && b[sq(rr, cc)] === by + 'p') return true; }
+  for (const [dr, dc] of [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]) { const rr = r + dr, cc = c + dc; if (inB(rr, cc) && b[sq(rr, cc)] === by + 'n') return true; }
+  for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+    let rr = r + dr, cc = c + dc, first = true;
+    while (inB(rr, cc)) {
+      const p = b[sq(rr, cc)];
+      if (p) {
+        if (p[0] === by) {
+          const t = p[1], diag = dr && dc;
+          if (t === 'q' || (diag ? t === 'b' : t === 'r') || (first && t === 'k')) return true;
+        }
+        break;
+      }
+      rr += dr; cc += dc; first = false;
+    }
+  }
+  return false;
+}
+function kingSq(b, col) { return b.indexOf(col + 'k'); }
+function pseudo(st, i) {
+  const b = st.b, p = b[i]; if (!p) return [];
+  const col = p[0], t = p[1], [r, c] = rc(i), out = [], opp = col === 'w' ? 'b' : 'w';
+  const push = (to, extra) => out.push({from: i, to, ...(extra || {})});
+  if (t === 'p') {
+    const d = col === 'w' ? -1 : 1, start = col === 'w' ? 6 : 1, last = col === 'w' ? 0 : 7;
+    if (inB(r + d, c) && !b[sq(r + d, c)]) {
+      push(sq(r + d, c), r + d === last ? {promo: 'q'} : null);
+      if (r === start && !b[sq(r + 2 * d, c)]) push(sq(r + 2 * d, c), {dbl: true});
+    }
+    for (const dc of [-1, 1]) {
+      const rr = r + d, cc = c + dc; if (!inB(rr, cc)) continue;
+      const to = sq(rr, cc);
+      if (b[to] && b[to][0] === opp) push(to, rr === last ? {promo: 'q'} : null);
+      else if (to === st.ep) push(to, {ep: true});
+    }
+  } else if (t === 'n' || t === 'k') {
+    const D = t === 'n' ? [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]] : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+    for (const [dr, dc] of D) { const rr = r + dr, cc = c + dc; if (inB(rr, cc) && (!b[sq(rr, cc)] || b[sq(rr, cc)][0] === opp)) push(sq(rr, cc)); }
+    if (t === 'k') {
+      const home = col === 'w' ? 60 : 4;
+      if (i === home && !attacked(b, i, opp)) {
+        if (st.castle[col + 'k'] && !b[i + 1] && !b[i + 2] && b[i + 3] === col + 'r' && !attacked(b, i + 1, opp) && !attacked(b, i + 2, opp)) push(i + 2, {castle: 'k'});
+        if (st.castle[col + 'q'] && !b[i - 1] && !b[i - 2] && !b[i - 3] && b[i - 4] === col + 'r' && !attacked(b, i - 1, opp) && !attacked(b, i - 2, opp)) push(i - 2, {castle: 'q'});
+      }
+    }
+  } else {
+    const D = t === 'r' ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : t === 'b' ? [[1, 1], [1, -1], [-1, 1], [-1, -1]] : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+    for (const [dr, dc] of D) { let rr = r + dr, cc = c + dc; while (inB(rr, cc)) { const q = b[sq(rr, cc)]; if (!q) push(sq(rr, cc)); else { if (q[0] === opp) push(sq(rr, cc)); break; } rr += dr; cc += dc; } }
+  }
+  return out;
+}
+function apply(st, m) {
+  const b = st.b.slice(), p = b[m.from], col = p[0];
+  const n = {b, turn: col === 'w' ? 'b' : 'w', castle: {...st.castle}, ep: -1, half: st.half + 1, over: null, cap: b[m.to]};
+  b[m.to] = m.promo ? col + m.promo : p; b[m.from] = null;
+  if (m.ep) { const cs = m.to + (col === 'w' ? 8 : -8); n.cap = b[cs]; b[cs] = null; }
+  if (m.dbl) n.ep = (m.from + m.to) / 2;
+  if (m.castle === 'k') { b[m.to - 1] = b[m.to + 1]; b[m.to + 1] = null; }
+  if (m.castle === 'q') { b[m.to + 1] = b[m.to - 2]; b[m.to - 2] = null; }
+  if (p[1] === 'k') { n.castle[col + 'k'] = false; n.castle[col + 'q'] = false; }
+  for (const [s, k] of [[56, 'wq'], [63, 'wk'], [0, 'bq'], [7, 'bk']]) if (m.from === s || m.to === s) n.castle[k] = false;
+  if (p[1] === 'p' || n.cap) n.half = 0;
+  return n;
+}
+function legal(st, i) { return pseudo(st, i).filter(m => { const n = apply(st, m); return !attacked(n.b, kingSq(n.b, st.turn), n.turn); }); }
+function allLegal(st) { const out = []; for (let i = 0; i < 64; i++) if (st.b[i] && st.b[i][0] === st.turn) out.push(...legal(st, i)); return out; }
+function inCheck(st) { return attacked(st.b, kingSq(st.b, st.turn), st.turn === 'w' ? 'b' : 'w'); }
+function evaluate(st) {
+  let s = 0;
+  for (let i = 0; i < 64; i++) { const p = st.b[i]; if (!p) continue; const t = p[1], v = PV[t] + PST[t][p[0] === 'w' ? i : 63 - i]; s += p[0] === 'w' ? v : -v; }
+  return st.turn === 'w' ? s : -s;
+}
+function search(st, depth, alpha, beta) {
+  if (depth === 0) return evaluate(st);
+  const moves = allLegal(st);
+  if (!moves.length) return inCheck(st) ? -99999 - depth : 0;
+  moves.sort((a, b) => (st.b[b.to] ? PV[st.b[b.to][1]] : 0) - (st.b[a.to] ? PV[st.b[a.to][1]] : 0));
+  let best = -Infinity;
+  for (const m of moves) {
+    const v = -search(apply(st, m), depth - 1, -beta, -alpha);
+    if (v > best) best = v;
+    if (v > alpha) alpha = v;
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+function ariaPick(st) {
+  const moves = allLegal(st); if (!moves.length) return null;
+  const depth = [1, 2, 3, 4][CH.level] || 2;
+  let best = null, bv = -Infinity;
+  for (const m of moves) {
+    let v = -search(apply(st, m), depth - 1, -Infinity, Infinity);
+    if (CH.level === 0) v += Math.random() * 120;  // rookie: makes mistakes
+    else v += Math.random() * 6;
+    if (v > bv) { bv = v; best = m; }
+  }
+  return best;
+}
+function chStatus(st) {
+  const moves = allLegal(st);
+  if (!moves.length) return inCheck(st) ? {over: st.turn === 'w' ? 'b' : 'w', why: 'CHECKMATE'} : {over: 'd', why: 'STALEMATE'};
+  if (st.half >= 100) return {over: 'd', why: '50 MOVES'};
+  const mat = st.b.filter(p => p && p[1] !== 'k'); if (!mat.length) return {over: 'd', why: 'NO MATERIAL'};
+  return null;
+}
+function chPlay(m) {
+  const st = CH.st, p = st.b[m.from];
+  if (st.turn === CH.human) store.set('chessUndo', {st: JSON.parse(JSON.stringify(st)), hist: CH.hist.slice()});
+  const n = apply(st, m);
+  CH.hist.push((p[1] === 'p' ? '' : p[1].toUpperCase()) + (n.cap ? 'x' : '') + alg(m.to) + (m.promo ? '=Q' : ''));
+  CH.st = n; CH.sel = null; CH.page = 0;
+  const S = chStatus(n);
+  if (S) { n.over = S.over; CH.msg = S.why; const k = S.over === 'd' ? 'd' : S.over === CH.human ? 'w' : 'l'; CH.stats[k]++; store.set('chessStats', CH.stats);
+    say(S.over === 'd' ? 'Draw.' : S.over === CH.human ? 'Checkmate. Well played, Commander.' : 'Checkmate. Better luck next jump.'); }
+  else if (inCheck(n)) CH.msg = 'CHECK';
+  else CH.msg = '';
+  chSave();
+  if (!n.over && n.turn !== CH.human) setTimeout(chAriaMove, 350);
+}
+function chAriaMove() {
+  if (!CH.st || CH.st.over || CH.st.turn === CH.human) return;
+  CH.thinking = true; mfdRenderAll();
+  setTimeout(() => { const m = ariaPick(CH.st); CH.thinking = false; if (m) chPlay(m); mfdRenderAll(); }, 30);
+}
+function mfdRenderAll() { mfdRender('L'); mfdRender('R'); }
+function chCursorMove(dr, dc) { const [r, c] = rc(CH.cur); if (inB(r + dr, c + dc)) { CH.cur = sq(r + dr, c + dc); mfdRenderAll(); } }
+function chSelect() {
+  const st = CH.st; if (!st || st.over || st.turn !== CH.human || CH.thinking) return;
+  const p = st.b[CH.cur];
+  if (CH.sel !== null) { const mv = legal(st, CH.sel).find(m => m.to === CH.cur); if (mv) { chPlay(mv); return; } }
+  if (p && p[0] === CH.human) { CH.sel = CH.sel === CH.cur ? null : CH.cur; CH.page = 0; }
+  else CH.sel = null;
+  mfdRenderAll();
+}
+function chessPage(side, common) {
+  if (!CH.st) chLoad();
+  if (!CH.st) chNew('w');
+  const st = CH.st, flip = CH.human === 'b';
+  const moves = CH.sel !== null && st.turn === CH.human ? legal(st, CH.sel) : [];
+  const slots = [6, 7, 8, 9, 10, 16, 17, 18, 19, 20], per = slots.length, pages = Math.max(1, Math.ceil(moves.length / per));
+  CH.page = Math.min(CH.page, pages - 1);
+  const o = {...common, 1: {l: 'NEW', fn: () => { chNew('w'); mfdRenderAll(); }}, 2: {l: 'BLK', fn: () => { chNew('b'); mfdRenderAll(); }},
+    3: {l: CH.sel !== null ? 'MOVE' : 'SEL', fn: () => chSelect()}, 4: {l: ['ROOK', 'EASY', 'MED', 'HARD'][CH.level], fn: () => { CH.level = (CH.level + 1) % 4; store.set('chessLevel', CH.level); mfdRenderAll(); }},
+    5: {l: 'UNDO', fn: () => { /* undo two plies */ const h = store.get('chessUndo', null); if (h) { CH.st = h.st; CH.hist = h.hist; CH.sel = null; store.set('chessUndo', null); chSave(); mfdRenderAll(); } }}};
+  moves.slice(CH.page * per, CH.page * per + per).forEach((m, n) => { o[slots[n]] = {l: alg(m.to).toUpperCase() + (st.b[m.to] ? '×' : '') + (m.castle ? ' O-O' : ''), fn: () => chPlay(m) && mfdRenderAll()}; });
+  if (pages > 1) { o[12] = {l: `◀${CH.page + 1}/${pages}`, fn: () => { CH.page = (CH.page - 1 + pages) % pages; mfdRenderAll(); }}; o[14] = {l: '▶', fn: () => { CH.page = (CH.page + 1) % pages; mfdRenderAll(); }}; }
+  const targets = new Set(moves.map(m => m.to));
+  let cells = '';
+  for (let k = 0; k < 64; k++) {
+    const i = flip ? 63 - k : k, p = st.b[i], [r, c] = rc(i);
+    const cls = ['csq', (r + c) % 2 ? 'dk' : 'lt', i === CH.cur ? 'cur' : '', i === CH.sel ? 'sel' : '', targets.has(i) ? 'tgt' : '', p && p[0] === 'b' ? 'blk' : ''].filter(Boolean).join(' ');
+    cells += `<div class="${cls}" data-sq="${i}">${p ? GLYPH[p] : ''}</div>`;
+  }
+  const you = CH.human === 'w' ? 'WHITE' : 'BLACK';
+  const status = st.over ? `${CH.msg} · ${st.over === 'd' ? 'DRAW' : st.over === CH.human ? 'YOU WIN' : AI().toUpperCase() + ' WINS'}` : CH.thinking ? `${AI().toUpperCase()} THINKING…` : st.turn === CH.human ? `YOUR MOVE · ${alg(CH.cur).toUpperCase()}${CH.msg ? ' · ' + CH.msg : ''}` : `${AI().toUpperCase()} TO MOVE`;
+  return {title: 'GAME', osb: o, body: `<div class="cstat">${status}</div><div class="cboard">${cells}</div>
+    <div class="cfoot"><span>${CH.hist.slice(-6).join(' ')}</span><span>W${CH.stats.w} L${CH.stats.l} D${CH.stats.d}</span></div>`, chess: true};
 }
 
 /* =====================================================================
