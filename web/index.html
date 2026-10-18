@@ -3090,6 +3090,7 @@ function pageDef(side) {
       <div class="mrow"><span>UEX</span><b>${uex ? (uex.mode === 'err' ? 'OFFLINE' : uex.mode === 'live' ? 'LIVE' : ago(uex.age)) : '—'}</b></div>
       <div class="mrow"><span>WIKI</span><b>${wiki ? (wiki.mode === 'err' ? 'OFFLINE' : wiki.mode === 'live' ? 'LIVE' : ago(wiki.age)) : '—'}</b></div>
       <div class="mrow"><span>VOICE</span><b>${VOICE.on ? (pttMode() ? 'PTT ARMED' : 'LISTENING') : 'OFF'}</b></div>
+      <div class="mrow"><span>GAME</span><b>${SCG.running ? 'LINKED' : 'NOT RUNNING'}</b></div>
       <div class="mrow"><span>KEYS</span><b class="${keysOff ? 'amber' : ''}">${keysOff ? 'PRACTICE' : 'LIVE'}</b></div>
       <div class="mrow"><span>JOB</span><b>${P ? `${MFDS.stop + 1}/${P.stops.length} · +${money(done)}` : 'NONE'}</b></div>`};
   }
@@ -3286,6 +3287,12 @@ const STAT = {};
    time / stops, pops a mini starmap with the route lit, animates shield shifts,
    and keeps a log of every key press ARIA sends.
    ===================================================================== */
+const SCG = {running: false, windows: null};
+async function pollGame() {
+  try { const g = await (await fetch('/api/game')).json(); const was = SCG.running; SCG.running = !!g.running; SCG.windows = !!g.windows;
+    if (was !== SCG.running && CK.on) { ufcRender(); mfdRender('L'); mfdRender('R'); if (SCG.running) say('Star Citizen detected.'); } } catch {}
+}
+setInterval(() => { if (CK.on || document.visibilityState === 'visible') pollGame(); }, 12000); setTimeout(pollGame, 2500);
 const UFC = {msg: '', typed: 0, mode: 'route', pulse: null, keylog: store.get('keylog', []).slice(0, 60), raf: 0, lastAnswer: null, answers: []};
 function logKey(src, keys, note) {
   UFC.keylog.unshift({t: Date.now(), src, keys, note: note || ''});
@@ -3352,7 +3359,8 @@ function ufcRender() {
   const el = $('#ufc'); if (!el || !CK.on) return;
   const live = $('#keysLive').checked, S = ufcSummary();
   el.innerHTML = `<div class="uhead"><span class="ulamp ${VOICE.on ? 'on' : ''}"></span><b>${esc(AI().toUpperCase())}</b>
-      <span class="${live ? 'ugood' : 'uwarn'}">${live ? 'KEYS LIVE' : 'PRACTICE'}</span><span>${PTTC.held ? '<span class="uwarn">● TALK</span>' : VOICE.on ? (pttMode() ? 'PTT' : 'OPEN MIC') : 'VOICE OFF'}</span>
+      <span class="${live ? 'ugood' : 'uwarn'}" title="${live ? 'Press keys in game is on' : 'Practice mode: ARIA says what she would press but presses nothing (Voice Macros → Press keys in game)'}">${live ? 'KEYS LIVE' : 'PRACTICE'}</span><span>${PTTC.held ? '<span class="uwarn">● TALK</span>' : VOICE.on ? (pttMode() ? 'PTT' : 'OPEN MIC') : 'VOICE OFF'}</span>
+      <span class="${SCG.running ? 'ugood' : ''}" title="${SCG.running ? 'StarCitizen.exe is running — keys go to it' : 'Star Citizen is not running (ARIA checks every few seconds)'}">${SCG.running ? 'SC LINKED' : SCG.windows === false ? 'SC —' : 'SC NOT RUNNING'}</span>
       </div>
     <div class="umain"><div class="uhint">${S ? `<b>${S.title}</b> · ${esc(S.name)} · ${S.cells.slice(0, 4).map(([k, v]) => `${k} <b>${esc(String(v))}</b>`).join(' · ')}` : `<b>STANDBY</b> · ASK A ROUTE: “C2 HERCULES 750K FROM AREA18” · “NAV TO RUIN STATION” · “RTB” · OR JUST TALK`}</div>
     <div class="upad" id="ufcPad">${esc(UFC.msg.slice(0, UFC.typed))}</div></div>

@@ -249,6 +249,7 @@ def wiki_fetch_all(path, query):
     return json.dumps({"data": out, "meta": {"total": len(out)}}).encode()
 
 
+GAME_STATE = {"t": 0, "running": False}
 CORS = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type"}
 
 
@@ -318,6 +319,11 @@ class Handler(SimpleHTTPRequestHandler):
                 })
             elif kind == "macros":
                 return self.send_json(200, {"macros": load_macros(), "file": os.path.basename(MACROS)})
+            elif kind == "game":  # is Star Citizen running? (cached a few seconds; tasklist is slow)
+                now = time.time()
+                if now - GAME_STATE["t"] > 8:
+                    GAME_STATE["running"] = scbinds.game_running(); GAME_STATE["t"] = now
+                return self.send_json(200, {"running": GAME_STATE["running"], "windows": sys.platform.startswith("win")})
             elif kind in ("scores", "lobby"):
                 cfg = load_config()
                 if not cfg.get("squad_host"):

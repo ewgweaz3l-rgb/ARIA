@@ -15,6 +15,7 @@ import json
 import os
 import shutil
 import urllib.request
+import time
 import zipfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -72,7 +73,8 @@ def check():
             import base64
             latest = base64.b64decode(latest["content"]).decode().strip()
         else:
-            latest = _get(f"https://raw.githubusercontent.com/{repo}/{branch}/VERSION").decode().strip()
+            # raw.githubusercontent.com sits behind a 5-minute CDN cache; a fresh query string skips it.
+            latest = _get(f"https://raw.githubusercontent.com/{repo}/{branch}/VERSION?t={int(time.time())}").decode().strip()
         return {"current": cur, "latest": latest, "available": _vt(latest) > _vt(cur), "repo": repo, "error": None}
     except Exception as e:
         return {"current": cur, "latest": None, "available": False, "repo": repo, "error": f"{type(e).__name__}: {e}"}
