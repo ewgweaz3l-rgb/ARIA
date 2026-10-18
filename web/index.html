@@ -3121,9 +3121,19 @@ function mfdGo(side, page) { if (MFDS[side].page === 'GAME' && page !== 'GAME' &
 function curPlan() { return PLAN && PLAN.stops && PLAN.stops.length > 1 ? PLAN : null; }
 function setStop(i) { const P = curPlan(); if (!P) return; MFDS.stop = Math.max(0, Math.min(P.stops.length - 1, i)); store.set('jobStop', MFDS.stop); mfdRenderAll(); }
 
+// the center MFD keeps MENU at the bottom-center OSB on every page; anything a page put there slides to a free bottom button
 function pageDef(side) {
+  const d = pageDef0(side);
+  if (side === 'C' && d.osb && MFDS.C.page !== 'MENU') {
+    const m = d.osb[13];
+    if (m && m.l !== 'MENU') { const free = [15, 14, 12].find(n => !d.osb[n]); if (free) d.osb[free] = m; d.osb[13] = {l: 'MENU', go: 'MENU'}; }
+    else if (!m) d.osb[13] = {l: 'MENU', go: 'MENU'};
+  }
+  return d;
+}
+function pageDef0(side) {
   const S = MFDS[side], p = S.page, soi = MFDS.soi === side;
-  const common = {15: {l: 'MENU', go: 'MENU'}, 11: {l: 'SOI', on: soi, fn: () => { MFDS.soi = side; store.set('mfdSoi', side); mfdRenderAll(); }}};
+  const common = {[side === 'C' ? 13 : 15]: {l: 'MENU', go: 'MENU'}, 11: {l: 'SOI', on: soi, fn: () => { MFDS.soi = side; store.set('mfdSoi', side); mfdRenderAll(); }}};
   const P = curPlan();
   const keysOff = !$('#keysLive').checked;
   const warn = keysOff ? '<div class="mw amber">KEYS OFF · PRACTICE</div>' : '';
@@ -3134,6 +3144,16 @@ function pageDef(side) {
       15: {l: 'HOME', fn: () => $('#ckHome').click()}, 14: {l: 'SET', fn: () => openSettings()}, 13: {l: VR.session ? 'VR OFF' : 'VR', fn: () => enterVR()}, 12: {l: 'ALGN', fn: () => startCal()},
       20: {l: 'HELP', fn: () => openManual()}, 19: {l: 'LOG', fn: () => { UFC.mode = 'log'; const t = MFDS.C.page === 'UFC' || side === 'C' ? 'C' : side; mfdGo(t, 'UFC'); }},
       18: {l: 'VOICE', go: 'VOICE'}, 17: {l: 'SYS', go: 'SYS'}, 16: {l: 'GAME', go: 'GAME'}};
+    if (side === 'C') {
+      // center MFD's own menu — top: PWR · NAV · UFC · right: ATC CARGO SYS LOG GAME · bottom: HOME SET MENU(→MAP) · SOI · left: HELP LOG RESET · SWAP
+      const log = {l: 'LOG', fn: () => { UFC.mode = 'log'; mfdGo('C', 'UFC'); }};
+      for (const k of Object.keys(o)) if (k !== '11') delete o[k];
+      Object.assign(o, {1: {l: 'PWR', go: 'PWR'}, 3: {l: 'NAV', go: 'NAV'}, 5: {l: 'UFC', go: 'UFC'},
+        6: {l: 'ATC', go: 'ATC'}, 7: {l: 'CARGO', go: 'CARGO'}, 8: {l: 'SYS', go: 'SYS'}, 9: log, 10: {l: 'GAME', go: 'GAME'},
+        15: {l: 'HOME', fn: () => $('#ckHome').click()}, 14: {l: 'SET', fn: () => openSettings()}, 13: {l: 'MENU', go: 'MAP'},
+        20: {l: 'HELP', fn: () => openManual()}, 19: log, 18: {l: 'RESET', fn: () => { mfdGo('L', 'MENU'); mfdGo('R', 'NAV'); UFC.mode = 'route'; mfdGo('C', 'MAP'); mfdMsg('C', 'MFDS RESET'); }},
+        16: {l: 'SWAP', fn: () => { const a = MFDS.L.page, b = MFDS.R.page; mfdGo('L', b); mfdGo('R', a); }}});
+    }
     const st = DB.status || {}, uex = Object.values(st).find(s => s.src === 'uex'), wiki = Object.values(st).find(s => s.src === 'wiki');
     const done = P ? P.stops.slice(0, MFDS.stop + 1).flatMap(s => s.actions).reduce((a, x) => a + (x.profit || 0), 0) : 0;
     return {title: 'MENU', osb: o, body: `<div class="mbig">${esc(AI().toUpperCase())}</div>
@@ -3471,7 +3491,7 @@ function mapPage(side, common) {
     7: {l: 'CTR', on: !!here, fn: () => askHere()},
     8: {l: 'RTB', fn: () => { if (here) $('#navFrom').value = here; rtb(); }},
     20: {l: 'TGT ▲', fn: () => { MM.tgt = Math.max(0, MM.tgt - 1); mfdRenderAll(); }}, 19: {l: 'TGT ▼', fn: () => { MM.tgt = Math.min(marks.length - 1, MM.tgt + 1); mfdRenderAll(); }},
-    12: {l: 'ZM+', fn: () => { MM.zoom = Math.min(64, MM.zoom * 2); mfdRenderAll(); }}, 13: {l: 'ZM−', fn: () => { MM.zoom = Math.max(1, MM.zoom / 2); mfdRenderAll(); }}};
+    12: {l: 'ZM+', fn: () => { MM.zoom = Math.min(64, MM.zoom * 2); mfdRenderAll(); }}, 14: {l: 'ZM−', fn: () => { MM.zoom = Math.max(1, MM.zoom / 2); mfdRenderAll(); }}};
   const he = hereEnt(), dist = T && he && he.sys === T.e.sys ? Math.hypot(T.e.x - he.x, T.e.y - he.y, T.e.z - he.z) : null;
   const tags = T ? [T.stn && 'STN', T.mkt && 'MKT', T.med && 'MED'].filter(Boolean).join(' ') : '';
   const body = `<canvas id="mmCanvas${side}" class="ucanvas mmcv"></canvas>
