@@ -361,6 +361,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "squad_host": bool(cfg.get("squad_host")), "squad_key": cfg.get("squad_key", ""), "squad_url": cfg.get("squad_url", ""),
                     "ips": local_ips() if cfg.get("squad_host") else [], "port": self.server.server_address[1],
                     "launcher": find_launcher(cfg.get("launcher_path")), "launcher_path": cfg.get("launcher_path", ""),
+                    "locate_open": cfg.get("locate_open", ""), "locate_send": cfg.get("locate_send", ""),
                 })
             elif kind == "macros":
                 return self.send_json(200, {"macros": load_macros(), "file": os.path.basename(MACROS)})
@@ -481,7 +482,7 @@ class Handler(SimpleHTTPRequestHandler):
             payload = {}
         if u.path == "/api/config":
             cfg = load_config()
-            for k in ("uex_token", "sc_path", "update_repo", "squad_key", "squad_url", "squad_name", "launcher_path"):
+            for k in ("uex_token", "sc_path", "update_repo", "squad_key", "squad_url", "squad_name", "launcher_path", "locate_open", "locate_send"):
                 if k in payload:
                     cfg[k] = str(payload[k]).strip()
             if "squad_host" in payload:
@@ -514,6 +515,12 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(400, {"ok": False, "error": str(e)})
             sys.stderr.write(f"[aria] keys: {spec}{'' if keys.IS_WINDOWS else '  (simulated: not Windows)'}\n")
             return self.send_json(200, {"ok": True, "steps": len(steps), "simulated": not keys.IS_WINDOWS})
+        if u.path == "/api/locate":  # /showlocation → clipboard → coordinates
+            import locate
+            r = locate.locate(load_config())
+            if r.get("ok"):
+                sys.stderr.write(f"[aria] located: {r['x']:.0f} {r['y']:.0f} {r['z']:.0f}\n")
+            return self.send_json(200 if r.get("ok") else 409, r)
         if u.path == "/api/report":  # save a job report on this PC (the page also posts it to the squad host)
             r = SQUAD.add_report(payload.get("report"))
             return self.send_json(200, {"ok": True, "id": r["id"]}) if r else self.send_json(400, {"ok": False, "error": "empty report"})

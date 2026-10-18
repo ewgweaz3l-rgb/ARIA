@@ -1250,6 +1250,7 @@ async function runCommand(text) {
   if (!text.trim()) return runRoutes();
   const bq = parseBind(text);
   if (bq) { const spoken = VOICE.heardCommand; VOICE.heardCommand = false; show('voice'); $('#bindQ').value = bq; return runBind(bq, spoken); }
+  if (/^\s*(where am i|where are we|locate( me)?|find me|show ?location|what'?s my position)\??\s*$/i.test(text)) { VOICE.heardCommand = false; if (CK.on && MFDS.C.page !== 'MAP') mfdGo('C', 'MAP'); return autoLocate(CK.on ? 'C' : null); }
   const sm = text.trim().match(/^(?:scan|ping|sig|signature|rs|radar)\s*[:#]?\s*([\d][\d,\. ]*k?)$/i);
   if (sm) { if (CK.on && !['SCAN'].includes(MFDS.C.page)) mfdGo('C', 'SCAN'); SCAN.entry = String(Math.round(num(sm[1].replace(/[, ]/g, '').replace(/k$/i, '000')))); sigSay(SCAN.entry); if (!CK.on) show('mining'); return; }
   const hm = text.trim().match(/^(?:i'?m|i am|we'?re|we are|currently|now)\s+(?:at|in|on|parked at|landed at|docked at)\s+(.+?)[.!]?$/i) || text.trim().match(/^(?:set\s+)?(?:position|location|here)\s*(?:is|to|:)?\s+(.+)$/i);
@@ -3539,6 +3540,33 @@ const UFC_KEYS = {
 const MM = {f: store.get('mmFilt', {stn: true, mkt: true, med: false}), sys: null, tgt: 0, zoom: 1, med: null, loading: false};
 const HERE = {get: () => store.get('here', ''), set(v) { store.set('here', v); MM.tgt = 0; mfdRenderAll(); }};
 function hereEnt() { const h = HERE.get(); return h ? resolvePlace(h) : null; }
+/* auto-locate: /showlocation in game chat → clipboard → nearest known place */
+async function autoLocate(side) {
+  if (!SCG.running) { askHere(); return; }
+  if (!$('#keysLive').checked) { toast('Auto-locate types /showlocation in game chat, so it needs <b>Press keys in game</b> on (Voice Macros). Asking instead.'); askHere(); return; }
+  if (side) mfdMsg(side, 'LOCATING… /SHOWLOCATION');
+  let r; try { r = await (await fetch('/api/locate', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'})).json(); } catch { r = {ok: false, error: 'ARIA could not reach its helper.'}; }
+  if (!r.ok) { toast(esc(r.error || 'Could not locate'), 7000); if (side) mfdMsg(side, 'LOCATE FAILED · TELL ME'); askHere(); return; }
+  try { await loadMap(); } catch {}
+  const p = {x: r.x, y: r.y, z: r.z}, near = nearestEnt(p);
+  if (!near) { toast('Got coordinates but no starmap to match them against.'); askHere(); return; }
+  MM.pos = {...p, sys: near.e.sys, t: Date.now(), surface: near.surface};
+  MM.sys = near.e.sys;
+  const line = near.surface ? `You're on or near a planet surface — I can't tell which from the coordinates. Nearest guess: ${near.e.name}.`
+    : near.d < 5e7 ? `You're at ${near.e.name}.` : `Deep space in ${sysName(near.e.sys)}, ${fmtDist(near.d)} from ${near.e.name}.`;
+  HERE.set(near.e.name + ' · ' + sysName(near.e.sys));
+  if (near.surface) askHere(); else ufcSay(line);
+  if (side) mfdMsg(side, near.surface ? 'ON A SURFACE · PICK THE PLANET' : 'LOCATED · ' + near.e.name.toUpperCase());
+  return near;
+}
+function nearestEnt(p) {
+  let best = null;
+  for (const e of MAP.ents) { if (norm(e.type) === 'star') continue; const d = Math.hypot(e.x - p.x, e.y - p.y, e.z - p.z); if (!best || d < best.d) best = {e, d}; }
+  if (!best) return null;
+  // coordinates a few thousand km from the origin but nowhere near anything: planet-relative (you're on a surface)
+  best.surface = Math.hypot(p.x, p.y, p.z) < 5e7 && best.d > 1e8;
+  return best;
+}
 async function mmLoad() {
   if (MM.loading) return; MM.loading = true;
   try { await loadMap(); } catch {}
@@ -3593,7 +3621,7 @@ function mapPage(side, common) {
     6: {l: 'NAV', fn: () => { if (!T) { mfdMsg(side, 'NO TARGET · PICK ONE WITH TGT'); return; }
       const go = h => { $('#navFrom').value = h; $('#navTo').value = T.e.name + ' · ' + sysName(T.e.sys); plotNav().then(() => mfdRenderAll()); };
       if (here) go(here); else askHere(go); }},
-    7: {l: 'CTR', on: !!here, fn: () => askHere()},
+    7: {l: 'CTR', on: !!here, fn: () => { if (MM.ctrT && Date.now() - MM.ctrT < 2500) { MM.ctrT = 0; askHere(); return; } MM.ctrT = Date.now(); autoLocate(side); }},
     8: {l: 'RTB', fn: () => { if (here) $('#navFrom').value = here; rtb(); }},
     20: {l: 'TGT ▲', fn: () => { MM.tgt = Math.max(0, MM.tgt - 1); mfdRenderAll(); }}, 19: {l: 'TGT ▼', fn: () => { MM.tgt = Math.min(marks.length - 1, MM.tgt + 1); mfdRenderAll(); }},
     12: {l: 'ZM+', fn: () => { MM.zoom = Math.min(64, MM.zoom * 2); mfdRenderAll(); }}, 14: {l: 'ZM−', fn: () => { MM.zoom = Math.max(1, MM.zoom / 2); mfdRenderAll(); }}};
@@ -3626,7 +3654,8 @@ function drawMfdMap(c, S, marks, T) {
     if (m.med) { ctx.fillRect(x - .9, y - 4.5, 1.8, 9); ctx.fillRect(x - 4.5, y - .9, 9, 1.8); }
     if (hot || MM.zoom >= 8) { ctx.fillStyle = hot ? Wt : D; ctx.textAlign = 'left'; ctx.fillText(m.e.name.toUpperCase(), x + 7, y - 5); } }
   if (T) { const x = X(T.e), y = Y(T.e); ctx.strokeStyle = Wt; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.stroke(); }
-  if (inSys) { const x = X(he), y = Y(he); ctx.fillStyle = A; ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x + 6, y + 5); ctx.lineTo(x - 6, y + 5); ctx.closePath(); ctx.fill(); ctx.fillStyle = A; ctx.textAlign = 'left'; ctx.fillText('YOU', x + 8, y + 4); }
+  const fix = MM.pos && MM.pos.sys === S.key && !MM.pos.surface && Date.now() - MM.pos.t < 30 * 60e3 ? MM.pos : null;
+  if (fix || inSys) { const x = X(fix || he), y = Y(fix || he); ctx.fillStyle = A; ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x + 6, y + 5); ctx.lineTo(x - 6, y + 5); ctx.closePath(); ctx.fill(); ctx.fillStyle = A; ctx.textAlign = 'left'; ctx.fillText('YOU', x + 8, y + 4); }
   ctx.fillStyle = D; ctx.textAlign = 'right'; ctx.fillText(`${S.name.toUpperCase()} · ×${MM.zoom} · ${marks.length} MARKS`, W - 4, H - 4); ctx.textAlign = 'left';
 }
 
@@ -4262,6 +4291,8 @@ async function openSettings() {
     <div class="row" style="margin-top:8px"><label class="f" style="flex:1;min-width:200px">RSI Launcher (for the 🚀 button)<input id="launchIn" type="text" placeholder="${st.launcher ? 'Found: ' + esc(st.launcher) : 'Not found — paste the path to RSI Launcher.exe'}" value="${esc(st.launcher_path || '')}"></label></div>
     <div class="row" style="margin-top:8px"><label class="f" style="flex:1;min-width:200px">Home base (spawn point)<input id="homeSetIn" type="text" list="placeList" value="${esc(HOME.get())}" placeholder="e.g. Port Tressler"></label></div>
     <div class="row" style="margin-top:8px"><label class="f" style="width:240px" title="Leave blank to detect. In game: Options → Keybindings lists vJoy as Joystick N.">vJoy joystick number in game<input id="vjInstIn" type="text" placeholder="Auto-detect"></label></div>
+    <div class="row" style="margin-top:8px"><label class="f" style="width:220px" title="Key that opens text chat in Star Citizen">Locate: open chat key<input id="locOpenIn" type="text" placeholder="enter"></label>
+      <label class="f" style="width:220px" title="Key that sends the chat line">Locate: send key<input id="locSendIn" type="text" placeholder="enter"></label></div>
     <div class="row" style="margin-top:8px"><label class="chk"><input type="checkbox" id="dbOn"> Ask for a quick debrief when I finish a job</label></div>
     <p>The name shows in the header and becomes the wake word. The game folder and vJoy number are only needed if ARIA can't detect them.</p>
     <div class="row"><button class="btn small" id="nameSave">Save</button></div>
@@ -4272,6 +4303,7 @@ async function openSettings() {
   $('#modal').classList.add('on'); $('#modalBox').scrollTop = 0;
   $('#modalClose').onclick = $('#modalX').onclick = () => $('#modal').classList.remove('on');
   $('#manualBtn').onclick = openManual;
+  $('#locOpenIn').value = st.locate_open || ''; $('#locSendIn').value = st.locate_send || '';
   $('#dbOn').checked = !store.get('debriefOff', false); $('#dbOn').onchange = () => store.set('debriefOff', !$('#dbOn').checked);
   $$('#modalBox .mnav a').forEach(a => a.onclick = () => { const t = $('#' + a.dataset.go); t && t.scrollIntoView({behavior: 'smooth', block: 'start'}); });
   $('#ckOn').checked = CK.on; $('#ckOn').onchange = () => setCockpit($('#ckOn').checked);
@@ -4338,6 +4370,7 @@ async function openSettings() {
     const cfgUpd = {};
     if ($('#scPathIn').value.trim()) cfgUpd.sc_path = $('#scPathIn').value.trim();
     cfgUpd.launcher_path = $('#launchIn').value.trim();
+    cfgUpd.locate_open = $('#locOpenIn').value.trim(); cfgUpd.locate_send = $('#locSendIn').value.trim();
     if ($('#vjInstIn').value.trim() !== '') cfgUpd.vjoy_instance = $('#vjInstIn').value.trim();
     if (Object.keys(cfgUpd).length) { await fetch('/api/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cfgUpd)}); BINDS.data = null; }
     toast(`Saved. Call me ${esc(n)}.`); $('#modal').classList.remove('on');
