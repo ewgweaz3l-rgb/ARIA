@@ -217,6 +217,7 @@ body.cockpit #jobBar{margin:0!important}
 .osb:hover{border-color:color-mix(in srgb, var(--mg) 50%, transparent)}
 .osb.on{background:var(--mg);color:#031;text-shadow:none}
 .osb.hit{background:var(--mw);color:#000;text-shadow:none}
+.osb.calnum{background:var(--macc);color:#000;text-shadow:none;font-weight:700;min-width:1.6em;text-align:center;border-radius:50%}
 .mbody{position:absolute;left:16%;right:16%;top:13%;bottom:13%;display:flex;flex-direction:column;gap:.25em;font-size:1em;overflow:hidden;container-type:inline-size}
 .mbig{font:700 clamp(18px,20cqw,46px)/1 var(--head);letter-spacing:.14em;text-align:center;margin:auto 0 4px}
 .mbig.sm{font-size:clamp(14px,11cqw,24px);margin:6px 0 2px}
@@ -2639,6 +2640,9 @@ const CK_DEFAULT = {
   APP: {x: 0.4,  y: 56.0, w: 99.2, h: 43.6}
 };
 const CK = {on: false, rects: null, moved: [], cal: false, sel: 'L'};
+const OSB_DEF = {spread: 67, inset: 1.5, scale: 100, vspread: 67, vinset: 1.5};
+function osbGeo(side) { return {...OSB_DEF, ...store.get('osbGeo', {})[side]}; }
+function setOsbGeo(side, patch) { const g = store.get('osbGeo', {}); g[side] = {...osbGeo(side), ...patch}; store.set('osbGeo', g); mfdRender(side); }
 function ckRects() {
   const R = CK.rects || (CK.rects = {...JSON.parse(JSON.stringify(CK_DEFAULT)), ...store.get('ckRects', {})});
   if (store.get('ckAutoBottom', false)) {  // bottom band: full width, from just under the lowest upper area to the screen bottom
@@ -2724,11 +2728,17 @@ function calPanel() {
         <i><button data-nd="w:-1">−</button><button data-nd="w:1">+</button></i></label>
       <label>↕ Height<input type="range" id="ch" min="3" max="100" step="0.05" value="${r.h}"><span>${px(r.h * innerHeight / 100)} px</span>
         <i><button data-nd="h:-1">−</button><button data-nd="h:1">+</button></i></label>
+      ${k === 'L' || k === 'R' ? (() => { const g = osbGeo(k); return `
+      <label>⇔ Button spacing (top/bottom)<input type="range" id="os" min="40" max="100" step="0.5" value="${g.spread}"><span>${g.spread}%</span><i><button data-og="spread:-1">−</button><button data-og="spread:1">+</button></i></label>
+      <label>⇕ Button spacing (sides)<input type="range" id="ovs" min="40" max="100" step="0.5" value="${g.vspread}"><span>${g.vspread}%</span><i><button data-og="vspread:-1">−</button><button data-og="vspread:1">+</button></i></label>
+      <label>⇥ Label inset (top/bottom)<input type="range" id="oi" min="0" max="12" step="0.25" value="${g.inset}"><span>${g.inset}%</span><i><button data-og="inset:-1">−</button><button data-og="inset:1">+</button></i></label>
+      <label>⇥ Label inset (sides)<input type="range" id="ovi" min="0" max="12" step="0.25" value="${g.vinset}"><span>${g.vinset}%</span><i><button data-og="vinset:-1">−</button><button data-og="vinset:1">+</button></i></label>
+      <label>Aa Label size<input type="range" id="osc" min="50" max="180" step="5" value="${g.scale}"><span>${g.scale}%</span><i><button data-og="scale:-1">−</button><button data-og="scale:1">+</button></i></label>`; })() : ''}
       ${k === 'TOP' ? `<label>▣ Fill the gap<span class="sub" style="text-align:left;grid-column:2/4">snap between the MFDs, top of screen to the bottom band</span><i><button data-fill>Fill</button></i></label>` : ''}
       <label>⌕ Zoom (about center)<input type="range" id="cz" min="50" max="150" step="0.5" value="100"><span id="czv">100%</span>
         <i><button data-zm="-1">−</button><button data-zm="1">+</button></i></label>
     </div>
-    <div class="sub">Pick an area, slide until the green box fills the real screen window exactly. Nudge buttons move 1 px (hold Shift for 10). You can still drag the boxes.</div>
+    <div class="sub">${k === 'L' || k === 'R' ? 'This MFD shows its button numbers (1–5 top, 6–10 right, 11–15 bottom, 16–20 left) while you adjust: size the box to the screen window, then use spacing and inset until each number sits by its real button.' : 'Pick an area, slide until the box fills the real screen window exactly. Nudge buttons move 1 px (hold Shift for 10). You can still drag the boxes.'}</div>
   </div>`;
 }
 function wireCalPanel() {
@@ -2736,7 +2746,8 @@ function wireCalPanel() {
   const update = () => { ckLayoutLite(); const box = $(`.calbox[data-k="${k}"]`, cal); if (box) { Object.assign(box.style, {left: R[k].x + 'vw', top: R[k].y + 'vh', width: R[k].w + 'vw', height: R[k].h + 'vh'}); $('small', box).textContent = `${Math.round(R[k].w * innerWidth / 100)}×${Math.round(R[k].h * innerHeight / 100)} px`; } };
   const refresh = () => { if (UFC.mode === 'cal') ufcRender(); else { $('#calTools').outerHTML = calPanel(); wireCalPanel(); } };
   const save = () => store.set('ckRects', R);
-  $$('[data-cs]').forEach(b => b.onclick = () => { CK.sel = b.dataset.cs; renderCal(); });
+  $$('[data-cs]').forEach(b => b.onclick = () => { CK.sel = b.dataset.cs; renderCal(); mfdRender('L'); mfdRender('R'); });
+  mfdRender('L'); mfdRender('R');
   for (const [id, f] of [['#cx', 'x'], ['#cy', 'y'], ['#cw', 'w'], ['#ch', 'h']]) {
     const el = $(id); el.oninput = () => { R[k][f] = +el.value; update(); el.nextElementSibling.textContent = Math.round(R[k][f] * (f === 'x' || f === 'w' ? innerWidth : innerHeight) / 100) + ' px'; };
     el.onchange = () => { save(); ckLayout(); };
@@ -2753,12 +2764,17 @@ function wireCalPanel() {
     const f = 1 + (+b.dataset.zm) * (ev.shiftKey ? .05 : .01); const cx = R[k].x + R[k].w / 2, cy = R[k].y + R[k].h / 2;
     R[k].w *= f; R[k].h *= f; R[k].x = cx - R[k].w / 2; R[k].y = cy - R[k].h / 2; save(); ckLayout(); refresh();
   });
+  for (const [id, f] of [['#os', 'spread'], ['#ovs', 'vspread'], ['#oi', 'inset'], ['#ovi', 'vinset'], ['#osc', 'scale']]) {
+    const el = $(id); if (!el) continue;
+    el.oninput = () => { setOsbGeo(k, {[f]: +el.value}); el.nextElementSibling.textContent = el.value + '%'; };
+  }
+  $$('[data-og]').forEach(b => b.onclick = ev => { const [f, d] = b.dataset.og.split(':'); const st = f === 'scale' ? 5 : (ev.shiftKey ? 2 : .5); setOsbGeo(k, {[f]: +(osbGeo(k)[f] + d * st).toFixed(2)}); refresh(); });
   const fill = $('[data-fill]'); if (fill) fill.onclick = () => {
     const l = R.L.x + R.L.w, r = R.R.x, top = 0.4, bot = R.APP.y - 0.8;
     R.TOP = {x: l + 0.8, y: top, w: Math.max(10, r - l - 1.6), h: Math.max(10, bot - top)}; save(); ckLayout(); refresh();
   };
   $('#calAuto').onchange = () => { store.set('ckAutoBottom', $('#calAuto').checked); if ($('#calAuto').checked && CK.sel === 'APP') CK.sel = 'TOP'; ckLayout(); };
-  $('#calDone').onclick = () => { CK.cal = false; cal.innerHTML = ''; save(); toast('Cockpit layout saved.'); if (UFC.mode === 'cal') { UFC.mode = 'route'; ufcRender(); } };
+  $('#calDone').onclick = () => { CK.cal = false; cal.innerHTML = ''; save(); toast('Cockpit layout saved.'); if (UFC.mode === 'cal') { UFC.mode = 'route'; ufcRender(); } mfdRender('L'); mfdRender('R'); };
   $('#calReset').onclick = () => { CK.rects = JSON.parse(JSON.stringify(CK_DEFAULT)); store.set('ckRects', CK.rects); ckLayout(); };
 }
 function ckLayoutLite() { const R = ckRects(); ckPlace($('#mfdL'), R.L); ckPlace($('#mfdR'), R.R); ckPlace($('#cockTop'), R.TOP); ckPlace($('#appShell'), R.APP); }
@@ -2939,12 +2955,14 @@ function mfdRender(side) {
   const el = $('#mfd' + side); if (!el || !CK.on) return;
   const d = pageDef(side), S = MFDS[side], now = Date.now();
   const labels = [];
+  const g = osbGeo(side), calThis = CK.cal && CK.sel === side;
   for (let n = 1; n <= 20; n++) {
-    const o = d.osb[n]; if (!o) continue;
-    const {side: s, k} = osbPos(n), frac = ((k + 1) / 6 * 100).toFixed(2);
-    const pos = s === 'top' ? `top:1.5%;left:${frac}%` : s === 'bottom' ? `bottom:1.5%;left:${frac}%` : s === 'left' ? `left:1.5%;top:${frac}%` : `right:1.5%;top:${frac}%`;
+    const o = calThis ? {l: String(n)} : d.osb[n]; if (!o) continue;
+    const {side: s, k} = osbPos(n), horiz = s === 'top' || s === 'bottom';
+    const frac = (50 + (k - 2) * (horiz ? g.spread : g.vspread) / 4).toFixed(2), ins = (horiz ? g.inset : g.vinset) + '%';
+    const pos = s === 'top' ? `top:${ins};left:${frac}%` : s === 'bottom' ? `bottom:${ins};left:${frac}%` : s === 'left' ? `left:${ins};top:${frac}%` : `right:${ins};top:${frac}%`;
     const hit = MFDS.flash[side + n] && now - MFDS.flash[side + n] < 260;
-    labels.push(`<div class="osb ${s}${o.on ? ' on' : ''}${hit ? ' hit' : ''}${o.go && o.go === S.page ? ' on' : ''}" data-n="${n}" style="${pos}">${esc(o.l)}</div>`);
+    labels.push(`<div class="osb ${s}${o.on ? ' on' : ''}${hit ? ' hit' : ''}${o.go && o.go === S.page ? ' on' : ''}${calThis ? ' calnum' : ''}" data-n="${n}" style="${pos};font-size:${g.scale / 100 * .95}em">${esc(o.l)}</div>`);
   }
   let overlay = '';
   if (MFDS.test && now < MFDS.test.until) {
