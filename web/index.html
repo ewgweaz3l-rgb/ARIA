@@ -190,8 +190,10 @@ tr:first-child .rank{color:var(--amber)}
 .mkt{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:12px}
 /* cockpit mode */
 body.cockpit{overflow:hidden;height:100vh}
-body.cockpit #ckRescue{display:block!important;position:fixed;right:8px;bottom:8px;z-index:140;opacity:.55}
-body.cockpit #ckRescue:hover{opacity:1}
+body.cockpit #ckDock{display:flex!important;position:fixed;right:8px;bottom:8px;z-index:140;gap:6px;opacity:.7}
+body.cockpit #ckDock:hover{opacity:1}
+#ckDock button{background:var(--panel);border:1px solid var(--line2);border-radius:6px;color:var(--text);font:700 11px var(--head);letter-spacing:.14em;padding:6px 10px;cursor:pointer}
+#ckDock button:hover{border-color:var(--amber);color:var(--amber)}
 body.cockpit #appShell{position:fixed;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
 body.cockpit #appShell header{position:static}
 body.cockpit main{padding:10px 14px;max-width:none}
@@ -264,6 +266,19 @@ body.cockpit #jobBar{margin:0!important}
 .calgrid i{display:flex;gap:3px}.calgrid i button{background:var(--bg);border:1px solid var(--line2);border-radius:4px;color:var(--text);width:24px;height:22px;cursor:pointer;padding:0;font-size:12px}
 .caltools .sub{margin-top:6px}
 @media(max-width:900px){.calgrid{grid-template-columns:1fr}}
+/* boot screen */
+#boot{position:fixed;inset:0;z-index:500;background:radial-gradient(900px 500px at 50% 40%,rgba(242,168,59,.08),transparent 60%),var(--bg);display:grid;place-items:center;transition:opacity .5s}
+#boot.off{opacity:0;pointer-events:none}
+.bootbox{width:min(420px,90vw);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.bootmark{width:110px;height:110px;filter:drop-shadow(0 0 18px rgba(242,168,59,.35));animation:bootpulse 2.4s ease-in-out infinite}
+@keyframes bootpulse{50%{filter:drop-shadow(0 0 30px rgba(242,168,59,.6))}}
+.boottitle{display:flex;align-items:baseline;gap:10px;margin-top:6px}.boottitle b{font:700 30px var(--head);letter-spacing:.22em;color:var(--amber)}.boottitle span{font:500 11px var(--head);letter-spacing:.24em;color:var(--dim)}
+.bootver{font:12px var(--mono);color:var(--faint)}
+.bootbar{width:100%;height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}
+.bootbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--cyan));transition:width .35s ease}
+.bootmsg{font:12px var(--mono);color:var(--dim);min-height:16px}
+.bootbtns{display:flex;gap:8px;margin-top:8px;min-height:36px}
+.bootbtns .skip{background:none;border:1px solid var(--line2);color:var(--dim)}
 /* personality fx */
 .fxcv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;mix-blend-mode:screen}
 .ufc .fxcv{z-index:1}
@@ -368,7 +383,8 @@ body.cockpit .cocktop #brief{display:none}
 </style>
 </head>
 <body>
-<div id="mfdL" class="mfd" hidden></div><div id="mfdR" class="mfd" hidden></div><div id="cockTop" class="cocktop" hidden><div id="ufc" class="ufc"></div></div><div id="calib"></div><button id="ckRescue" class="iconbtn" title="Cockpit layout (ALGN) — always reachable" hidden>⌗</button>
+<div id="mfdL" class="mfd" hidden></div><div id="mfdR" class="mfd" hidden></div><div id="cockTop" class="cocktop" hidden><div id="ufc" class="ufc"></div></div><div id="calib"></div>
+<div id="ckDock" hidden><button id="ckHome" title="Leave cockpit mode — back to the normal layout">⌂ HOME</button><button id="ckVr" title="Panels in your headset (WebXR)">VR</button><button id="ckRescue" title="Line up the MFD windows">⌗ ALIGN</button></div>
 <div id="appShell">
 <header>
   <div class="brand"><b>ARIA</b><span>Quartermaster</span></div>
@@ -592,6 +608,16 @@ body.cockpit .cocktop #brief{display:none}
 </main>
 </div>
 
+<div id="boot">
+  <div class="bootbox">
+    <svg class="bootmark" viewBox="0 0 256 256"><circle cx="128" cy="128" r="116" fill="none" stroke="var(--amber)" stroke-width="10"/><path d="M70 200 L128 52 L186 200" fill="none" stroke="var(--amber)" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/><path d="M96 150 L160 150" stroke="var(--cyan)" stroke-width="14" stroke-linecap="round"/></svg>
+    <div class="boottitle"><b id="bootName">ARIA</b><span>QUARTERMASTER</span></div>
+    <div class="bootver" id="bootVer"></div>
+    <div class="bootbar"><i id="bootFill"></i></div>
+    <div class="bootmsg" id="bootMsg">Powering up…</div>
+    <div class="bootbtns" id="bootBtns"></div>
+  </div>
+</div>
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer"></aside>
 <div class="tray" id="tray"></div>
@@ -3140,7 +3166,7 @@ function ufcRender() {
     ['NEXT', 'Reinvest: next leg from the sell point', () => { const b = $('[data-next="0"]'); if (b) b.click(); }],
     ['RTB', 'Course home', () => rtb()], ['MAP', 'Open the job view', () => { show('starmap'); setSystem('job'); }],
     ['SAY', 'Read it out', () => say(UFC.msg || (S ? S.name : 'Nothing to report.'))], ['LOG', 'Key press log', () => { UFC.mode = 'log'; ufcRender(); }],
-    ['ALGN', 'Line up the MFD windows', () => startCal()], ['DIM', 'Screen brightness: 100 → 70 → 45 → 25 → 100', () => { const d = TH.get().dim; setDim(d > .9 ? .7 : d > .6 ? .45 : d > .35 ? .25 : 1); }], ['VR', 'Put the panels in your headset (WebXR)', () => enterVR()], ['SET', 'Settings', () => openSettings()]],
+    ['ALGN', 'Line up the MFD windows', () => startCal()], ['DIM', 'Screen brightness: 100 → 70 → 45 → 25 → 100', () => { const d = TH.get().dim; setDim(d > .9 ? .7 : d > .6 ? .45 : d > .35 ? .25 : 1); }], ['VR', 'Put the panels in your headset (WebXR)', () => enterVR()], ['SET', 'Settings', () => openSettings()], ['HOME', 'Leave cockpit mode', () => $('#ckHome').click()]],
 
     log: [['CLR', 'Clear log', () => { UFC.keylog = []; store.set('keylog', []); ufcRender(); }], ['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]],
     shld: [['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]]}[UFC.mode];
@@ -3855,6 +3881,8 @@ $('#btnSettings').onclick = openSettings;
 $('#btnRefresh').onclick = refreshAll;
 $('#btnCockpit').onclick = () => setCockpit(!CK.on);
 $('#ckRescue').onclick = () => CK.cal ? calDone() : startCal();
+$('#ckHome').onclick = () => { if (CK.cal) calDone(); setCockpit(false); show('rich'); window.scrollTo(0, 0); };
+$('#ckVr').onclick = () => enterVR();
 document.addEventListener('keydown', e => { if (e.key === 'F9') setCockpit(!CK.on); });
 // starmap / nav
 $('#navGo').onclick = plotNav;
@@ -3882,12 +3910,34 @@ $('#pttClear').onclick = () => pttPost('/api/ptt/clear');
 $('#bindGo').onclick = () => runBind($('#bindQ').value);
 $('#bindQ').onkeydown = e => { if (e.key === 'Enter') runBind($('#bindQ').value); };
 
-// boot
+// boot screen: real loading progress, then Update / Skip or Continue
+const BOOT = {steps: 0, done: 0, dismissed: false};
+function bootSet(msg, frac) { const f = $('#bootFill'), m = $('#bootMsg'); if (f) f.style.width = Math.round(Math.min(1, frac) * 100) + '%'; if (m && msg) m.textContent = msg; }
+function bootTrack(label, p) { BOOT.steps++; const tick = () => { BOOT.done++; bootSet(label, BOOT.done / BOOT.steps); }; p.then(tick, tick); return p; }
+function bootDismiss() { if (BOOT.dismissed) return; BOOT.dismissed = true; const b = $('#boot'); b.classList.add('off'); setTimeout(() => b.remove(), 600); }
+async function bootFinish() {
+  const btns = $('#bootBtns'); let upd = null;
+  try { bootSet('Checking for updates…', .96); const r = await fetch('/api/update/check', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}); upd = await r.json(); } catch {}
+  bootSet(upd && upd.available ? `Version ${upd.latest} is available (you have ${upd.current}).` : upd && upd.error && STAT.update_repo ? 'Update check failed — continuing.' : 'Systems ready.', 1);
+  if (upd && upd.available) {
+    btns.innerHTML = `<button class="btn" id="bootUpd">Update to ${esc(upd.latest)}</button><button class="btn skip" id="bootSkip">Skip</button>`;
+    $('#bootSkip').onclick = bootDismiss;
+    $('#bootUpd').onclick = async () => {
+      btns.innerHTML = ''; bootSet('Updating… ARIA restarts in a moment.', 1);
+      const r = await fetch('/api/update/apply', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}); const j = await r.json();
+      if (!j.ok) { bootSet(j.error || 'Update failed.', 1); btns.innerHTML = '<button class="btn" id="bootGo">Continue</button>'; $('#bootGo').onclick = bootDismiss; return; }
+      const cur = upd.current; const poll = setInterval(async () => { try { const s2 = await (await fetch('/api/status')).json(); if (s2.version && s2.version !== cur) { clearInterval(poll); location.reload(); } } catch {} }, 1500);
+    };
+  } else { btns.innerHTML = '<button class="btn" id="bootGo">Continue</button>'; $('#bootGo').onclick = bootDismiss; $('#bootGo').focus(); }
+  addEventListener('keydown', e => { if (e.key === 'Enter' && !BOOT.dismissed && !$('#bootUpd')) bootDismiss(); }, {once: true});
+}
 (function boot() {
+  $('#bootName').textContent = AI().toUpperCase();
+  bootSet('Contacting UEX…', .05);
   setupMic(); renderHangarChips();
   const last = store.get('lastRun', null);
   if (last) { $('#shipIn').value = last.ship || ''; $('#scuIn').value = last.scu || ''; $('#budgetIn').value = last.budget || ''; $('#startIn').value = last.start || ''; }
-  tradeData().then(() => { if (last && last.system) $('#sysIn').value = last.system; }).catch(() => {});
+  bootTrack('Market data loaded', tradeData().then(() => { if (last && last.system) $('#sysIn').value = last.system; }));
   applyName(); applyTheme();
   $('#wakeWord').value = store.get('wakeWord', AI().toLowerCase());
   $('#wakeOn').checked = store.get('wakeOn', false);
@@ -3896,12 +3946,15 @@ $('#bindQ').onkeydown = e => { if (e.key === 'Enter') runBind($('#bindQ').value)
   $('#listenMode').value = store.get('listenMode', 'ptt');
   const nav = store.get('nav', null); if (nav) { $('#navFrom').value = nav.from || ''; $('#navTo').value = nav.to || ''; }
   setupMapInput(); connectPTT(); loadVoicePack(); loadMacros(); renderHomeUI();
-  fetch('/api/status').then(r => r.json()).then(st => { Object.assign(STAT, st); }).catch(() => {});
+  bootTrack('Launcher linked', fetch('/api/status').then(r => r.json()).then(st => { Object.assign(STAT, st); $('#bootVer').textContent = 'v' + (st.version || '?') + (st.update_repo ? ' · ' + st.update_repo : ''); }));
   if (store.get('cockpit', false)) setTimeout(() => setCockpit(true), 300);
   if (store.get('voiceOn', false)) setTimeout(() => setListening(true), 800);
   show(store.get('view', 'rich'));
-  // warm the other sources in the background so tabs open instantly
-  setTimeout(() => { DB.opt('wikiVehicles'); DB.opt('shipPrices'); DB.opt('blueprints'); }, 1500);
+  // warm the other sources so tabs open instantly — and so the boot bar means something
+  bootTrack('Shipyard loaded', DB.opt('wikiVehicles')); bootTrack('Dealer prices loaded', DB.opt('shipPrices'));
+  bootTrack('Blueprints loaded', DB.opt('blueprints')); bootTrack('Starmap loaded', DB.opt('positions'));
+  Promise.allSettled([tradeData().catch(() => {}), DB.opt('wikiVehicles'), DB.opt('shipPrices'), DB.opt('blueprints'), DB.opt('positions')]).then(bootFinish);
+  setTimeout(() => { if (!BOOT.dismissed && !$('#bootBtns').children.length) bootFinish(); }, 20000); // never hang on a slow source
 })();
 </script>
 <script src="vr.js"></script>
