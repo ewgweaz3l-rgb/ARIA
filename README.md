@@ -1,6 +1,6 @@
 # ARIA Quartermaster
 
-A local Star Citizen assistant that runs on your own PC. Five rooms:
+A local Star Citizen assistant that runs on your own PC. Six rooms:
 
 - **Make Me Rich** — type your ship and money, get ranked trade hauls from live UEX prices.
   `c2 hercules 750k from area18` · `cutlass black 150k` · `caterpillar 2m pyro`
@@ -16,6 +16,12 @@ A local Star Citizen assistant that runs on your own PC. Five rooms:
 - **Voice Macros** — say a phrase, ARIA presses the keys in game and answers. Push-to-talk on any
   key, mouse button or HOTAS button, so Discord chatter is ignored. Find any game action by name
   ("bind center turret") and turn it into a voice command in one click.
+- **Mining** — the ore board: every minable commodity with the best raw sell and best refined sell
+  per SCU (and the uplift), live from UEX, filtered by system or by ship / hand / gas. Click an ore
+  for every terminal. "What are my bags worth?" takes your cargo readout and says sell-raw vs refine
+  with the best terminal for each; the refinery list shows every refinery deck, UEX's per-ore yield
+  bonus (best one highlighted for the selected ore) and the processing methods. Field notes plus a
+  notes box of your own.
 
 **Manual:** the **?** in the header (or Settings → Open the manual, or HELP on the center MFD) opens
 the built-in manual — every room, every key, what to type, troubleshooting — searchable, printable.

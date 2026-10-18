@@ -32,8 +32,8 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:18px
 .brand b{font:700 22px var(--head);letter-spacing:.18em;color:var(--amber)}
 .brand span{font:500 11px var(--head);letter-spacing:.22em;color:var(--dim);text-transform:uppercase}
 nav{display:flex;gap:4px;flex:1;overflow-x:auto}
-nav button{background:none;border:1px solid transparent;border-radius:var(--r);padding:7px 14px;cursor:pointer;
-  font:600 13px var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+nav button{background:none;border:1px solid transparent;border-radius:var(--r);padding:7px 10px;cursor:pointer;
+  font:600 13px var(--head);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
 nav button:hover{color:var(--text);border-color:var(--line)}
 nav button.on{color:var(--amber);border-color:var(--amber-d);background:rgba(242,168,59,.07)}
 .pills{display:flex;gap:6px;align-items:center}
@@ -51,7 +51,7 @@ h2{font:600 13px var(--head);letter-spacing:.2em;text-transform:uppercase;color:
 .panel{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:10px;padding:16px}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
 label.f{display:flex;flex-direction:column;gap:4px;font:600 10px var(--head);letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
-input[type=text],input[type=number],input[type=search],input:not([type]),select{background:var(--bg);border:1px solid var(--line2);border-radius:var(--r);
+input[type=text],input[type=number],input[type=search],input:not([type]),select,textarea{background:var(--bg);border:1px solid var(--line2);border-radius:var(--r);
   padding:8px 10px;min-width:0;outline:none;font-size:14px;letter-spacing:0;text-transform:none;color:var(--text)}
 input:focus,select:focus{border-color:var(--cyan)}
 .chk{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:13px;cursor:pointer;user-select:none;padding:6px 0}
@@ -95,6 +95,13 @@ tr:first-child .rank{color:var(--amber)}
 .tag{display:inline-block;font:600 10px var(--head);letter-spacing:.1em;border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 .tag.cy{background:var(--cyan-d);color:var(--cyan)} .tag.am{background:var(--amber-d);color:var(--amber)} .tag.rd{background:#3a1715;color:var(--red)}
 .tablewrap{overflow-x:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:1000px){.grid2{grid-template-columns:1fr}}
+.notes{padding-left:18px;margin:6px 0}.notes li{margin:5px 0;color:var(--dim)}.notes b{color:var(--text)}
+#mnOres tr.ore{cursor:pointer}#mnOres tr.ore:hover td{background:rgba(255,255,255,.03)}#mnOres tr.ore.on td{background:rgba(242,168,59,.08)}
+.mncalc{display:grid;grid-template-columns:1fr 90px 28px;gap:6px;align-items:center;margin-bottom:6px}
+.mncalc select,.mncalc input{padding:5px 8px}
+.mnref{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px}.mnref.best{border-color:var(--amber)}
+.mnref .nm{font-weight:600}.mnref .wh{color:var(--dim);font-size:12px}.mnref .yl{font-family:var(--mono);font-size:12px;color:var(--green)}
 
 /* shipyard */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-top:14px}
@@ -410,9 +417,10 @@ body.cockpit .cocktop #brief{display:none}
   <nav id="tabs">
     <button data-view="rich" class="on">Make Me Rich</button>
     <button data-view="shipyard">Shipyard</button>
-    <button data-view="blueprints">Blueprint Room</button>
+    <button data-view="blueprints">Blueprints</button>
     <button data-view="starmap">Starmap</button>
     <button data-view="voice">Voice Macros</button>
+    <button data-view="mining">Mining</button>
   </nav>
   <div class="pills">
     <button class="pill" id="pill-voice" title="Always-on voice commands (click to toggle)" style="cursor:pointer;background:none"><i class="dot"></i>VOICE off</button>
@@ -565,6 +573,60 @@ body.cockpit .cocktop #brief{display:none}
 </section>
 
 <!-- ============ VOICE MACROS ============ -->
+<!-- ============ MINING & REFINING ============ -->
+<section class="view" id="view-mining">
+  <div class="panel">
+    <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div><h2 style="margin:0">Mining &amp; refining</h2><div class="sub" id="mnSub">Ore prices, where to sell raw, where to refine, what your bags are worth.</div></div>
+      <div class="row" style="gap:8px;align-items:center">
+        <label class="f" style="flex-direction:row;align-items:center;gap:6px">System<select id="mnSys"><option value="">All</option></select></label>
+        <label class="f" style="flex-direction:row;align-items:center;gap:6px">Show<select id="mnKind"><option value="all">Everything minable</option><option value="ship">Ship ore</option><option value="hand">Hand / FPS</option><option value="gas">Gas &amp; salvage</option></select></label>
+        <input id="mnFind" type="text" placeholder="Find an ore…" style="width:160px;padding:6px 10px">
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between;align-items:baseline"><h3 style="margin:0 0 6px">Ore board</h3><span class="sub">Best raw sell vs best refined sell per SCU, live from UEX. Click an ore for every terminal.</span></div>
+    <div class="tablewrap"><table id="mnOres"></table></div>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="panel">
+      <h3 style="margin:0 0 6px">What are my bags worth?</h3>
+      <div class="sub" style="margin-bottom:8px">Type what the cargo readout shows (SCU per mineral). ARIA compares selling raw against refining first, with the best terminal for each.</div>
+      <div id="mnCalc"></div>
+      <div class="row" style="margin-top:8px"><button class="btn ghost small" id="mnAddRow">+ Mineral</button><label class="f" style="flex-direction:row;align-items:center;gap:6px">Refine yield<input id="mnYield" type="number" min="10" max="150" value="100" style="width:70px;padding:4px 8px">%</label><button class="btn ghost small" id="mnClear">Clear</button></div>
+      <div id="mnCalcOut" style="margin-top:10px"></div>
+    </div>
+    <div class="panel">
+      <h3 style="margin:0 0 6px">Refineries</h3>
+      <div class="sub" style="margin-bottom:8px">Every refinery deck, with the processing methods and any per-ore yield bonus UEX knows about. Pick an ore on the board to highlight the best place to refine it.</div>
+      <div id="mnRef"></div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="panel">
+      <h3 style="margin:0 0 6px">Field notes</h3>
+      <div class="sub">The bits that don't come from an API. Verify against the current patch — these drift.</div>
+      <ul class="notes" id="mnNotes">
+        <li><b>Scan first.</b> Ping (<code>V</code> by default), then target the rock: mass, resistance, instability, and the composition. High resistance wants more laser power or a modifier; high instability wants a steadier hand and gadgets.</li>
+        <li><b>Green window.</b> Keep the charge bar in the green band; overcharge cracks the rock and you lose the good stuff. Add laser power slowly, back off early.</li>
+        <li><b>Fracture, then extract.</b> After the split, switch to extraction and vacuum the fragments; the bags fill in cSCU (100 cSCU = 1 SCU).</li>
+        <li><b>Inert is dead weight.</b> Dump inert material at the refinery (or jettison) — it takes bag space and pays nothing.</li>
+        <li><b>Refine or sell raw?</b> Refined pays more per SCU but costs time and a fee, and the yield depends on method: fast/cheap methods lose material, slow/expensive ones keep it. The calculator on the left does the arithmetic with whatever yield you set.</li>
+        <li><b>Refinery picks.</b> Each refinery is better at some ores than others (the yield column). A few % on Quantainium is real money; on cheap ore it's not worth the detour.</li>
+        <li><b>Quantainium is unstable.</b> Sell or refine it fast and fly gently — the timer starts when it hits the bag.</li>
+        <li><b>Hand mining</b> (Pyro, caves, some surface deposits) feeds the same commodity list in small SCU; the board's Hand / FPS filter shows those.</li>
+      </ul>
+      <div class="sub" style="margin-top:8px">Your own notes (kept on this PC):</div>
+      <textarea id="mnMine" rows="5" style="width:100%;margin-top:4px" placeholder="Rock locations, laser setups, what worked last patch…"></textarea>
+    </div>
+    <div class="panel">
+      <h3 style="margin:0 0 6px">Selected ore</h3>
+      <div id="mnDetail" class="sub">Click an ore on the board.</div>
+    </div>
+  </div>
+</section>
+
 <section class="view" id="view-voice">
   <div class="panel">
     <div class="row" style="align-items:center;gap:16px">
@@ -715,6 +777,10 @@ const SOURCES = {
   wikiVehicles: {src: 'wiki', urls: ['/api/wiki_all/vehicles']},
   blueprints:   {src: 'wiki', urls: ['/api/wiki_all/blueprints']},
   positions:    {src: 'wiki', urls: ['/api/wiki/locations/positions']},
+  refineries:   {src: 'uex',  urls: ['/api/uex/terminals?type=refinery']},
+  refMethods:   {src: 'uex',  urls: ['/api/uex/refineries_methods']},
+  refYields:    {src: 'uex',  urls: ['/api/uex/refineries_yields']},
+  refAudits:    {src: 'uex',  urls: ['/api/uex/refineries_audits']},
 };
 const DB = {
   _p: {}, status: {}, raw: {},
@@ -3995,6 +4061,114 @@ async function refreshAll() {
   if (view === 'rich' && lastOpts) runRoutes(); else tradeData().catch(() => {});
   toast('Data refreshed.');
 }
+/* =====================================================================
+   MINING & REFINING — raw ore prices, refined counterparts, refineries, bag calculator
+   ===================================================================== */
+const MN = {data: null, sel: null, rows: store.get('mnRows', [{name: '', scu: ''}]), sort: 'refined'};
+const isRawName = n => /\((raw|ore)\)\s*$/i.test(n) || /\braw\b/i.test(n);
+const refinedName = n => n.replace(/\s*\((raw|ore)\)\s*$/i, '').replace(/\s+raw$/i, '').trim();
+async function miningData() {
+  if (MN.data) return MN.data;
+  const [T, refineries, methods, yields, audits] = await Promise.all([tradeData(), DB.opt('refineries'), DB.opt('refMethods'), DB.opt('refYields'), DB.opt('refAudits')]);
+  const byId = T.com, sellAt = new Map();
+  for (const p of T.prices) { if (!(num(p.price_sell) > 0)) continue; const l = sellAt.get(p.id_commodity) || []; l.push(p); sellAt.set(p.id_commodity, l); }
+  const byName = new Map(T.commodities.map(c => [c.name.toLowerCase(), c]));
+  // every minable commodity: UEX flags when present, name patterns as the fallback
+  const HAND = /hadanite|dolivine|aphorite|beradom|glacosite|feynmaline|saldynium|carinite|riccite|janalite|gem/i;
+  const GAS = /hydrogen|helium|nitrogen|argon|xenon|neon|chlorine|methane|ammonia|salvage|rmc|cmat|scrap|construction material/i;
+  const best = l => (l || []).slice().sort((a, b) => num(b.price_sell) - num(a.price_sell))[0] || null;
+  const ores = [], covered = new Set();
+  const mk = (c, ref) => { const cat = GAS.test(c.name) || /gas/i.test(String(c.kind || '')) ? 'gas' : num(c.is_harvestable) || HAND.test(c.name) ? 'hand' : 'ship';
+    return {id: c.id, name: refinedName(c.name), rawName: c.name, raw: c, ref, cat, rawAll: sellAt.get(c.id) || [], refAll: ref ? sellAt.get(ref.id) || [] : [], illegal: !!num(c.is_illegal) || !!(ref && num(ref.is_illegal))}; };
+  for (const c of T.commodities) {  // raw forms first; the refined one joins by name
+    const raw = c.is_raw != null ? !!num(c.is_raw) : isRawName(c.name);
+    if (!raw) continue;
+    const ref = byName.get(refinedName(c.name).toLowerCase()) || null;
+    ores.push(mk(c, ref)); covered.add(c.id); if (ref) covered.add(ref.id);
+  }
+  for (const c of T.commodities) {  // minables with no raw/refined split (hand-mined gems, gases)
+    if (covered.has(c.id)) continue;
+    const minable = num(c.is_harvestable) || num(c.is_extractable) || num(c.is_mineral) || HAND.test(c.name) || (GAS.test(c.name) && !/fuel/i.test(c.name));
+    if (!minable) continue;
+    ores.push(mk(c, null)); covered.add(c.id);
+  }
+  const yieldBy = new Map();  // id_terminal -> [{id_commodity, value}]
+  for (const y of yields || []) { const l = yieldBy.get(y.id_terminal) || []; l.push(y); yieldBy.set(y.id_terminal, l); }
+  MN.data = {T, ores, refineries: refineries || [], methods: methods || [], yields: yields || [], audits: audits || [], yieldBy};
+  return MN.data;
+}
+function mnSystems(d) { return uniq([...d.ores.flatMap(o => [...o.rawAll, ...o.refAll]).map(p => (d.T.term.get(p.id_terminal) || {}).star_system_name), ...d.refineries.map(r => r.star_system_name)].filter(Boolean)).sort(); }
+async function renderMining() {
+  const el = $('#mnOres');
+  if (!MN.data) el.innerHTML = '<tr><td class="muted">Loading ore prices…</td></tr>';
+  let d; try { d = await miningData(); } catch (e) { el.innerHTML = `<tr><td class="bad">Couldn't load prices (${esc(e.message)}).</td></tr>`; return; }
+  const sysSel = $('#mnSys'); if (sysSel.options.length <= 1) mnSystems(d).forEach(sn => sysSel.insertAdjacentHTML('beforeend', `<option>${esc(sn)}</option>`));
+  const sys = sysSel.value, kind = $('#mnKind').value, q = $('#mnFind').value.trim().toLowerCase();
+  const inSys = p => !sys || (d.T.term.get(p.id_terminal) || {}).star_system_name === sys;
+  const best = l => l.filter(inSys).sort((a, b) => num(b.price_sell) - num(a.price_sell))[0] || null;
+  let rows = d.ores.filter(o => (kind === 'all' || o.cat === kind) && (!q || o.name.toLowerCase().includes(q)))
+    .map(o => ({...o, rb: best(o.rawAll), fb: best(o.refAll)}));
+  const key = {refined: o => num(o.fb && o.fb.price_sell), raw: o => num(o.rb && o.rb.price_sell), name: o => o.name}[MN.sort] || (o => 0);
+  rows.sort((a, b) => MN.sort === 'name' ? a.name.localeCompare(b.name) : key(b) - key(a));
+  const tl = p => p ? `${esc(termLabel(d.T.term.get(p.id_terminal), p))}<div class="sub">${esc(placeLabel(d.T.term.get(p.id_terminal)))}</div>` : '<span class="faint">—</span>';
+  el.innerHTML = `<tr><th class="sort" data-s="name">Ore</th><th class="r sort" data-s="raw">Raw / SCU</th><th>Sell raw at</th><th class="r sort" data-s="refined">Refined / SCU</th><th>Sell refined at</th><th class="r">Uplift</th></tr>` +
+    (rows.length ? rows.map(o => { const r = num(o.rb && o.rb.price_sell), f = num(o.fb && o.fb.price_sell); const up = r && f ? Math.round((f / r - 1) * 100) : null;
+      return `<tr class="ore${MN.sel === o.id ? ' on' : ''}" data-id="${o.id}"><td><b>${esc(o.name)}</b>${o.illegal ? ' <span class="chip amber" style="padding:0 6px">illegal</span>' : ''}<div class="sub">${o.cat === 'hand' ? 'hand mining' : o.cat === 'gas' ? 'gas / salvage' : 'ship mining'}</div></td>
+        <td class="r num">${r ? fmt(r) : '—'}</td><td>${tl(o.rb)}</td><td class="r num good">${f ? fmt(f) : '—'}</td><td>${tl(o.fb)}</td><td class="r num ${up > 0 ? 'good' : ''}">${up == null ? '—' : (up > 0 ? '+' : '') + up + '%'}</td></tr>`; }).join('')
+    : `<tr><td colspan="6" class="muted">${d.ores.length ? 'Nothing matches that filter.' : 'UEX hasn’t sent commodity flags yet — pull fresh data (⟳) and come back.'}</td></tr>`);
+  $$('th.sort', el).forEach(h => h.onclick = () => { MN.sort = h.dataset.s; renderMining(); });
+  $$('tr.ore', el).forEach(tr => tr.onclick = () => { MN.sel = +tr.dataset.id; renderMining(); });
+  $('#mnSub').textContent = `${rows.length} ores · prices ${d.T.prices.length ? 'from UEX, player-reported — check age on the terminal' : 'unavailable'}${d.refineries.length ? ` · ${d.refineries.length} refineries` : ''}`;
+  renderMiningDetail(d); renderRefineries(d); renderMnCalc(d);
+}
+function renderMiningDetail(d) {
+  const o = d.ores.find(x => x.id === MN.sel), el = $('#mnDetail');
+  if (!o) { el.className = 'sub'; el.textContent = 'Click an ore on the board.'; return; }
+  el.className = '';
+  const list = (l, label) => l.length ? `<h4 style="margin:10px 0 4px">${label}</h4><table>${l.slice().sort((a, b) => num(b.price_sell) - num(a.price_sell)).slice(0, 12).map(p => { const t = d.T.term.get(p.id_terminal); return `<tr><td>${esc(termLabel(t, p))}<div class="sub">${esc(placeLabel(t))}</div></td><td class="r num">${fmt(p.price_sell)}</td><td class="r sub">${ago((Date.now() / 1000) - num(p.date_modified))}</td></tr>`; }).join('')}</table>` : '';
+  el.innerHTML = `<div style="font:700 18px var(--head)">${esc(o.name)}</div><div class="sub">${esc(o.rawName)}${o.ref ? ' → ' + esc(o.ref.name) : ' · no refined form listed'}</div>
+    ${list(o.rawAll, 'Sell raw')}${list(o.refAll, 'Sell refined')}
+    ${o.rawAll.length || o.refAll.length ? '' : '<div class="muted" style="margin-top:8px">No terminal reports a sell price for this yet.</div>'}`;
+}
+function renderRefineries(d) {
+  const el = $('#mnRef'), o = d.ores.find(x => x.id === MN.sel), sys = $('#mnSys').value;
+  if (!d.refineries.length) { el.innerHTML = '<div class="muted">No refinery list from UEX yet (⟳ to retry). Refineries in Stanton: ARC-L1, ARC-L2, ARC-L4, CRU-L1, HUR-L1, HUR-L2, MIC-L1, MIC-L2, MIC-L5 (and Pyro’s stations where equipped).</div>'; return; }
+  const refs = d.refineries.filter(r => !sys || r.star_system_name === sys);
+  const bonus = r => { const l = d.yieldBy.get(r.id) || []; const mine = o ? l.find(y => y.id_commodity === (o.ref ? o.ref.id : o.id) || y.id_commodity === o.id) : null; return {mine, all: l}; };
+  let bestId = null, bestV = -1;
+  if (o) for (const r of refs) { const b = bonus(r).mine; if (b && num(b.value) > bestV) { bestV = num(b.value); bestId = r.id; } }
+  el.innerHTML = refs.sort((a, b) => (num((bonus(b).mine || {}).value) - num((bonus(a).mine || {}).value)) || termLabel(a).localeCompare(termLabel(b))).map(r => { const b = bonus(r);
+    return `<div class="mnref${r.id === bestId ? ' best' : ''}"><div class="row" style="justify-content:space-between"><span class="nm">${esc(termLabel(r))}</span>${b.mine ? `<span class="yl">${esc(o.name)} yield ${num(b.mine.value) > 0 ? '+' : ''}${fmt(b.mine.value, 1)}%</span>` : ''}</div><div class="wh">${esc(placeLabel(r))}</div>
+      ${b.all.length && !o ? `<div class="wh" style="margin-top:4px">Bonus ores: ${b.all.slice().sort((x, y) => num(y.value) - num(x.value)).slice(0, 5).map(y => esc((d.T.com.get(y.id_commodity) || {name: y.commodity_name}).name) + ' ' + (num(y.value) > 0 ? '+' : '') + fmt(y.value, 1) + '%').join(' · ')}</div>` : ''}</div>`; }).join('') +
+    (d.methods.length ? `<h4 style="margin:12px 0 4px">Methods</h4><table>${d.methods.map(m => `<tr><td><b>${esc(m.name)}</b></td><td class="sub">yield ${esc(m.rating_yield ?? '—')} · cost ${esc(m.rating_cost ?? '—')} · speed ${esc(m.rating_speed ?? '—')}</td></tr>`).join('')}</table><div class="sub">Ratings are UEX's 1–5 scale: higher yield keeps more ore, higher cost costs more aUEC, higher speed finishes sooner.</div>` : '');
+}
+function renderMnCalc(d) {
+  const el = $('#mnCalc'), names = d.ores.map(o => o.name).sort();
+  el.innerHTML = MN.rows.map((r, i) => `<div class="mncalc"><input list="mnList" value="${esc(r.name)}" data-i="${i}" data-f="name" placeholder="Mineral"><input type="number" min="0" step="0.1" value="${esc(r.scu)}" data-i="${i}" data-f="scu" placeholder="SCU"><button class="btn ghost small" data-x="${i}" title="Remove">×</button></div>`).join('') +
+    `<datalist id="mnList">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
+  $$('input', el).forEach(inp => inp.oninput = () => { MN.rows[+inp.dataset.i][inp.dataset.f] = inp.value; store.set('mnRows', MN.rows); mnCalcOut(d); });
+  $$('[data-x]', el).forEach(b => b.onclick = () => { MN.rows.splice(+b.dataset.x, 1); if (!MN.rows.length) MN.rows.push({name: '', scu: ''}); store.set('mnRows', MN.rows); renderMnCalc(d); });
+  $('#mnAddRow').onclick = () => { MN.rows.push({name: '', scu: ''}); store.set('mnRows', MN.rows); renderMnCalc(d); };
+  $('#mnClear').onclick = () => { MN.rows = [{name: '', scu: ''}]; store.set('mnRows', MN.rows); renderMnCalc(d); };
+  $('#mnYield').oninput = () => mnCalcOut(d);
+  mnCalcOut(d);
+}
+function mnCalcOut(d) {
+  const out = $('#mnCalcOut'), y = Math.max(0, num($('#mnYield').value) || 100) / 100, sys = $('#mnSys').value;
+  const inSys = p => !sys || (d.T.term.get(p.id_terminal) || {}).star_system_name === sys;
+  const best = l => l.filter(inSys).sort((a, b) => num(b.price_sell) - num(a.price_sell))[0] || null;
+  let raw = 0, ref = 0; const lines = [];
+  for (const r of MN.rows) { const o = d.ores.find(x => x.name.toLowerCase() === String(r.name).trim().toLowerCase()); const scu = num(r.scu); if (!o || !scu) continue;
+    const rb = best(o.rawAll), fb = best(o.refAll); const rv = rb ? scu * num(rb.price_sell) : 0, fv = fb ? scu * y * num(fb.price_sell) : 0; raw += rv; ref += fv;
+    lines.push(`<tr><td>${esc(o.name)} <span class="sub">${fmt(scu, 1)} SCU</span></td><td class="r num">${rv ? fmt(rv) : '—'}<div class="sub">${rb ? esc(termLabel(d.T.term.get(rb.id_terminal), rb)) : ''}</div></td><td class="r num good">${fv ? fmt(fv) : '—'}<div class="sub">${fb ? esc(termLabel(d.T.term.get(fb.id_terminal), fb)) : ''}</div></td></tr>`); }
+  if (!lines.length) { out.innerHTML = '<div class="sub">Add a mineral and an SCU amount.</div>'; return; }
+  const verdict = ref > raw * 1.08 ? `Refine: about <b class="good">+${money(ref - raw)}</b> over selling raw (before the refinery fee).` : raw >= ref ? `<b>Sell raw</b> — refining doesn't pay here at ${Math.round(y * 100)}% yield.` : `Close call (<b>+${money(ref - raw)}</b> for refining) — only if the refinery is on your way.`;
+  out.innerHTML = `<table><tr><th>Mineral</th><th class="r">Raw</th><th class="r">Refined @${Math.round(y * 100)}%</th></tr>${lines.join('')}<tr><td><b>Total</b></td><td class="r num"><b>${fmt(raw)}</b></td><td class="r num good"><b>${fmt(ref)}</b></td></tr></table><div style="margin-top:8px">${verdict}</div>`;
+}
+['#mnSys', '#mnKind'].forEach(id => $(id).onchange = () => renderMining());
+$('#mnFind').oninput = () => renderMining();
+$('#mnMine').value = store.get('mnNotes', ''); $('#mnMine').oninput = () => store.set('mnNotes', $('#mnMine').value);
+
 function show(view) {
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === view));
   $$('.view').forEach(v => v.classList.toggle('on', v.id === 'view-' + view));
@@ -4003,6 +4177,7 @@ function show(view) {
   if (view === 'blueprints') renderBlueprints();
   if (view === 'starmap') initMap();
   if (view === 'voice') initVoice();
+  if (view === 'mining') renderMining();
   renderTray();
 }
 
