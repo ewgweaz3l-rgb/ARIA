@@ -349,7 +349,7 @@ body.cockpit .cocktop #brief{display:none}
     <button class="pill" id="pill-voice" title="Always-on voice commands (click to toggle)" style="cursor:pointer;background:none"><i class="dot"></i>VOICE off</button>
     <div class="pill" id="pill-uex" title="UEX Corp trade data"><i class="dot"></i>UEX</div>
     <div class="pill" id="pill-wiki" title="Star Citizen Wiki game data"><i class="dot"></i>WIKI</div>
-    <button class="iconbtn" id="btnCockpit" title="Cockpit mode: MFD screens on the Cougars">▣</button>
+    <button class="pill" id="btnCockpit" title="Cockpit mode: MFD screens on the Cougars (F9)" style="cursor:pointer;background:none"><i class="dot"></i>COCKPIT off</button>
     <button class="iconbtn" id="btnRefresh" title="Pull fresh data now">⟳</button>
     <button class="iconbtn" id="btnSettings" title="Settings">⚙</button>
   </div>
@@ -2650,6 +2650,7 @@ function ckLayout() {
 }
 function setCockpit(on) {
   CK.on = on; store.set('cockpit', on);
+  const bc = $('#btnCockpit'); $('.dot', bc).className = 'dot ' + (on ? 'live' : ''); bc.lastChild.textContent = on ? 'COCKPIT on' : 'COCKPIT off';
   document.body.classList.toggle('cockpit', on);
   const top = $('#cockTop');
   if (on) {
