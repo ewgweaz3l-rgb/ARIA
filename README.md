@@ -47,6 +47,11 @@ focus. Pages: **MENU · SHLD** (shield facing + reset) **· PWR** (weapons/shiel
 pair = page cycle, bottom = SOI. Any button that needs the game shows **NO BIND** until ARIA finds
 the action in your keybinds (SYS → EDIT sets one by hand). SYS → TEST shows button numbers.
 
+**UFC (center deck):** the panel between the MFDs. Ask a route by voice or keyboard and it
+answers on the scratchpad teletype-style, with cash / time / stops / jumps, a mini starmap with
+the route lit, and soft keys: ACPT (make it a job), NEXT (reinvest leg), RTB, MAP, SAY, LOG. Shield
+reroutes from the SHLD page animate here. LOG keeps the last 60 key presses ARIA sent.
+
 The Cougars are detected by their USB id. If the SYS page says NOT FOUND, use SYS → SET L / SET R
 (or Settings ⚙ → Set left/right MFD) and press any button on that MFD.
 

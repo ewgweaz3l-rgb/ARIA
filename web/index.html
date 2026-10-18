@@ -239,6 +239,27 @@ body.cockpit #jobBar{margin:0!important}
 .calbox.sel .calgrip{background:var(--amber)}
 .caltools{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);pointer-events:auto;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--dim);display:flex;gap:10px;align-items:center;z-index:81;white-space:nowrap}
 .caltools b{color:var(--amber);font:700 11px var(--head);letter-spacing:.2em}
+/* UFC center deck */
+.ufc{display:none;background:#030805;border:1px solid #1c3a26;border-radius:8px;padding:8px 10px;color:#5ef08a;font-family:var(--mono);text-shadow:0 0 6px rgba(94,240,138,.35);position:relative;overflow:hidden;min-height:250px;flex-direction:column;gap:6px}
+.ufc::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px)}
+body.cockpit .ufc{display:flex}
+.uhead{display:flex;align-items:center;gap:8px;font:600 10px var(--mono);letter-spacing:.18em}
+.usp{flex:1}.ugood{color:#5ef08a}.uwarn{color:#f2a83b}
+.ulamp{width:8px;height:8px;border-radius:50%;background:#1c3a26}.ulamp.on{background:#5ef08a;box-shadow:0 0 8px #5ef08a}
+.upad{min-height:38px;max-height:56px;overflow:hidden;font:500 13px/1.4 var(--mono);color:#dfe6ee;border-top:1px solid #1c3a26;border-bottom:1px solid #1c3a26;padding:5px 2px}
+.ugrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,42%);gap:10px;flex:1;min-height:150px}
+.ucells{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px;align-content:start}
+.utitle{grid-column:1/-1;font:600 10px var(--mono);letter-spacing:.2em;opacity:.7}
+.uname{grid-column:1/-1;font:700 13px var(--head);letter-spacing:.06em;color:#dfe6ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.ucell span{display:block;font-size:9px;letter-spacing:.16em;opacity:.65}.ucell b{font:600 15px var(--mono);color:#dfe6ee}
+.ucanvas{width:100%;height:100%;min-height:150px;background:radial-gradient(ellipse at center,#07140b 0%,#030805 100%);border:1px solid #1c3a26;border-radius:4px}
+.ukeys{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.ukeys button{background:#06110a;border:1px solid #2a5a3a;border-radius:3px;color:#5ef08a;font:600 11px var(--mono);letter-spacing:.14em;padding:5px 12px;cursor:pointer;min-width:62px}
+.ukeys button:hover{background:#5ef08a;color:#031;text-shadow:none}
+.ulog{flex:1;overflow:auto;font-size:11px;min-height:150px}
+.ulog>div{display:grid;grid-template-columns:72px 52px 1fr 1fr;gap:8px;padding:2px 0;border-bottom:1px solid rgba(94,240,138,.15)}
+.ulog b{color:#dfe6ee}.ulog i{opacity:.6;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.cockpit .cocktop #brief{display:none}
 /* ship picker */
 .ddrop{position:fixed;z-index:70;display:none;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.55);overflow:hidden}
 .az{display:flex;flex-wrap:wrap;gap:2px;padding:8px;border-bottom:1px solid var(--line)}
@@ -289,7 +310,7 @@ body.cockpit #jobBar{margin:0!important}
 </style>
 </head>
 <body>
-<div id="mfdL" class="mfd" hidden></div><div id="mfdR" class="mfd" hidden></div><div id="cockTop" class="cocktop" hidden></div><div id="calib"></div>
+<div id="mfdL" class="mfd" hidden></div><div id="mfdR" class="mfd" hidden></div><div id="cockTop" class="cocktop" hidden><div id="ufc" class="ufc"></div></div><div id="calib"></div>
 <div id="appShell">
 <header>
   <div class="brand"><b>ARIA</b><span>Quartermaster</span></div>
@@ -912,6 +933,7 @@ function renderRoutes() {
     `Outlay ${money(top.invest)}, projected profit ${money(top.profit)} aUEC (${top.roi.toFixed(0)}% ROI)` +
     (top.gm ? `, ${fmt(top.gm, 1)} GM out.` : '.') + capNote + fresh;
   $('#brief').innerHTML = `<div class="brief"><div class="who">${esc(AI().toUpperCase())}</div><p>${esc(text)}</p></div>`;
+  if (CK.on) { ufcSay(text); }
   if ($('#speakIn').checked || VOICE.heardCommand) {
     say(`Best haul: ${top.name}, from ${termLabel(top.tb, top.b)} to ${termLabel(top.ts, top.s)}. About ${sayMoney(top.profit)} profit.`, 'haul-found');
     VOICE.heardCommand = false;
@@ -1927,6 +1949,7 @@ async function buildPlan(stops, opts = {}) {
   MAP.route = {A: merged[0].ent, B: merged[merged.length - 1].ent, legs, sysPath};
   $('#navFrom').value = merged[0].label; $('#navTo').value = merged[merged.length - 1].label;
   renderNavOut();
+  if (CK.on) { MFDS.stop = 0; mfdRender('L'); mfdRender('R'); ufcRender(); }
   return PLAN;
 }
 function renderNavOut() {
@@ -1963,7 +1986,8 @@ async function plotNav() {
   else { setSystem(A.sys); selectEnt(B); fitRoute(); }
   store.set('nav', {from: fromTxt, to: toTxt});
   const T = P.totals;
-  if (heard || $('#speakIn').checked) say(`Course plotted to ${B.name}. ${T.jumps ? T.jumps + (T.jumps > 1 ? ' jumps, ' : ' jump, ') : ''}${fmt(T.qtDist / 1e9, 0)} gigameters, about ${durSay(T.time)}.`, 'course-plotted');
+  const line = `Course plotted to ${B.name}. ${T.jumps ? T.jumps + (T.jumps > 1 ? ' jumps, ' : ' jump, ') : ''}${fmt(T.qtDist / 1e9, 0)} gigameters, about ${durSay(T.time)}.`;
+  if (heard || $('#speakIn').checked) say(line, 'course-plotted'); else if (CK.on) ufcSay(line);
 }
 
 /* ---------------- trade hauls → job ---------------- */
@@ -2230,6 +2254,7 @@ function speak(text) {
 }
 // exact clip for this sentence → (clips mode) generic clip for the situation → browser voice
 function say(text, lineId) {
+  if (CK.on) ufcSay(text, lineId);
   const mode = $('#voiceMode').value;
   if (mode === 'off' || !text) return;
   if (mode !== 'tts') {
@@ -2326,6 +2351,7 @@ function fireMacro(m, test) {
       .catch(() => toast('ARIA server not reachable — is the launcher window open?'));
   }
   vlog(`${live ? '▶' : '◇ practice'}  “${m.phrases[0]}” → ${m.keys}`);
+  if (live) logKey('VOICE', m.keys, m.phrases[0]);
   if (m.reply) say(m.reply);
   const i = VOICE.macros.indexOf(m), row = $(`#macroTable tr[data-i="${i}"]`);
   if (row) { row.style.background = 'rgba(242,168,59,.12)'; setTimeout(() => row.style.background = '', 700); }
@@ -2602,7 +2628,9 @@ function setCockpit(on) {
       CK.moved.push({el, parent: el.parentElement, next: el.nextSibling});
       top.appendChild(el);
     }
-    ckLayout(); mfdRender('L'); mfdRender('R'); connectMFD();
+    top.insertBefore($('#ufc'), top.firstChild);
+    ckLayout(); mfdRender('L'); mfdRender('R'); connectMFD(); ufcRender();
+    if (!UFC.msg) ufcSay(`${AI()} online. Ask me for a route.`);
   } else {
     for (const m of CK.moved.reverse()) m.parent.insertBefore(m.el, m.next);
     CK.moved = [];
@@ -2691,6 +2719,7 @@ async function gameKeys(id) {
 async function sendKeys(keys, fromMouse) {
   if (!keys) return false;
   if (!$('#keysLive').checked) { vlog(`◇ practice (MFD) → ${keys}`); return true; }
+  logKey('MFD', keys);
   try {
     const r = await fetch('/api/keys', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({keys, focus: !!fromMouse})});
     return (await r.json()).ok;
@@ -2726,6 +2755,7 @@ function pageDef(side) {
       const k = await gameKeys(id);
       if (!k) { mfdMsg(side, `NO BIND · ${({f: 'FWD', a: 'AFT', l: 'LEFT', r: 'RGHT', x: 'RESET'})[face]} · SEE SYS → EDIT`); return; }
       if (id === 'shX') MFDS.shld = {f: 0, a: 0, l: 0, r: 0}; else s[face] = Math.min(3, s[face] + 1);
+      ufcPulse(face);
       await sendKeys(k, fromMouse); mfdRender(side);
     };
     const arc = (lvl, d) => `<path d="${d}" fill="none" stroke="${lvl ? 'var(--mw)' : 'var(--mg)'}" stroke-width="${2.5 + lvl * 2.2}" opacity="${.7 + lvl * .1}" stroke-linecap="round"/>`;
@@ -2860,7 +2890,7 @@ function connectMFD() {
     MFDC.es.addEventListener('state', ev => { MFDC.state = JSON.parse(ev.data); });
   } catch {}
 }
-setInterval(() => { if (CK.on) { mfdRender('L'); mfdRender('R'); } }, 1000);
+setInterval(() => { if (CK.on) { mfdRender('L'); mfdRender('R'); if (UFC.mode !== 'shld' && UFC.typed >= UFC.msg.length) ufcRender(); } }, 1000);
 
 /* OSB editor: put your own key/bind on any button of any page */
 function openOsbEditor() {
@@ -2889,6 +2919,149 @@ function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => toast('Press F11 for full screen.'));
 }
 const STAT = {};
+
+/* =====================================================================
+   UFC — the center "radio deck" between the MFDs (cockpit mode).
+   Ask a route by voice or keyboard; it answers on the scratchpad, shows cash /
+   time / stops, pops a mini starmap with the route lit, animates shield shifts,
+   and keeps a log of every key press ARIA sends.
+   ===================================================================== */
+const UFC = {msg: '', typed: 0, mode: 'route', pulse: null, keylog: store.get('keylog', []).slice(0, 60), raf: 0, lastAnswer: null, answers: []};
+function logKey(src, keys, note) {
+  UFC.keylog.unshift({t: Date.now(), src, keys, note: note || ''});
+  UFC.keylog = UFC.keylog.slice(0, 60); store.set('keylog', UFC.keylog);
+  if (UFC.mode === 'log') ufcRender();
+}
+function ufcSay(text, kind) {
+  // every sentence ARIA speaks also prints on the scratchpad, teletype style
+  UFC.msg = String(text || ''); UFC.typed = 0; UFC.kind = kind || '';
+  UFC.answers.unshift({t: Date.now(), text: UFC.msg}); UFC.answers = UFC.answers.slice(0, 12);
+  ufcRender(); ufcType();
+}
+function ufcType() {
+  cancelAnimationFrame(UFC.raf);
+  const el = $('#ufcPad'); if (!el) return;
+  const step = () => {
+    UFC.typed = Math.min(UFC.msg.length, UFC.typed + 2);
+    el.textContent = UFC.msg.slice(0, UFC.typed) + (UFC.typed < UFC.msg.length ? '▮' : '');
+    if (UFC.typed < UFC.msg.length) UFC.raf = requestAnimationFrame(step);
+  };
+  step();
+}
+function ufcPulse(face) { UFC.pulse = {face, t: performance.now()}; UFC.mode = 'shld'; ufcRender(); ufcAnim(); setTimeout(() => { if (UFC.mode === 'shld' && performance.now() - UFC.pulse.t > 2500) { UFC.mode = 'route'; ufcRender(); } }, 2800); }
+function ufcAnim() {
+  const c = $('#ufcCanvas'); if (!c || UFC.mode !== 'shld') return;
+  drawShieldAnim(c);
+  if (UFC.pulse && performance.now() - UFC.pulse.t < 1400) requestAnimationFrame(ufcAnim);
+}
+function ufcSummary() {
+  const P = curPlan();
+  const top = lastRows && lastRows.length ? sortRows(lastRows, lastOpts.rank)[0] : null;
+  if (P) {
+    const T = P.totals;
+    return {title: P.kind === 'nav' ? 'COURSE' : P.kind === 'job' ? 'JOB' : 'RUN', name: P.title.toUpperCase(),
+      cells: [['CASH', T.profit ? '+' + money(T.profit) : '—'], ['TIME', fmtDur(T.time)], ['STOPS', P.stops.length], ['JUMPS', T.jumps], ['DIST', fmtDist(T.qtDist)], ['FUEL', T.fuel ? fmt(T.fuel, 1) + ' SCU' : '—']], plan: P, top};
+  }
+  if (top) return {title: 'BEST HAUL', name: `${top.name} · ${termLabel(top.tb, top.b)} → ${termLabel(top.ts, top.s)}`.toUpperCase(),
+    cells: [['CASH', '+' + money(top.profit)], ['OUTLAY', money(top.invest)], ['ROI', top.roi.toFixed(0) + '%'], ['LOAD', fmt(top.units) + ' SCU'], ['DIST', top.gm ? fmt(top.gm, 1) + ' GM' : '—'], ['DATA', ago(top.age)]], top};
+  return null;
+}
+function ufcRender() {
+  const el = $('#ufc'); if (!el || !CK.on) return;
+  const S = ufcSummary(), live = $('#keysLive').checked;
+  const keys = {route: [['ACPT', 'Make the best haul a job', () => { if (S && S.top) { addToJob(haulFromRow(S.top)); ufcSay(`Job accepted. ${S.top.name} to ${termLabel(S.top.ts, S.top.s)}.`); } }],
+    ['NEXT', 'Reinvest: next leg from the sell point', () => { const b = $('[data-next="0"]'); if (b) b.click(); }],
+    ['RTB', 'Course home', () => rtb()], ['MAP', 'Open the job view', () => { show('starmap'); setSystem('job'); }],
+    ['SAY', 'Read it out', () => say(UFC.msg || (S ? S.name : 'Nothing to report.'))], ['LOG', 'Key press log', () => { UFC.mode = 'log'; ufcRender(); }]],
+    log: [['CLR', 'Clear log', () => { UFC.keylog = []; store.set('keylog', []); ufcRender(); }], ['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]],
+    shld: [['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]]}[UFC.mode];
+  const cells = S ? S.cells.map(([k, v]) => `<div class="ucell"><span>${k}</span><b>${esc(String(v))}</b></div>`).join('') : '';
+  let body = '';
+  if (UFC.mode === 'log') {
+    body = `<div class="ulog">${UFC.keylog.length ? UFC.keylog.map(k => `<div><span>${new Date(k.t).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}</span><span>${esc(k.src)}</span><b>${esc(k.keys)}</b><i>${esc(k.note)}</i></div>`).join('') : '<div class="faint">NO KEY PRESSES SENT YET</div>'}</div>`;
+  } else {
+    body = `<div class="ugrid"><div class="ucells">${S ? `<div class="utitle">${S.title}</div><div class="uname">${esc(S.name)}</div>${cells}` : '<div class="utitle">STANDBY</div><div class="uname">ASK A ROUTE: “C2 HERCULES 750K FROM AREA18” · “NAV TO RUIN STATION” · “RTB”</div>'}</div>
+      <canvas id="ufcCanvas" class="ucanvas"></canvas></div>`;
+  }
+  el.innerHTML = `<div class="uhead"><span class="ulamp ${VOICE.on ? 'on' : ''}"></span>${esc(AI().toUpperCase())} UFC<span class="usp"></span>
+      <span class="${live ? 'ugood' : 'uwarn'}">${live ? 'KEYS LIVE' : 'PRACTICE'}</span><span class="usp"></span>${PTTC.held ? '<span class="uwarn">● TALK</span>' : VOICE.on ? (pttMode() ? 'PTT' : 'OPEN MIC') : 'VOICE OFF'}</div>
+    <div class="upad" id="ufcPad">${esc(UFC.msg.slice(0, UFC.typed))}</div>
+    ${body}
+    <div class="ukeys">${keys.map(([l, tip]) => `<button title="${esc(tip)}">${l}</button>`).join('')}</div>`;
+  $$('.ukeys button', el).forEach((b, i) => b.onclick = () => keys[i][2]());
+  const c = $('#ufcCanvas'); if (c) { if (UFC.mode === 'shld') drawShieldAnim(c); else drawMini(c, S && S.plan, S && S.top); }
+  if (UFC.typed < UFC.msg.length) ufcType();
+}
+function miniCanvas(c) {
+  const dpr = devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  return {ctx, W, H};
+}
+function drawMini(c, P, top) {
+  const {ctx, W, H} = miniCanvas(c); if (!W) return;
+  const G = '#5ef08a', D = 'rgba(94,240,138,.35)', A = '#f2a83b';
+  ctx.font = '600 10px IBM Plex Mono, monospace'; ctx.fillStyle = D;
+  if (!MAP.systems.size) { ctx.fillText('STARMAP LOADING', 8, 14); return; }
+  const path = P ? P.sysPath || MAP.route.sysPath : null;
+  const multi = path && path.length > 1;
+  if (multi && MAP.gal) {
+    // jump network with the route lit
+    const {pos, links} = MAP.gal, keys = Object.keys(pos);
+    const xs = keys.map(k => pos[k].x), ys = keys.map(k => pos[k].y);
+    const mnx = Math.min(...xs), mxx = Math.max(...xs), mny = Math.min(...ys), mxy = Math.max(...ys);
+    const sx = k => 28 + (mxx === mnx ? .5 : (pos[k].x - mnx) / (mxx - mnx)) * (W - 56), sy = k => 22 + (mxy === mny ? .5 : (mxy - pos[k].y) / (mxy - mny)) * (H - 44);
+    const onPath = (a, b) => path.some((k, i) => i && ((path[i - 1] === a && k === b) || (path[i - 1] === b && k === a)));
+    for (const l of links) { const hot = onPath(l.a, l.b); ctx.strokeStyle = hot ? A : D; ctx.lineWidth = hot ? 2.5 : 1; ctx.setLineDash(l.size === 'small' ? [4, 4] : []); ctx.beginPath(); ctx.moveTo(sx(l.a), sy(l.a)); ctx.lineTo(sx(l.b), sy(l.b)); ctx.stroke(); }
+    ctx.setLineDash([]);
+    for (const k of keys) { const hot = path.includes(k); ctx.fillStyle = hot ? A : G; ctx.beginPath(); ctx.arc(sx(k), sy(k), hot ? 5 : 3, 0, 7); ctx.fill(); ctx.fillStyle = hot ? '#fff' : D; ctx.textAlign = 'center'; ctx.fillText(sysName(k).toUpperCase(), sx(k), sy(k) + 16); }
+    return;
+  }
+  // one system: star, orbits, route bodies
+  const sysKeyUse = P ? P.stops[0].ent.sys : top ? (entityForTerminal(top.tb) || {}).sys : MAP.view !== 'galaxy' ? MAP.view : null;
+  const S = sysKeyUse && MAP.systems.get(sysKeyUse); if (!S) { ctx.fillText('NO ROUTE', 8, 14); return; }
+  const star = S.star || {x: 0, y: 0};
+  const bodies = S.ents.filter(e => ['planet', 'jumppoint'].includes(norm(e.type)));
+  const routeEnts = P ? P.stops.map(s => s.ent).concat(P.segs.flatMap(s => s.legs).flatMap(l => l.jump ? [] : [l.from, l.to])) : top ? [entityForTerminal(top.tb), entityForTerminal(top.ts)].filter(Boolean) : [];
+  const all = bodies.concat(routeEnts, [star]);
+  const R = Math.max(1e9, ...all.map(e => Math.hypot(e.x - star.x, e.y - star.y))) * 1.12;
+  const s = Math.min(W, H) / 2 / R, cx = W / 2, cy = H / 2;
+  const X = e => cx + (e.x - star.x) * s, Y = e => cy - (e.y - star.y) * s;
+  for (const b of bodies) { const r = Math.hypot(b.x - star.x, b.y - star.y) * s; ctx.strokeStyle = 'rgba(94,240,138,.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke(); }
+  ctx.fillStyle = A; ctx.beginPath(); ctx.arc(cx, cy, 5, 0, 7); ctx.fill();
+  for (const b of bodies) { ctx.fillStyle = G; ctx.beginPath(); ctx.arc(X(b), Y(b), norm(b.type) === 'jumppoint' ? 2.5 : 3.5, 0, 7); ctx.fill(); ctx.fillStyle = D; ctx.textAlign = 'left'; ctx.fillText(b.name.toUpperCase(), X(b) + 6, Y(b) + 3); }
+  // route
+  const pts = P ? P.segs.flatMap(sg => sg.legs).filter(l => !l.jump && l.from.sys === S.key).flatMap(l => [l.from, l.to]) : routeEnts;
+  if (pts.length > 1) {
+    ctx.strokeStyle = A; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath();
+    pts.forEach((e, i) => i ? ctx.lineTo(X(e), Y(e)) : ctx.moveTo(X(e), Y(e))); ctx.stroke(); ctx.setLineDash([]);
+  }
+  const stops = P ? P.stops.filter(st => st.ent.sys === S.key).map(st => st.ent) : routeEnts;
+  stops.forEach((e, i) => { ctx.fillStyle = A; ctx.beginPath(); ctx.arc(X(e), Y(e), 7, 0, 7); ctx.fill(); ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.font = '700 9px Oxanium, sans-serif'; ctx.fillText(String(i + 1), X(e), Y(e) + 3); ctx.font = '600 10px IBM Plex Mono, monospace'; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(e.name.toUpperCase(), X(e) + 10, Y(e) - 6); });
+}
+function drawShieldAnim(c) {
+  const {ctx, W, H} = miniCanvas(c); if (!W) return;
+  const G = '#5ef08a', cx = W / 2, cy = H / 2, r = Math.min(W, H) * .36, s = MFDS.shld;
+  const t = UFC.pulse ? (performance.now() - UFC.pulse.t) / 1400 : 1, face = UFC.pulse && UFC.pulse.face;
+  const arcs = {f: [-Math.PI * .75, -Math.PI * .25], r: [-Math.PI * .25, Math.PI * .25], a: [Math.PI * .25, Math.PI * .75], l: [Math.PI * .75, Math.PI * 1.25]};
+  for (const [k, [a0, a1]] of Object.entries(arcs)) {
+    const lvl = s[k] || 0, hot = k === face && t < 1;
+    ctx.strokeStyle = hot ? '#fff' : G; ctx.lineWidth = 2 + lvl * 2 + (hot ? Math.sin(t * Math.PI) * 4 : 0); ctx.globalAlpha = .35 + lvl * .2 + (hot ? .4 : 0);
+    ctx.beginPath(); ctx.arc(cx, cy, r + (hot ? Math.sin(t * Math.PI) * 6 : 0), a0, a1); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // energy packets flowing from the hull to the chosen facing
+  if (face && face !== 'x' && t < 1) {
+    const mid = (arcs[face][0] + arcs[face][1]) / 2;
+    for (let i = 0; i < 6; i++) { const p = ((t * 2 + i / 6) % 1), rr = r * .35 + p * r * .6; ctx.fillStyle = `rgba(255,255,255,${1 - p})`; ctx.beginPath(); ctx.arc(cx + Math.cos(mid) * rr, cy + Math.sin(mid) * rr, 2.5, 0, 7); ctx.fill(); }
+  }
+  if (face === 'x' && t < 1) { ctx.strokeStyle = `rgba(255,255,255,${1 - t})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r * (1.1 - t * .3), 0, 7); ctx.stroke(); }
+  ctx.strokeStyle = '#dfe6ee'; ctx.lineWidth = 1.5; ctx.beginPath();
+  [[0, -.42], [.17, .05], [.34, .32], [.1, .22], [0, .4], [-.1, .22], [-.34, .32], [-.17, .05]].forEach(([x, y], i) => i ? ctx.lineTo(cx + x * r * 1.6, cy + y * r * 1.6) : ctx.moveTo(cx + x * r * 1.6, cy + y * r * 1.6)); ctx.closePath(); ctx.stroke();
+  ctx.fillStyle = G; ctx.font = '600 10px IBM Plex Mono, monospace'; ctx.textAlign = 'center';
+  ctx.fillText(`SHIELDS  F+${s.f} A+${s.a} L+${s.l} R+${s.r}`, cx, H - 6);
+  ctx.fillText(face === 'x' ? 'RESET' : face ? 'REROUTE ' + ({f: 'FWD', a: 'AFT', l: 'LEFT', r: 'RIGHT'})[face] : '', cx, 14);
+}
 
 /* =====================================================================
    SETTINGS / NAV / BOOT
