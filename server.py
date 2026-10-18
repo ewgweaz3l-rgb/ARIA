@@ -250,6 +250,27 @@ def wiki_fetch_all(path, query):
 
 
 GAME_STATE = {"t": 0, "running": False}
+
+
+def find_launcher(custom=None):
+    """RSI Launcher.exe: the path you set, else the usual install places on every drive."""
+    cands = []
+    if custom:
+        c = custom.strip().strip('"')
+        cands += [c, os.path.join(c, "RSI Launcher.exe")]
+    if sys.platform.startswith("win"):
+        import string
+        for d in [f"{x}:\\" for x in string.ascii_uppercase if os.path.exists(f"{x}:\\")]:
+            for sub in (("Program Files", "Roberts Space Industries", "RSI Launcher"), ("Roberts Space Industries", "RSI Launcher"),
+                        ("Program Files (x86)", "Roberts Space Industries", "RSI Launcher"), ("Games", "Roberts Space Industries", "RSI Launcher")):
+                cands.append(os.path.join(d, *sub, "RSI Launcher.exe"))
+        la = os.environ.get("LOCALAPPDATA")
+        if la:
+            cands.append(os.path.join(la, "Programs", "rsi-launcher", "RSI Launcher.exe"))
+    for c in cands:
+        if c and os.path.isfile(c):
+            return c
+    return None
 CORS = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type"}
 
 
@@ -316,6 +337,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "update_repo": updater.settings()[0],
                     "squad_host": bool(cfg.get("squad_host")), "squad_key": cfg.get("squad_key", ""), "squad_url": cfg.get("squad_url", ""),
                     "ips": local_ips() if cfg.get("squad_host") else [], "port": self.server.server_address[1],
+                    "launcher": find_launcher(cfg.get("launcher_path")), "launcher_path": cfg.get("launcher_path", ""),
                 })
             elif kind == "macros":
                 return self.send_json(200, {"macros": load_macros(), "file": os.path.basename(MACROS)})
@@ -428,7 +450,7 @@ class Handler(SimpleHTTPRequestHandler):
             payload = {}
         if u.path == "/api/config":
             cfg = load_config()
-            for k in ("uex_token", "sc_path", "update_repo", "squad_key", "squad_url", "squad_name"):
+            for k in ("uex_token", "sc_path", "update_repo", "squad_key", "squad_url", "squad_name", "launcher_path"):
                 if k in payload:
                     cfg[k] = str(payload[k]).strip()
             if "squad_host" in payload:
@@ -461,6 +483,14 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(400, {"ok": False, "error": str(e)})
             sys.stderr.write(f"[aria] keys: {spec}{'' if keys.IS_WINDOWS else '  (simulated: not Windows)'}\n")
             return self.send_json(200, {"ok": True, "steps": len(steps), "simulated": not keys.IS_WINDOWS})
+        if u.path == "/api/launcher":  # start the RSI Launcher (or bring it forward if it's already open)
+            exe = find_launcher(load_config().get("launcher_path"))
+            if not exe:
+                return self.send_json(404, {"ok": False, "error": "RSI Launcher not found. Set its location in Settings → Assistant."})
+            if os.name == "nt":
+                try: os.startfile(exe)  # noqa — the launcher is single-instance, a second start just focuses it
+                except Exception as e: return self.send_json(500, {"ok": False, "error": str(e)})
+            return self.send_json(200, {"ok": True, "path": exe, "simulated": os.name != "nt"})
         if u.path == "/api/open":  # open a Windows settings page (fixed list, nothing user-supplied)
             targets = {"sound": "ms-settings:sound", "privacy-mic": "ms-settings:privacy-microphone", "display": "ms-settings:display"}
             uri = targets.get(payload.get("what") or "")

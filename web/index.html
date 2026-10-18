@@ -434,6 +434,7 @@ body.cockpit .cocktop #brief{display:none}
     <div class="pill" id="pill-wiki" title="Star Citizen Wiki game data"><i class="dot"></i>WIKI</div>
     <button class="pill" id="btnCockpit" title="Cockpit mode: MFD screens on the Cougars (F9)" style="cursor:pointer;background:none"><i class="dot"></i>COCKPIT off</button>
     <button class="iconbtn" id="btnRefresh" title="Pull fresh data now">⟳</button>
+    <button class="iconbtn" id="btnLaunch" title="Start the RSI Launcher">🚀</button>
     <button class="iconbtn" id="btnManual" title="Manual (how everything works)">?</button>
     <button class="iconbtn" id="btnSettings" title="Settings">⚙</button>
   </div>
@@ -4154,6 +4155,7 @@ async function openSettings() {
     <div class="row"><label class="f" style="width:160px">Name<input id="aiNameIn" type="text" value="${esc(AI())}"></label>
       <label class="f" style="width:140px" title="Shown on game leaderboards">Pilot name<input id="pilotIn" type="text" value="${esc(PILOT())}" maxlength="10"></label>
       <label class="f" style="flex:1;min-width:200px">Star Citizen folder (optional)<input id="scPathIn" type="text" placeholder="Auto-detect — or e.g. D:\\Games\\StarCitizen\\LIVE"></label></div>
+    <div class="row" style="margin-top:8px"><label class="f" style="flex:1;min-width:200px">RSI Launcher (for the 🚀 button)<input id="launchIn" type="text" placeholder="${st.launcher ? 'Found: ' + esc(st.launcher) : 'Not found — paste the path to RSI Launcher.exe'}" value="${esc(st.launcher_path || '')}"></label></div>
     <div class="row" style="margin-top:8px"><label class="f" style="flex:1;min-width:200px">Home base (spawn point)<input id="homeSetIn" type="text" list="placeList" value="${esc(HOME.get())}" placeholder="e.g. Port Tressler"></label></div>
     <div class="row" style="margin-top:8px"><label class="f" style="width:240px" title="Leave blank to detect. In game: Options → Keybindings lists vJoy as Joystick N.">vJoy joystick number in game<input id="vjInstIn" type="text" placeholder="Auto-detect"></label></div>
     <p>The name shows in the header and becomes the wake word. The game folder and vJoy number are only needed if ARIA can't detect them.</p>
@@ -4229,6 +4231,7 @@ async function openSettings() {
     store.set('aiName', n); $('#wakeWord').value = n.toLowerCase(); store.set('wakeWord', n.toLowerCase()); applyName();
     const cfgUpd = {};
     if ($('#scPathIn').value.trim()) cfgUpd.sc_path = $('#scPathIn').value.trim();
+    cfgUpd.launcher_path = $('#launchIn').value.trim();
     if ($('#vjInstIn').value.trim() !== '') cfgUpd.vjoy_instance = $('#vjInstIn').value.trim();
     if (Object.keys(cfgUpd).length) { await fetch('/api/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cfgUpd)}); BINDS.data = null; }
     toast(`Saved. Call me ${esc(n)}.`); $('#modal').classList.remove('on');
@@ -4410,6 +4413,13 @@ $('#modal').addEventListener('mousedown', e => { if (e.target === $('#modal')) $
 $('#btnSettings').onclick = openSettings;
 const openManual = () => window.open('manual.html?v=' + encodeURIComponent(STAT.version || ''), 'ariaManual', 'width=1100,height=820');
 $('#btnManual').onclick = openManual;
+async function startLauncher() {
+  try { const r = await fetch('/api/launcher', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}); const j = await r.json();
+    if (j.ok) { ufcSay('Starting the RSI Launcher.'); toast(j.simulated ? 'Would start the RSI Launcher (Windows only).' : 'RSI Launcher starting…'); }
+    else { toast(esc(j.error || 'Could not start the launcher'), 7000); openSettings(); }
+  } catch { toast('ARIA could not reach its launcher helper.'); }
+}
+$('#btnLaunch').onclick = startLauncher;
 $('#btnRefresh').onclick = refreshAll;
 $('#btnCockpit').onclick = () => setCockpit(!CK.on);
 $('#ckRescue').onclick = () => CK.cal ? calDone() : startCal();
