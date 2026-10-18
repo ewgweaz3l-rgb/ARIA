@@ -251,7 +251,7 @@ body.cockpit #jobBar{margin:0!important}
 .hd-nw{top:-8px;left:-8px;cursor:nwse-resize}.hd-se{bottom:-8px;right:-8px;cursor:nwse-resize}
 .hd-ne{top:-8px;right:-8px;cursor:nesw-resize}.hd-sw{bottom:-8px;left:-8px;cursor:nesw-resize}
 .calbox.auto .hd{display:none}
-.caltools{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);pointer-events:auto;background:var(--panel2);border:1px solid var(--amber);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--dim);z-index:200;width:min(820px,96vw);box-shadow:0 14px 50px rgba(0,0,0,.7)}
+.caltools{position:fixed;right:12px;bottom:56px;left:auto;transform:none;pointer-events:auto;background:var(--panel2);border:1px solid var(--amber);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--dim);z-index:200;width:min(820px,96vw);box-shadow:0 14px 50px rgba(0,0,0,.7)}
 .calhead{cursor:move}
 .caltools b{color:var(--amber);font:700 11px var(--head);letter-spacing:.2em}
 .calhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
@@ -2652,12 +2652,7 @@ const OSB_DEF = {spread: 67, inset: 1.5, scale: 100, vspread: 67, vinset: 1.5};
 function osbGeo(side) { return {...OSB_DEF, ...store.get('osbGeo', {})[side]}; }
 function setOsbGeo(side, patch) { const g = store.get('osbGeo', {}); g[side] = {...osbGeo(side), ...patch}; store.set('osbGeo', g); mfdRender(side); }
 function ckRects() {
-  const R = CK.rects || (CK.rects = {...JSON.parse(JSON.stringify(CK_DEFAULT)), ...store.get('ckRects', {})});
-  if (store.get('ckAutoBottom', false)) {  // bottom band: full width, from just under the lowest upper area to the screen bottom
-    const low = Math.max(R.L.y + R.L.h, R.R.y + R.R.h, R.TOP.y + R.TOP.h);
-    R.APP = {x: 0.4, y: Math.min(90, low + 1.2), w: 99.2, h: Math.max(8, 100 - Math.min(90, low + 1.2) - 0.4)};
-  }
-  return R;
+  return CK.rects || (CK.rects = {...JSON.parse(JSON.stringify(CK_DEFAULT)), ...store.get('ckRects', {})});
 }
 function ckPlace(el, r) { Object.assign(el.style, {left: r.x + 'vw', top: r.y + 'vh', width: r.w + 'vw', height: r.h + 'vh'}); }
 function ckLayout() {
@@ -2700,15 +2695,12 @@ function calClamp(r) { r.w = Math.max(4, r.w); r.h = Math.max(4, r.h); return r;
 function renderCal() {
   const R = ckRects(), cal = $('#calib');
   const names = {L: 'LEFT MFD screen', R: 'RIGHT MFD screen', TOP: 'Center console', APP: 'Bottom band'};
-  const auto = store.get('ckAutoBottom', false);
-  const panelOpen = !!$('#calTools');
-  cal.innerHTML = Object.keys(names).map(k => `<div class="calbox${CK.sel === k ? ' sel' : ''}${k === 'APP' && auto ? ' auto' : ''}" data-k="${k}" style="left:${R[k].x}vw;top:${R[k].y}vh;width:${R[k].w}vw;height:${R[k].h}vh">
+  cal.innerHTML = Object.keys(names).map(k => `<div class="calbox${CK.sel === k ? ' sel' : ''}" data-k="${k}" style="left:${R[k].x}vw;top:${R[k].y}vh;width:${R[k].w}vw;height:${R[k].h}vh">
       <span>${names[k]}<br><small>${Math.round(R[k].w * innerWidth / 100)}×${Math.round(R[k].h * innerHeight / 100)} px</small></span>
       ${['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'].map(h => `<i class="hd hd-${h}" data-h="${h}"></i>`).join('')}</div>`).join('') + calPanel();
   $$('.calbox', cal).forEach(box => {
     const k = box.dataset.k;
     box.onmousedown = ev => {
-      if (box.classList.contains('auto')) return;
       ev.preventDefault();
       CK.sel = k; $$('.calbox', cal).forEach(b => b.classList.toggle('sel', b === box));
       const h = ev.target.dataset.h || '', sx = ev.clientX, sy = ev.clientY, r0 = {...R[k]};
@@ -2741,7 +2733,7 @@ function calPanel() {
   const R = ckRects(), k = CK.sel, r = R[k];
   const names = {L: 'Left MFD', R: 'Right MFD', TOP: 'Center console', APP: 'Bottom band'};
   const px = v => Math.round(v);
-  const pos = CK.panelPos ? `left:${CK.panelPos.x}px;top:${CK.panelPos.y}px;transform:none;bottom:auto` : '';
+  const pos = CK.panelPos ? `left:${CK.panelPos.x}px;top:${CK.panelPos.y}px;right:auto;bottom:auto` : '';
   const g = (k === 'L' || k === 'R') ? osbGeo(k) : null;
   return `<div class="caltools" id="calTools" style="${pos}">
     <div class="calhead" id="calDrag" title="Drag me anywhere"><b>CALIBRATE</b>
@@ -2775,7 +2767,7 @@ function wireCalPanel() {
   head.onmousedown = ev => {
     if (ev.target.closest('button')) return;
     const r = pan.getBoundingClientRect(), ox = ev.clientX - r.left, oy = ev.clientY - r.top;
-    const mv = e => { CK.panelPos = {x: Math.max(0, Math.min(innerWidth - r.width, e.clientX - ox)), y: Math.max(0, Math.min(innerHeight - 40, e.clientY - oy))}; Object.assign(pan.style, {left: CK.panelPos.x + 'px', top: CK.panelPos.y + 'px', transform: 'none', bottom: 'auto'}); };
+    const mv = e => { CK.panelPos = {x: Math.max(0, Math.min(innerWidth - r.width, e.clientX - ox)), y: Math.max(0, Math.min(innerHeight - 40, e.clientY - oy))}; Object.assign(pan.style, {left: CK.panelPos.x + 'px', top: CK.panelPos.y + 'px', right: 'auto', bottom: 'auto'}); };
     const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); };
     addEventListener('mousemove', mv); addEventListener('mouseup', up); ev.preventDefault();
   };

@@ -35,11 +35,14 @@ Settings → **Check** / **Update & restart** does it by hand.
 
 Press **▣** (or F9) for cockpit mode: the page rearranges itself around the two Cougar MFD
 bezels on your monitor — left and right MFD screens, the command console between them, and the
-job search / map / tabs in the open band below. Settings → **Calibrate MFD windows** opens a
-slider panel: pick an area (left MFD, right MFD, center console, bottom band) and slide it
-left/right, up/down, wider/taller, or zoom about its center; nudge buttons move 1 px (Shift = 10).
-**Fill** snaps the center console into the gap between the MFDs. What's inside each area scales
-to fit it. Dragging the boxes still works.
+job search / map / tabs in the band below. **ALGN** on the deck, the **⌗** button bottom-right,
+or Settings → Calibrate opens the layout tool: every area (left MFD, right MFD, center console,
+bottom band) is a free box with 8 crop handles — edge handles move one side, corners move two
+(Ctrl = one side only, Shift = keep shape), drag the middle to move. Sliders and 1-px nudges in the
+floating panel (drag it anywhere by its header). For the MFDs the panel also has button spacing,
+inset and label size, and the MFD shows its button numbers while selected. Ctrl+Z undoes, Reset
+this / Reset all recover, Esc finishes. What's inside each area scales to fit it. F9 turns cockpit
+mode off entirely if you ever need the normal layout back.
 Settings → **Open ARIA on** picks the monitor and full screen.
 
 Each MFD runs F/A-18-style pages. The 20 buttons around the frame (OSBs) are the labels on screen;
