@@ -17,6 +17,7 @@ Standard library only. Python 3.9+.
 """
 import argparse
 import hashlib
+import subprocess
 import json
 import os
 import sys
@@ -252,6 +253,28 @@ def wiki_fetch_all(path, query):
 GAME_STATE = {"t": 0, "running": False}
 
 
+def launcher_icon(custom=None):
+    """PNG of the launcher's own icon (Windows: extracted from the exe with .NET, cached in cache/)."""
+    exe = find_launcher(custom)
+    if not exe or not sys.platform.startswith("win"):
+        return None
+    out = os.path.join(CACHE, "launcher_icon_%s.png" % hashlib.sha1(exe.encode()).hexdigest()[:10])
+    if not os.path.exists(out):
+        ps = ("Add-Type -AssemblyName System.Drawing;"
+              "$i=[System.Drawing.Icon]::ExtractAssociatedIcon($env:ARIA_EXE);"
+              "$b=$i.ToBitmap(); $b.Save($env:ARIA_OUT,[System.Drawing.Imaging.ImageFormat]::Png)")
+        try:
+            subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps], timeout=15, capture_output=True,
+                           env={**os.environ, "ARIA_EXE": exe, "ARIA_OUT": out}, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        except Exception:
+            return None
+    try:
+        with open(out, "rb") as f:
+            return f.read()
+    except OSError:
+        return None
+
+
 def find_launcher(custom=None):
     """RSI Launcher.exe: the path you set, else the usual install places on every drive."""
     cands = []
@@ -341,6 +364,12 @@ class Handler(SimpleHTTPRequestHandler):
                 })
             elif kind == "macros":
                 return self.send_json(200, {"macros": load_macros(), "file": os.path.basename(MACROS)})
+            elif kind == "launcher_icon":  # the icon of YOUR installed RSI Launcher.exe, pulled from the exe itself
+                png = launcher_icon(load_config().get("launcher_path"))
+                if not png:
+                    return self.send_json(404, {"error": "no icon"})
+                self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Content-Length", str(len(png)))
+                self.send_header("Cache-Control", "max-age=86400"); self.end_headers(); self.wfile.write(png); return
             elif kind == "game":  # is Star Citizen running? (cached a few seconds; tasklist is slow)
                 now = time.time()
                 if now - GAME_STATE["t"] > 8:

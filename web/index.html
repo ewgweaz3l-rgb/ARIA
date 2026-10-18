@@ -44,6 +44,8 @@ nav button.on{color:var(--amber);border-color:var(--amber-d);background:rgba(242
 .dot.stale{background:var(--amber)} .dot.err{background:var(--red)}
 .iconbtn{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:6px 10px;cursor:pointer;color:var(--dim)}
 .iconbtn:hover{color:var(--text);border-color:var(--line2)}
+.launchbtn{display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 8px;color:var(--amber);border-color:var(--amber-d);font:600 12px var(--head);letter-spacing:.12em}
+.launchbtn img{width:26px;height:26px;image-rendering:auto}.launchbtn:hover{color:#fff;background:rgba(242,168,59,.12)}
 
 main{padding:20px;max-width:1500px;margin:0 auto}
 .view{display:none} .view.on{display:block}
@@ -434,7 +436,7 @@ body.cockpit .cocktop #brief{display:none}
     <div class="pill" id="pill-wiki" title="Star Citizen Wiki game data"><i class="dot"></i>WIKI</div>
     <button class="pill" id="btnCockpit" title="Cockpit mode: MFD screens on the Cougars (F9)" style="cursor:pointer;background:none"><i class="dot"></i>COCKPIT off</button>
     <button class="iconbtn" id="btnRefresh" title="Pull fresh data now">⟳</button>
-    <button class="iconbtn" id="btnLaunch" title="Start the RSI Launcher">🚀</button>
+    <button class="iconbtn launchbtn" id="btnLaunch" title="Start the RSI Launcher"><img id="launchIco" alt="" hidden><svg id="launchSvg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2.5 4.5 6 4.5 10.5L15 17H9l-1.5-4.5C7.5 8 9 4.5 12 2z"/><circle cx="12" cy="9" r="1.8"/><path d="M9 17l-2.5 3.5 3-1M15 17l2.5 3.5-3-1M10.5 19.5L12 22l1.5-2.5"/></svg><span>LAUNCH</span></button>
     <button class="iconbtn" id="btnManual" title="Manual (how everything works)">?</button>
     <button class="iconbtn" id="btnSettings" title="Settings">⚙</button>
   </div>
@@ -4420,6 +4422,8 @@ async function startLauncher() {
   } catch { toast('ARIA could not reach its launcher helper.'); }
 }
 $('#btnLaunch').onclick = startLauncher;
+// show the icon of the launcher you actually have installed, if ARIA can read it
+(() => { const im = $('#launchIco'); im.onload = () => { im.hidden = false; $('#launchSvg').style.display = 'none'; }; im.onerror = () => {}; im.src = '/api/launcher_icon'; })();
 $('#btnRefresh').onclick = refreshAll;
 $('#btnCockpit').onclick = () => setCockpit(!CK.on);
 $('#ckRescue').onclick = () => CK.cal ? calDone() : startCal();
