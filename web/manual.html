@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARIA Quartermaster — Manual</title>
+<style>
+:root{--bg:#0b0e14;--bg2:#121725;--line:#1f2838;--line2:#2b3650;--text:#e6ebf5;--dim:#8d99b3;--acc:#f2a83b;--green:#5ad08a;--cyan:#5fd3f0;--mono:"IBM Plex Mono",Consolas,monospace;--head:Oxanium,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 "Segoe UI",system-ui,sans-serif}
+a{color:var(--cyan)}code,kbd{font-family:var(--mono);font-size:.92em;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+kbd{color:var(--acc)}
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
+nav{position:sticky;top:0;height:100vh;overflow:auto;border-right:1px solid var(--line);padding:18px 14px;background:var(--bg2)}
+nav h1{font:700 20px var(--head);letter-spacing:.14em;color:var(--acc);margin:0 0 2px}nav .v{color:var(--dim);font-size:12px;margin-bottom:14px}
+nav input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line2);background:var(--bg);color:var(--text);font-size:14px;margin-bottom:12px}
+nav a{display:block;color:var(--dim);text-decoration:none;padding:5px 8px;border-radius:6px;font-size:13.5px}nav a:hover,nav a.on{color:var(--text);background:var(--bg)}
+nav a.sub{padding-left:20px;font-size:12.5px}
+main{padding:28px 44px 80px;max-width:900px}
+h2{font:700 24px var(--head);letter-spacing:.06em;margin:40px 0 10px;padding-top:12px;border-top:1px solid var(--line);color:var(--text)}h2:first-child{margin-top:0;border:0}
+h3{font:600 16px var(--head);letter-spacing:.04em;margin:22px 0 6px;color:var(--acc)}
+p,li{color:#c9d2e3}ul{padding-left:20px}li{margin:3px 0}
+.tip{border-left:3px solid var(--green);background:#0f1a14;padding:8px 12px;border-radius:0 8px 8px 0;margin:10px 0}
+.warn{border-left:3px solid var(--acc);background:#1a1508;padding:8px 12px;border-radius:0 8px 8px 0;margin:10px 0}
+table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}th{color:var(--dim);font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.hide{display:none}
+.ex{font-family:var(--mono);color:var(--green)}
+@media(max-width:800px){.wrap{grid-template-columns:1fr}nav{position:static;height:auto}main{padding:20px}}
+@media print{nav{display:none}.wrap{display:block}}
+</style></head><body><div class="wrap">
+<nav>
+  <h1>ARIA</h1><div class="v">Quartermaster · manual</div>
+  <input id="q" placeholder="Search the manual…" autofocus>
+  <a href="#start">Getting started</a>
+  <a href="#rich">Make Me Rich</a>
+  <a href="#rich-syntax" class="sub">What you can type</a>
+  <a href="#job" class="sub">Jobs, Home & RTB</a>
+  <a href="#ships">Shipyard & Blueprints</a>
+  <a href="#map">Starmap & Nav</a>
+  <a href="#voice">Voice & push-to-talk</a>
+  <a href="#binds" class="sub">Keybinds & vJoy</a>
+  <a href="#cockpit">Cockpit mode</a>
+  <a href="#cal" class="sub">Lining up the screens</a>
+  <a href="#pages" class="sub">MFD pages</a>
+  <a href="#center" class="sub">Center MFD & deck</a>
+  <a href="#skins" class="sub">Skins & dimmer</a>
+  <a href="#games">Arcade & squad</a>
+  <a href="#vr">VR</a>
+  <a href="#share">Installing & sharing</a>
+  <a href="#fix">Troubleshooting</a>
+  <a href="#glossary">Glossary</a>
+</nav>
+<main id="m">
+
+<section id="start"><h2>Getting started</h2>
+<p>ARIA is a Star Citizen assistant that runs on your own PC. Nothing goes to a server of ours: it pulls public prices from <b>UEX Corp</b> and game data from the <b>Star Citizen Wiki</b>, caches them next to the app, and does the rest locally.</p>
+<ul>
+<li><b>Install:</b> unzip, double-click <code>install.bat</code>. It installs Python if the PC has none, puts ARIA in your Start menu and on the desktop. From then on, click the ARIA shortcut — it updates itself from GitHub on every launch.</li>
+<li><b>First look:</b> the boot screen loads prices and ships, then shows <b>Continue</b> (or <b>Update</b> when there's a newer version). The five tabs across the top are the rooms; the ⚙ is Settings; ⟳ pulls fresh data.</li>
+<li><b>Set your pilot name and home base once</b> — Settings ⚙ → Assistant. Home is where RTB takes you (Port Tressler, New Babbage, wherever you spawn).</li>
+<li><b>Pills in the header:</b> VOICE (click to toggle listening), UEX / WIKI (green = live, amber = cached, red = source down — ARIA keeps working from the last copy), COCKPIT (click or <kbd>F9</kbd>).</li>
+</ul>
+<div class="tip">You don't need the MFDs, voice, VR or any of the cockpit stuff to use ARIA. Typing in the ask bar is the whole game: "<span class="ex">cutlass black 150k</span>" is a complete request.</div>
+</section>
+
+<section id="rich"><h2>Make Me Rich</h2>
+<p>Type a ship and a budget, press <b>ENGAGE</b> (or Enter). ARIA ranks the hauls by total profit from live terminal prices and stock, and tells you in plain words what to buy, where, and where to sell.</p>
+<p>Each result row has: <b>⌖</b> show this run on the starmap · <b>+ Job</b> add it to your job list · <b>Next leg</b> reinvest from the sell point (ARIA finds the best haul starting where you just sold, with the money you now have).</p>
+<p>The filters under the bar: <b>Legal cargo only</b>, <b>Avoid volatile</b>, <b>Stay in one system</b>, and <b>Hide prices older than N days</b> (UEX prices are player-reported; the DATA cell shows how old they are — glance at the terminal before you commit a big outlay).</p>
+<h3 id="rich-syntax">What you can type</h3>
+<table><tr><th>Say</th><th>Means</th></tr>
+<tr><td class="ex">c2 hercules 750k</td><td>ship + budget (k = thousand, m = million)</td></tr>
+<tr><td class="ex">caterpillar 2m from new babbage</td><td>start where you are — "from", "starting at", "leaving", "out of"</td></tr>
+<tr><td class="ex">c2 1.5m stanton only</td><td>stay in a system: stanton / pyro / nyx</td></tr>
+<tr><td class="ex">freelancer max 400k pyro</td><td>system name alone works too</td></tr>
+<tr><td class="ex">696 scu 1m</td><td>no ship, just cargo space (custom ships, new Connie)</td></tr>
+<tr><td class="ex">… illegal</td><td>allow contraband ("anything goes", "drugs ok"); "legal only" / "clean cargo" forces legal</td></tr>
+<tr><td class="ex">… safe</td><td>no volatile / explosive cargo</td></tr>
+<tr><td class="ex">… quick / short hop / per gm</td><td>rank by profit per distance instead of total</td></tr>
+<tr><td class="ex">… roi</td><td>rank by return on investment</td></tr>
+<tr><td class="ex">nav from area18 to pyro gateway</td><td>plot a course (see Starmap)</td></tr>
+<tr><td class="ex">rtb</td><td>course home</td></tr>
+<tr><td class="ex">bind center turret</td><td>find a game action by name (see Keybinds)</td></tr>
+</table>
+<p>The <b>ship</b> box is an A–Z picker: start typing, pick from the list, or add a custom ship with its own SCU. The <b>Cargo SCU</b> box overrides the ship's listed capacity any time.</p>
+<h3 id="job">Jobs, Home & RTB</h3>
+<p><b>+ Job</b> on any haul adds it to the job bar (bottom). Jobs chain: buy here, sell there, buy again, sell again, then <b>RTB</b> caps the list with the trip home. The job bar has <b>from Home</b> (start the plan from your base) and <b>RTB</b> toggles, and <b>View job on map</b> opens the Job view: systems as cards linked by jump points, the route running through them with prices on every stop.</p>
+<p><b>Home</b> is set in Settings → Assistant or by clicking the ⌂ next to "Starting from". Change it whenever you move spawn.</p>
+</section>
+
+<section id="ships"><h2>Shipyard & Blueprints</h2>
+<p><b>Shipyard:</b> every flyable ship from the game files, with cargo, crew, size, speeds, and in-game buy / rent prices from UEX. ★ a ship to put it in <b>My Hangar</b>; hangar ships show up as one-click picks in Make Me Rich. Tick up to four and <b>Compare</b> them side by side.</p>
+<p><b>Blueprint Room:</b> every crafting blueprint, its materials and which missions drop it. Mark the ones you own; queue what you want to build and ARIA totals the materials and finds the cheapest terminal for each.</p>
+<p>Hangar, owned blueprints and the build queue live in your browser. Settings → <b>Your stuff</b> exports a backup you can import on another PC.</p>
+</section>
+
+<section id="map"><h2>Starmap & Nav</h2>
+<p>Every system, planet, moon, station and jump point from the game files. Click a body for its terminals and best trades. <b>Market overlay</b> picks a commodity and lights where it's bought (green) and sold (red).</p>
+<p><b>Plot a course:</b> "<span class="ex">nav from area18 to pyro gateway</span>" or the Nav panel. ARIA finds the fastest path across quantum hops and jump points for your ship's QT drive and gives legs, ETA and jumps. The ⌖ on any haul draws that run.</p>
+<p><b>Job view</b> (from the job bar) is the same map laid out as system cards along your route.</p>
+</section>
+
+<section id="voice"><h2>Voice & push-to-talk</h2>
+<p>Voice Macros room. ARIA listens in Chrome/Edge (the app window already is one). Two listening modes:</p>
+<ul>
+<li><b>Push-to-talk</b> (recommended): press <b>Set button</b>, then press the key, mouse button or HOTAS/joystick button you want. ARIA only hears you while it's held — Discord chatter is ignored.</li>
+<li><b>Always on</b>: tick <b>Wake word</b> so only "<span class="ex">aria, …</span>" counts.</li>
+</ul>
+<p><b>Macros:</b> a phrase → keys ARIA presses in game → what she replies. "call atc" → <code>lctrl+n</code> → "Hailing station." Key syntax: <code>lctrl+n</code>, <code>b:1.5</code> (hold 1.5 s), <code>wait 0.4</code>, <code>mouse1</code>, <code>f13</code>…<code>f24</code>, <code>vj12</code> (vJoy button 12). Press <b>Save profile</b>; macros live in <code>macros.json</code>.</p>
+<p><b>Press keys in game</b> must be ticked for ARIA to actually press anything; off = practice mode (she says what she'd press). ARIA hands focus back to Star Citizen before pressing, so run the game <b>borderless windowed</b>, not exclusive fullscreen.</p>
+<p><b>Replies:</b> browser voice, your own voice-pack clips (drop audio files in <code>web/voice/</code>, named after the line — <b>Export voice lines</b> lists the file names), or silent. <b>ARIA volume</b> slider sets how loud she is. The <b>Mic</b> chip shows permission; <b>Allow microphone</b> asks for it; the picker + <b>Test level</b> shows a meter for each mic. Chrome's recognizer always uses the Windows <i>default</i> mic — <b>Windows sound settings</b> opens the page to change that.</p>
+<p>Anything you say that isn't a macro goes to ARIA as a normal request: "<span class="ex">aria, c2 hercules 2 million make me rich</span>".</p>
+<h3 id="binds">Keybinds & vJoy</h3>
+<p>"<span class="ex">bind center turret</span>" (typed or spoken) finds the game action by name — exact match, closest match, or "none" — shows what it's bound to now, and offers to bind it to a <b>vJoy virtual button</b> so none of your real keys change. ARIA edits your <code>actionmaps.xml</code> with a backup every time; while the game is running the change is queued and applied when you quit. One-time setup: install the free vJoy driver, and in Star Citizen's keybind options note which joystick number vJoy shows as (Settings → vJoy joystick number if ARIA can't detect it).</p>
+<p>A macro can then press <code>vj12</code> and the game sees "joystick 3 button 12". <b>Hail target</b> on a voice command, no keyboard involved.</p>
+</section>
+
+<section id="cockpit"><h2>Cockpit mode</h2>
+<p>Press <b>▣</b> in the header or <kbd>F9</kbd>. The page rearranges itself around the Thrustmaster Cougar MFD bezels on your monitor: left MFD, right MFD, the <b>center MFD</b> between them, and the <b>bottom band</b> with the header, ARIA's deck strip, the ask bar and the tabs. <kbd>F9</kbd> again (or HOME) returns to the normal layout. Settings → <b>Open ARIA on</b> picks the monitor and full screen.</p>
+<p>The Cougars are found by their USB id. The 20 buttons around each frame (OSBs) press the labels on screen with no mouse and no focus change, so the game keeps focus. If SYS says NOT FOUND: SYS → SET L / SET R and press any button on that MFD. SYS → TEST shows button numbers.</p>
+<p>The bottom-right dock always has <b>⌂ HOME</b> (leave cockpit mode), <b>VR</b> and <b>⌗ ALIGN</b>.</p>
+<h3 id="cal">Lining up the screens</h3>
+<p><b>ALGN</b> on the center MFD, the ⌗ dock button, or Settings → Calibrate. Each area is a free box with eight crop handles like Photoshop: edge handles move one side, corners move two, drag the middle to move the whole thing. <kbd>Ctrl</kbd> = one side only, <kbd>Shift</kbd> = keep shape, <kbd>Ctrl+Z</kbd> undo, <b>Reset this</b> / <b>Reset all</b>, <kbd>Esc</kbd> or <b>Done</b> to finish. The floating panel has sliders and 1-px nudges, and for the three MFDs: button spacing, label inset and label size, with the MFD showing its button numbers while selected. Drag the panel anywhere by its header.</p>
+<div class="tip">Do the left and right MFDs first (match the labels to the physical buttons), then the center, then the bottom band. What's inside each box scales to fit it.</div>
+<h3 id="pages">MFD pages</h3>
+<table><tr><th>Page</th><th>What it does</th></tr>
+<tr><td>MENU</td><td>status (UEX, WIKI, voice, keys, job) and the page buttons. SWAP trades left and right.</td></tr>
+<tr><td>SHLD</td><td>shield facing: front / aft / left / right / reset — presses your real shield keys, animates on the center MFD.</td></tr>
+<tr><td>PWR</td><td>power to weapons / shields / engines, reset.</td></tr>
+<tr><td>NAV</td><td>the current leg, ETA, NEXT / PREV stop.</td></tr>
+<tr><td>JOB</td><td>your stops with banked profit, DONE / BACK.</td></tr>
+<tr><td>MACR</td><td>your voice macros on buttons — press instead of speaking.</td></tr>
+<tr><td>VOICE</td><td>listening on/off, PTT state.</td></tr>
+<tr><td>SYS</td><td>MFD detection, SET L/R, TEST, EDIT (put any keys on any button), VR, Settings.</td></tr>
+<tr><td>GAME</td><td>the arcade (below).</td></tr>
+<tr><td>UFC</td><td>route summary + mini starmap with the deck keys (center MFD's home page).</td></tr>
+</table>
+<p>Any button that needs the game shows <b>NO BIND</b> until ARIA finds the action in your keybinds (SYS → EDIT sets one by hand). Rockers: left pair = brightness, right pair = page cycle, bottom = SOI (sensor of interest — the MFD the keyboard talks to).</p>
+<h3 id="center">Center MFD & deck</h3>
+<p>The middle screen is a third MFD with the same pages, driven by mouse (or VR) since it has no bezel. Its <b>UFC</b> page shows the route ARIA last answered — cash / time / stops / jumps / dist / fuel — and a mini starmap, with ACPT (make it a job), NEXT (reinvest leg), RTB, MAP, SAY, LOG (last 60 key presses ARIA sent), ALGN, DIM, VR, SET, HOME on the OSBs.</p>
+<p>What ARIA <i>says</i> prints teletype-style on the <b>deck strip</b> in the bottom band, above the ask bar, with her status lamp (KEYS LIVE / PRACTICE, PTT / OPEN MIC) and SAY / RTB / MAP keys.</p>
+<h3 id="skins">Skins & dimmer</h3>
+<p>Settings → Cockpit skin: ARIA stock, Drake, RSI, Anvil, Origin, Aegis, MISC, Crusader, or your own colours. Brightness (also DIM on the center MFD and the MFD rockers), bloom, scanlines. Each skin has a <b>personality</b>: Analog (radar sweep, needle bars), Smooth (fades, no flicker), Glitch (CRT fuzz, tears, jitter), with a strength slider.</p>
+</section>
+
+<section id="games"><h2>Arcade & squad</h2>
+<p>MENU → GAME on any MFD. Pick a game on the side buttons; rockers are the d-pad (left pair up/down, right pair left/right), lower rockers are A and B; keyboard arrows / space / shift work when that MFD is the SOI. NEW, PAUSE, TOP10 on the top row. Every game has a top-10 board under your pilot name.</p>
+<ul>
+<li><b>CHESS</b> vs ARIA (four levels, UNDO) — rockers move the cursor, legal moves land on the OSBs.</li>
+<li><b>CARGO</b> (tetris): A rotates, B hard-drops. <b>RUNNER</b> (dino): A jumps, down ducks. <b>ROIDS</b>: turn, thrust, A fires, B hyperspace.</li>
+<li><b>TANKS</b>: artillery. Up/down angle, left/right power (hold to sweep), A fires, B arms your one nuke. Wind changes every turn.</li>
+<li><b>FLEET</b>: battleship. SHUF reshuffles your ships, READY locks in, d-pad aims, A fires.</li>
+</ul>
+<h3>Squad leaderboards</h3>
+<p>One of you hosts: Settings ⚙ → Squad → <b>Host the squad board on this PC</b>, restart ARIA once, give friends the address and key shown. Friends: Settings → Squad → paste both → <b>Test</b>. From then on every score posts to the host and every TOP10 is the whole squad (your entries ◀). Same LAN or a VPN (Tailscale) needs nothing; over the open internet the host forwards port 8777. A box that only hosts can run <code>squad_server.py</code> instead of the whole app (install_squad.bat).</p>
+<h3>Versus — GAME → SQUAD</h3>
+<p>Host a lobby (CHESS / TANKS / FLEET) or JOIN one listed. The game opens on both players' MFDs when the second seat fills; every move goes through the host so both screens replay the same game. Flip to another page mid-match and it waits — SQUAD → PLAY brings it back. RESGN resigns. The winner's score lands on that game's board as "vs NAME". No credits, no wagers.</p>
+</section>
+
+<section id="vr"><h2>VR</h2>
+<p>VR on the center MFD, the dock, or Settings → Enter VR puts the three MFDs and the bottom band in a floating arc in your headset. Point a controller, pull the trigger to click; squeeze the grip to recenter. Cougar buttons, voice and PTT keep working. Settings → VR has distance, height, spread, size and tilt, live.</p>
+<div class="warn"><b>It takes over the headset — it is not an overlay.</b> Only enter when no game is running in VR (Star Citizen on your monitor + ARIA in the headset is the intended use). If a game is in the headset, it loses it (grey void) and can crash. To see ARIA <i>inside</i> a VR game, pin the ARIA window with an overlay tool — Desktop+ (free, SteamVR), XSOverlay or OVR Toolkit.</div>
+<p>Needs an OpenXR runtime running (SteamVR, Pimax Play, Meta). Windows Mixed Reality headsets only work on Windows builds before 24H2.</p>
+</section>
+
+<section id="share"><h2>Installing & sharing</h2>
+<ul>
+<li><b>Requirements:</b> Windows 10/11, Chrome or Edge, Python 3.9+ (the installer fetches it if missing), internet for prices. Cougars, vJoy, HOTAS and a headset are all optional.</li>
+<li><b>Send it to a friend:</b> give them the zip (or the GitHub link). They run <code>install.bat</code>. That's it; it updates itself afterwards.</li>
+<li><b>Updates:</b> every launch checks GitHub. Settings → Check / Update & restart does it by hand. Your settings, macros, voice clips, cache and keybind backups are never overwritten.</li>
+<li><b>Where things live:</b> <code>%LOCALAPPDATA%\ARIA</code> — <code>config.json</code> (settings), <code>macros.json</code>, <code>cache/</code>, <code>backups/</code> (your actionmaps before every change), <code>aria.log</code>.</li>
+<li><b>Running without installing:</b> <code>start.bat</code> in the unzipped folder.</li>
+</ul>
+</section>
+
+<section id="fix"><h2>Troubleshooting</h2>
+<table><tr><th>Symptom</th><th>Fix</th></tr>
+<tr><td>UEX / WIKI pill is red</td><td>The source is down or blocked; ARIA keeps using the last cached copy. ⟳ retries. If UEX starts requiring a token, paste one in Settings (free at uexcorp.space → API).</td></tr>
+<tr><td>"Microphone blocked"</td><td>Click the lock/mic icon in the address bar and allow 127.0.0.1, or Voice room → Allow microphone. Edge: ⋯ → Settings → Site permissions → Microphone.</td></tr>
+<tr><td>Voice hears nothing</td><td>Chrome listens on the Windows <i>default</i> mic. Voice room → Windows sound settings → set the default input. Test level shows which mic is live.</td></tr>
+<tr><td>Keys don't reach the game</td><td>Tick "Press keys in game". Run SC borderless windowed. Check the LOG page on the center MFD to see what was sent.</td></tr>
+<tr><td>Cougar NOT FOUND</td><td>SYS → SET L / SET R and press any button on it. Make sure Thrustmaster's own software isn't holding the device.</td></tr>
+<tr><td>Cockpit layout is a mess</td><td>⌗ ALIGN → Reset all. F9 leaves cockpit mode entirely if you can't reach anything.</td></tr>
+<tr><td>Settings won't close</td><td>Press Esc, click the ×, or click the dark background.</td></tr>
+<tr><td>Squad "No answer"</td><td>Host hasn't restarted after ticking Host; wrong key; port 8777 not reachable (firewall / forwarding). Test from the host's own PC first with its LAN address.</td></tr>
+<tr><td>Versus game stuck "SENDING…"</td><td>Lost the host for a moment; it retries. SQUAD → PLAY replays the game from the host's log.</td></tr>
+<tr><td>Update didn't take</td><td>Settings → Check. If you installed from a very old zip (no updater), run install.bat from a new zip once.</td></tr>
+<tr><td>Something else</td><td><code>aria.log</code> next to the app has the details. Send it along with what you did.</td></tr>
+</table>
+</section>
+
+<section id="glossary"><h2>Glossary</h2>
+<table>
+<tr><td><b>OSB</b></td><td>the buttons around an MFD frame ("option select buttons")</td></tr>
+<tr><td><b>SOI</b></td><td>sensor of interest — the MFD the keyboard and rockers talk to (◆ in its corner)</td></tr>
+<tr><td><b>UFC</b></td><td>up-front controller — the center MFD's home page: the route and the deck keys</td></tr>
+<tr><td><b>PTT</b></td><td>push-to-talk</td></tr>
+<tr><td><b>RTB</b></td><td>return to base — your Home</td></tr>
+<tr><td><b>vJoy</b></td><td>a free virtual joystick driver; ARIA uses its buttons so your real keys stay untouched</td></tr>
+<tr><td><b>Squad host</b></td><td>the PC (or Thoth) that keeps the shared leaderboards and the versus lobby</td></tr>
+<tr><td><b>SCU</b></td><td>standard cargo unit</td></tr>
+</table>
+<p style="color:var(--dim);font-size:13px;margin-top:30px">ARIA Quartermaster · prices by UEX Corp, game data by the Star Citizen Wiki · not affiliated with Cloud Imperium Games.</p>
+</section>
+</main></div>
+<script>
+const q = document.getElementById('q'), secs = [...document.querySelectorAll('main section')];
+q.oninput = () => { const t = q.value.trim().toLowerCase();
+  secs.forEach(s => { s.classList.toggle('hide', !!t && !s.textContent.toLowerCase().includes(t));
+    [...s.querySelectorAll('p,li,tr')].forEach(el => el.style.background = t && el.textContent.toLowerCase().includes(t) && t.length > 2 ? 'rgba(242,168,59,.08)' : ''); }); };
+const links = [...document.querySelectorAll('nav a')];
+addEventListener('scroll', () => { let cur = secs[0]; for (const s of secs) if (s.getBoundingClientRect().top < 120) cur = s; links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + cur.id)); });
+try { const v = new URLSearchParams(location.search).get('v'); if (v) document.querySelector('nav .v').textContent = 'Quartermaster · manual · v' + v; } catch {}
+</script>
+</body></html>

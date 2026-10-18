@@ -17,6 +17,9 @@ A local Star Citizen assistant that runs on your own PC. Five rooms:
   key, mouse button or HOTAS button, so Discord chatter is ignored. Find any game action by name
   ("bind center turret") and turn it into a voice command in one click.
 
+**Manual:** the **?** in the header (or Settings → Open the manual, or HELP on the center MFD) opens
+the built-in manual — every room, every key, what to type, troubleshooting — searchable, printable.
+
 ## Install it (once)
 
 Double-click **install.bat**. If there's no Python 3.9+ on the PC it installs Python 3.12 for

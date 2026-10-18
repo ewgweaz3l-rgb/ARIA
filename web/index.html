@@ -420,6 +420,7 @@ body.cockpit .cocktop #brief{display:none}
     <div class="pill" id="pill-wiki" title="Star Citizen Wiki game data"><i class="dot"></i>WIKI</div>
     <button class="pill" id="btnCockpit" title="Cockpit mode: MFD screens on the Cougars (F9)" style="cursor:pointer;background:none"><i class="dot"></i>COCKPIT off</button>
     <button class="iconbtn" id="btnRefresh" title="Pull fresh data now">⟳</button>
+    <button class="iconbtn" id="btnManual" title="Manual (how everything works)">?</button>
     <button class="iconbtn" id="btnSettings" title="Settings">⚙</button>
   </div>
 </header>
@@ -3260,13 +3261,13 @@ const UFC_KEYS = {
     ['NEXT', 'Reinvest: next leg from the sell point', () => { const b = $('[data-next="0"]'); if (b) b.click(); }],
     ['RTB', 'Course home', () => rtb()], ['MAP', 'Open the job view', () => { show('starmap'); setSystem('job'); }],
     ['SAY', 'Read it out', S => say(UFC.msg || (S ? S.name : 'Nothing to report.'))], ['LOG', 'Key press log', () => { UFC.mode = 'log'; ufcRender(); }],
-    ['ALGN', 'Line up the MFD windows', () => startCal()], ['DIM', 'Screen brightness: 100 → 70 → 45 → 25 → 100', () => { const d = TH.get().dim; setDim(d > .9 ? .7 : d > .6 ? .45 : d > .35 ? .25 : 1); }], ['VR', 'Put the panels in your headset (WebXR)', () => enterVR()], ['SET', 'Settings', () => openSettings()], ['HOME', 'Leave cockpit mode', () => $('#ckHome').click()]],
+    ['ALGN', 'Line up the MFD windows', () => startCal()], ['DIM', 'Screen brightness: 100 → 70 → 45 → 25 → 100', () => { const d = TH.get().dim; setDim(d > .9 ? .7 : d > .6 ? .45 : d > .35 ? .25 : 1); }], ['VR', 'Put the panels in your headset (WebXR)', () => enterVR()], ['SET', 'Settings', () => openSettings()], ['HOME', 'Leave cockpit mode', () => $('#ckHome').click()], ['HELP', 'Open the manual', () => openManual()]],
   log: [['CLR', 'Clear log', () => { UFC.keylog = []; store.set('keylog', []); ufcRender(); }], ['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]],
   shld: [['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]]};
 // the center MFD's UFC page: route summary + mini starmap (or shield pulse / key log), soft keys on the OSBs
 function ufcPage(side, common) {
   const S = ufcSummary(), keys = UFC_KEYS[UFC.mode];
-  const slots = UFC.mode === 'route' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16] : [1, 2];
+  const slots = UFC.mode === 'route' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16, 17] : [1, 2];
   const o = {...common};
   keys.forEach(([l, tip, fn], i) => { if (slots[i]) o[slots[i]] = {l, fn: () => fn(S)}; });
   const cells = S ? S.cells.map(([k, v]) => `<div class="ucell"><span>${k}</span><b>${esc(String(v))}</b></div>`).join('') : '';
@@ -3897,9 +3898,10 @@ async function openSettings() {
     <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-yourstuff">Your stuff</h2>
     <p>Hangar (${hangar.list().length} ships), owned blueprints (${owned.set.size}) and the fabrication queue live in this browser. Back them up or move them to another PC:</p>
     <div class="row"><button class="btn ghost small" id="expBtn">Export backup</button><label class="btn ghost small" style="cursor:pointer">Import backup<input type="file" id="impIn" accept=".json" hidden></label></div>
-    <div class="row" style="justify-content:flex-end;margin-top:18px"><button class="btn ghost small" id="modalClose">Close</button></div>`;
+    <div class="row" style="justify-content:space-between;margin-top:18px"><button class="btn ghost small" id="manualBtn">📖 Open the manual</button><button class="btn ghost small" id="modalClose">Close</button></div>`;
   $('#modal').classList.add('on'); $('#modalBox').scrollTop = 0;
   $('#modalClose').onclick = $('#modalX').onclick = () => $('#modal').classList.remove('on');
+  $('#manualBtn').onclick = openManual;
   $$('#modalBox .mnav a').forEach(a => a.onclick = () => { const t = $('#' + a.dataset.go); t && t.scrollIntoView({behavior: 'smooth', block: 'start'}); });
   $('#ckOn').checked = CK.on; $('#ckOn').onchange = () => setCockpit($('#ckOn').checked);
   $('#sqHost').checked = !!st.squad_host; $('#sqUrl').value = st.squad_url || ''; $('#sqKey').value = st.squad_key || '';
@@ -4034,6 +4036,8 @@ $('#scrim').onclick = closeDrawer;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); $('#modal').classList.remove('on'); } });
 $('#modal').addEventListener('mousedown', e => { if (e.target === $('#modal')) $('#modal').classList.remove('on'); });
 $('#btnSettings').onclick = openSettings;
+const openManual = () => window.open('manual.html?v=' + encodeURIComponent(STAT.version || ''), 'ariaManual', 'width=1100,height=820');
+$('#btnManual').onclick = openManual;
 $('#btnRefresh').onclick = refreshAll;
 $('#btnCockpit').onclick = () => setCockpit(!CK.on);
 $('#ckRescue').onclick = () => CK.cal ? calDone() : startCal();
