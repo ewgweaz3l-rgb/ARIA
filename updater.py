@@ -19,7 +19,7 @@ import time
 import zipfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-KEEP = {"config.json", "macros.json", "aria.log", "cache", "backups", "browser-profile", "__pycache__"}
+KEEP = {"config.json", "macros.json", "aria.log", "cache", "backups", "browser-profile", "__pycache__", "scores.json", "reports.json", "lobbies.json", "squad_config.json"}
 
 
 def current_version():

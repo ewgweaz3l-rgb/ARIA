@@ -97,6 +97,11 @@ tr:first-child .rank{color:var(--amber)}
 .tag{display:inline-block;font:600 10px var(--head);letter-spacing:.1em;border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 .tag.cy{background:var(--cyan-d);color:var(--cyan)} .tag.am{background:var(--amber-d);color:var(--amber)} .tag.rd{background:#3a1715;color:var(--red)}
 .tablewrap{overflow-x:auto}
+.dbleg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:8px 0}.dbhd{margin-bottom:4px}
+.dbq{display:flex;align-items:center;gap:10px;margin:4px 0;flex-wrap:wrap}.dbq>span:first-child{width:62px;color:var(--dim);font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;flex-wrap:wrap}.seg button{background:none;border:0;border-right:1px solid var(--line2);color:var(--dim);padding:5px 10px;cursor:pointer;font-size:12.5px}
+.seg button:last-child{border-right:0}.seg button.on{background:rgba(242,168,59,.15);color:var(--amber)}.seg button:hover{color:var(--text)}
+.rchip{display:inline-block;margin-left:6px;font:600 10px var(--mono);padding:1px 5px;border-radius:6px;border:1px solid currentColor;vertical-align:middle;cursor:help}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:1000px){.grid2{grid-template-columns:1fr}}
 .notes{padding-left:18px;margin:6px 0}.notes li{margin:5px 0;color:var(--dim)}.notes b{color:var(--text)}
 #mnOres tr.ore{cursor:pointer}#mnOres tr.ore:hover td{background:rgba(255,255,255,.03)}#mnOres tr.ore.on td{background:rgba(242,168,59,.08)}
@@ -1152,9 +1157,9 @@ function renderRoutes() {
       <td class="rank">${i + 1}</td>
       <td><b>${esc(r.name)}</b>${tags}</td>
       <td>${esc(termLabel(r.tb, r.b))}<div class="sub">${esc(placeLabel(r.tb))}</div></td>
-      <td class="r num">${fmt(r.buy, r.buy < 10 ? 2 : 0)}</td>
+      <td class="r num">${fmt(r.buy, r.buy < 10 ? 2 : 0)}${reportChip(r.b.id_terminal, r.cid, 'buy')}</td>
       <td>${esc(termLabel(r.ts, r.s))}<div class="sub">${esc(placeLabel(r.ts))}</div></td>
-      <td class="r num">${fmt(r.sell, r.sell < 10 ? 2 : 0)}</td>
+      <td class="r num">${fmt(r.sell, r.sell < 10 ? 2 : 0)}${reportChip(r.s.id_terminal, r.cid, 'sell')}</td>
       <td class="r num">${load}</td>
       <td class="r num">${money(r.invest)}</td>
       <td class="r num good"><b>${money(r.profit)}</b></td>
@@ -1168,6 +1173,7 @@ function renderRoutes() {
     </tr>`;
   }).join('');
   $('#routes').innerHTML = head + body;
+  if (!REPORTS.loaded) loadReports();
   $('#routesPanel').style.display = '';
   $$('[data-map]').forEach(b => b.onclick = () => {
     const r = rows[+b.dataset.map];
@@ -2274,7 +2280,7 @@ function renderJobBar() {
     <button class="chip ${o.fromHome ? 'amber' : ''}" id="jobFromHome" title="Start the job from your home base">⌂ Start home</button>
     <button class="chip ${o.rtb ? 'amber' : ''}" id="jobRtb" title="Finish the job back at your home base">RTB</button>
     <button class="chip" id="jobHome" title="Change home">${HOME.get() ? '⌂ ' + esc(HOME.get()) + ' ✎' : 'Set home'}</button>
-    <button class="btn small" id="jobOpen">View job on map</button><button class="btn ghost small" id="jobClear">Clear</button></div>`;
+    <button class="btn small" id="jobOpen">View job on map</button><button class="btn small" id="jobDone" title="Finished the run? Tell the squad how it really went (or skip)">✓ Job done</button><button class="btn ghost small" id="jobClear">Clear</button></div>`;
   $$('[data-jx]', el).forEach(b => b.onclick = () => { JOB.hauls.splice(+b.dataset.jx, 1); saveJob(); });
   const openJob = () => { const op = JOBOPT.get(); showHauls(JOB.hauls, `Job · ${JOB.hauls.length} haul${JOB.hauls.length > 1 ? 's' : ''}${op.rtb && HOME.get() ? ' · RTB' : ''}`, 'job', HOME.get() ? op : {}); };
   $('#jobOpen').onclick = openJob;
@@ -2282,6 +2288,87 @@ function renderJobBar() {
   $('#jobRtb').onclick = () => { const v = !JOBOPT.get().rtb; if (v && !HOME.get()) return editHome(() => JOBOPT.set({rtb: true})); JOBOPT.set({rtb: v}); if (PLAN && PLAN.kind === 'job' && $('#view-starmap').classList.contains('on')) openJob(); };
   $('#jobHome').onclick = () => editHome(() => { if (PLAN && PLAN.kind === 'job') openJob(); });
   $('#jobClear').onclick = () => { JOB.hauls = []; saveJob(); };
+  $('#jobDone').onclick = () => jobDebrief();
+}
+
+/* ---------------- job debrief: what really happened at each terminal ----------------
+   Optional, a few taps, SKIP always one click away. Reports stay on this PC and, if a squad is linked,
+   go to the squad host so everyone's hauls get "pilot reported" prices next to UEX's. Nothing goes anywhere else. */
+const REPORTS = {list: [], loaded: 0};
+const WAIT_OPTS = [['none', 'No waits'], ['stock', 'Waited for stock'], ['queue', 'Terminal queue'], ['pad', 'No pad / hangar'], ['bugged', 'Terminal bugged'], ['pirates', 'Interdicted / pirates'], ['other', 'Something else']];
+function jobDebrief() {
+  if (!JOB.hauls.length) { toast('No job to report on.'); return; }
+  if (store.get('debriefOff', false)) return finishJob(false);
+  const hauls = JOB.hauls;
+  const leg = (h, i, kind) => { const price = kind === 'buy' ? h.buy : h.sell, where = kind === 'buy' ? h.fromLabel : h.toLabel;
+    return `<div class="dbleg" data-h="${i}" data-k="${kind}">
+      <div class="dbhd"><b>${kind === 'buy' ? 'Bought' : 'Sold'} ${esc(h.name)}</b> at ${esc(where)} <span class="sub">· planned ${fmt(price, price < 10 ? 2 : 0)}/SCU</span></div>
+      <div class="dbq"><span>Price</span><span class="seg" data-q="match"><button data-v="yes">Matched</button><button data-v="no">Different</button><button data-v="skip" class="on">—</button></span>
+        <input type="number" step="any" min="0" class="dbact" placeholder="actual /SCU" style="width:110px;padding:4px 8px" hidden></div>
+      <div class="dbq"><span>${kind === 'buy' ? 'Stock' : 'Demand'}</span><span class="seg" data-q="stock"><button data-v="all">${kind === 'buy' ? 'Got it all' : 'Sold it all'}</button><button data-v="partial">Partial</button><button data-v="none">${kind === 'buy' ? 'Out of stock' : "Wouldn't buy"}</button><button data-v="skip" class="on">—</button></span>
+        <input type="number" min="0" class="dbscu" placeholder="SCU" style="width:80px;padding:4px 8px" hidden></div></div>`; };
+  $('#modalBox').className = 'box wide';
+  $('#modalBox').innerHTML = `<div class="mhead"><h2>Job debrief</h2><button class="mx" id="dbX" title="Skip">×</button></div>
+    <p>Thirty seconds, all optional — leave anything on “—”. Your answers make ARIA's prices more trustworthy for you${SQUAD.on() ? ' and your squad' : ''}. Not sure? Don't guess; <b>Skip</b> is fine.</p>
+    ${hauls.map((h, i) => leg(h, i, 'buy') + leg(h, i, 'sell')).join('')}
+    <div class="dbq" style="margin-top:10px"><span>Delays</span><span class="seg multi" id="dbWaits">${WAIT_OPTS.map(([v, l]) => `<button data-v="${v}">${l}</button>`).join('')}</span></div>
+    <div class="row" style="gap:12px;margin-top:8px"><label class="f" style="width:150px">Time it took (min)<input id="dbMin" type="number" min="0" placeholder="optional"></label>
+      <label class="f" style="width:170px">Actual profit (aUEC)<input id="dbProfit" type="number" placeholder="planned +${money(hauls.reduce((a, h) => a + h.profit, 0))}"></label>
+      <label class="f" style="flex:1;min-width:200px">Note<input id="dbNote" type="text" maxlength="200" placeholder="optional — e.g. pad 3 bugged, sold the rest at …"></label></div>
+    <div class="row" style="justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:8px">
+      <span class="row" style="gap:14px"><label class="chk"><input type="checkbox" id="dbClear" checked> Clear the job list</label><label class="chk"><input type="checkbox" id="dbOff"> Don't ask after jobs</label></span>
+      <span class="row" style="gap:8px"><button class="btn ghost" id="dbSkip">Skip</button><button class="btn" id="dbSend">Send report</button></span></div>`;
+  $('#modal').classList.add('on'); $('#modalBox').scrollTop = 0;
+  $$('#modalBox .seg:not(.multi)').forEach(sg => $$('button', sg).forEach(b => b.onclick = () => {
+    $$('button', sg).forEach(x => x.classList.toggle('on', x === b));
+    const box = sg.parentElement, inp = $(sg.dataset.q === 'match' ? '.dbact' : '.dbscu', box);
+    inp.hidden = !(sg.dataset.q === 'match' ? b.dataset.v === 'no' : b.dataset.v === 'partial'); if (!inp.hidden) inp.focus(); }));
+  $$('#dbWaits button').forEach(b => b.onclick = () => { if (b.dataset.v === 'none') $$('#dbWaits button').forEach(x => x.classList.toggle('on', x === b)); else { $('#dbWaits [data-v=none]').classList.remove('on'); b.classList.toggle('on'); } });
+  const close = sent => { if ($('#dbOff').checked) { store.set('debriefOff', true); toast('Got it — no more debriefs. Turn them back on in Settings → Assistant.'); } $('#modal').classList.remove('on'); finishJob($('#dbClear').checked, sent); };
+  $('#dbSkip').onclick = $('#dbX').onclick = () => close(false);
+  $('#dbSend').onclick = async () => {
+    const legs = $$('#modalBox .dbleg').map(el => { const h = hauls[+el.dataset.h], kind = el.dataset.k, on = q => ($(`.seg[data-q=${q}] .on`, el) || {}).dataset?.v;
+      const m = on('match'), st = on('stock'), act = num($('.dbact', el).value), scu = num($('.dbscu', el).value);
+      return {kind, cid: h.cid, commodity: h.name, term: kind === 'buy' ? h.fromT : h.toT, termName: kind === 'buy' ? h.fromLabel : h.toLabel, planned: kind === 'buy' ? h.buy : h.sell,
+        match: m === 'yes' ? true : m === 'no' ? false : null, actual: m === 'no' && act > 0 ? act : null, stock: st && st !== 'skip' ? st : null, scu: st === 'partial' && scu > 0 ? scu : null}; })
+      .filter(l => l.match !== null || l.stock);
+    const waits = $$('#dbWaits .on').map(b => b.dataset.v), minutes = num($('#dbMin').value), profit = $('#dbProfit').value.trim() === '' ? null : num($('#dbProfit').value);
+    if (!legs.length && !waits.length && !minutes && profit == null && !$('#dbNote').value.trim()) { close(false); return; }  // nothing filled in = a skip
+    const report = {id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), t: Date.now(), name: PILOT(), legs, waits, minutes: minutes || null, profit, note: $('#dbNote').value.trim(), ver: STAT.version || ''};
+    let ok = false;
+    try { const r = await fetch('/api/report', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({report})}); ok = (await r.json()).ok; } catch {}
+    if (SQUAD.on()) { try { await fetch(`${SQUAD.url()}/api/reports`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({key: SQUAD.key(), report})}); } catch {} }
+    REPORTS.loaded = 0; loadReports();
+    toast(ok ? `Report saved${SQUAD.on() ? ' and shared with the squad' : ''}. Thanks, ${esc(PILOT())}.` : 'Could not save the report.');
+    close(true);
+  };
+}
+function finishJob(clear, sent) {
+  if (clear) { JOB.hauls = []; saveJob(); MFDS.stop = 0; store.set('jobStop', 0); if (PLAN && PLAN.kind === 'job') { PLAN = null; } mfdRenderAll(); }
+  ufcSay(sent ? 'Job logged. Good haul, Commander.' : 'Job complete.');
+}
+async function loadReports(force) {
+  if (!force && Date.now() - REPORTS.loaded < 120000) return REPORTS.list;
+  const byId = new Map();
+  try { (await (await fetch('/api/report')).json()).reports.forEach(r => byId.set(r.id, r)); } catch {}
+  if (SQUAD.on()) { try { const j = await (await fetch(`${SQUAD.url()}/api/reports?key=${encodeURIComponent(SQUAD.key())}`, {cache: 'no-store'})).json(); (j.reports || []).forEach(r => byId.set(r.id, r)); } catch {} }
+  REPORTS.list = [...byId.values()].sort((a, b) => b.t - a.t); REPORTS.loaded = Date.now();
+  if (lastRows && lastRows.length && $('#routes')) renderRoutes();
+  return REPORTS.list;
+}
+// pilot reports for one terminal + commodity + buy/sell, newest first, last 30 days
+function reportsFor(term, cid, kind) {
+  const cut = Date.now() - 30 * 86400e3, out = [];
+  for (const r of REPORTS.list) { if (r.t < cut) break; for (const l of r.legs) if (l.term === term && l.cid === cid && l.kind === kind) out.push({...l, t: r.t, name: r.name}); }
+  return out;
+}
+function reportChip(term, cid, kind) {
+  const rs = reportsFor(term, cid, kind); if (!rs.length) return '';
+  const pr = rs.filter(l => l.match !== null), ok = pr.filter(l => l.match).length, last = rs.find(l => l.actual);
+  const stockBad = rs.filter(l => l.stock === 'none' || l.stock === 'partial').length;
+  const tip = [`${rs.length} pilot report${rs.length > 1 ? 's' : ''} in 30 days`, pr.length ? `price matched ${ok}/${pr.length}` : '', last ? `last reported ${fmt(last.actual)} /SCU (${(a => a === 'just now' ? a : a + ' ago')(ago((Date.now() - last.t) / 1000))}, ${last.name})` : '', stockBad ? `${stockBad}× ${kind === 'buy' ? 'short on stock' : 'demand ran out'}` : ''].filter(Boolean).join(' · ');
+  const cls = pr.length && ok / pr.length < .5 || stockBad > rs.length / 2 ? 'warn' : 'good';
+  return `<span class="rchip ${cls}" title="${esc(tip)}">✓${rs.length}</span>`;
 }
 
 /* ---------------- Job view: systems as cards, the route flowing through them ---------------- */
@@ -3221,7 +3308,7 @@ function pageDef0(side) {
   }
   if (p === 'JOB') {
     const o = {...common, 1: {l: 'VIEW', fn: () => { show('starmap'); setSystem('job'); }}, 2: {l: 'FIND', fn: () => show('rich')}, 3: {l: 'NAV', go: 'NAV'},
-      6: {l: 'DONE', fn: () => setStop(MFDS.stop + 1)}, 7: {l: 'BACK', fn: () => setStop(MFDS.stop - 1)}, 10: {l: 'RSET', fn: () => setStop(0)}};
+      6: {l: 'DONE', fn: () => { const P2 = curPlan(); if (P2 && MFDS.stop >= P2.stops.length - 1) { if (P2.kind === 'job' || JOB.hauls.length) jobDebrief(); else mfdMsg(side, 'ROUTE COMPLETE'); } else setStop(MFDS.stop + 1); }}, 7: {l: 'BACK', fn: () => setStop(MFDS.stop - 1)}, 10: {l: 'RSET', fn: () => setStop(0)}};
     if (!P) return {title: 'JOB', osb: o, body: `<div class="mbig sm">NO JOB</div><div class="mnote">FIND → + JOB → VIEW JOB</div>`};
     const done = P.stops.slice(0, MFDS.stop + 1).flatMap(s => s.actions).reduce((a, x) => a + (x.profit || 0), 0);
     const from = Math.max(0, Math.min(MFDS.stop - 1, P.stops.length - 6));
@@ -4175,6 +4262,7 @@ async function openSettings() {
     <div class="row" style="margin-top:8px"><label class="f" style="flex:1;min-width:200px">RSI Launcher (for the 🚀 button)<input id="launchIn" type="text" placeholder="${st.launcher ? 'Found: ' + esc(st.launcher) : 'Not found — paste the path to RSI Launcher.exe'}" value="${esc(st.launcher_path || '')}"></label></div>
     <div class="row" style="margin-top:8px"><label class="f" style="flex:1;min-width:200px">Home base (spawn point)<input id="homeSetIn" type="text" list="placeList" value="${esc(HOME.get())}" placeholder="e.g. Port Tressler"></label></div>
     <div class="row" style="margin-top:8px"><label class="f" style="width:240px" title="Leave blank to detect. In game: Options → Keybindings lists vJoy as Joystick N.">vJoy joystick number in game<input id="vjInstIn" type="text" placeholder="Auto-detect"></label></div>
+    <div class="row" style="margin-top:8px"><label class="chk"><input type="checkbox" id="dbOn"> Ask for a quick debrief when I finish a job</label></div>
     <p>The name shows in the header and becomes the wake word. The game folder and vJoy number are only needed if ARIA can't detect them.</p>
     <div class="row"><button class="btn small" id="nameSave">Save</button></div>
     <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-yourstuff">Your stuff</h2>
@@ -4184,6 +4272,7 @@ async function openSettings() {
   $('#modal').classList.add('on'); $('#modalBox').scrollTop = 0;
   $('#modalClose').onclick = $('#modalX').onclick = () => $('#modal').classList.remove('on');
   $('#manualBtn').onclick = openManual;
+  $('#dbOn').checked = !store.get('debriefOff', false); $('#dbOn').onchange = () => store.set('debriefOff', !$('#dbOn').checked);
   $$('#modalBox .mnav a').forEach(a => a.onclick = () => { const t = $('#' + a.dataset.go); t && t.scrollIntoView({behavior: 'smooth', block: 'start'}); });
   $('#ckOn').checked = CK.on; $('#ckOn').onchange = () => setCockpit($('#ckOn').checked);
   $('#sqHost').checked = !!st.squad_host; $('#sqUrl').value = st.squad_url || ''; $('#sqKey').value = st.squad_key || '';

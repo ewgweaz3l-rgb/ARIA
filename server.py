@@ -375,7 +375,9 @@ class Handler(SimpleHTTPRequestHandler):
                 if now - GAME_STATE["t"] > 8:
                     GAME_STATE["running"] = scbinds.game_running(); GAME_STATE["t"] = now
                 return self.send_json(200, {"running": GAME_STATE["running"], "windows": sys.platform.startswith("win")})
-            elif kind in ("scores", "lobby"):
+            elif kind == "report":  # this PC's own job reports
+                return self.send_json(200, {"reports": SQUAD.load_reports()})
+            elif kind in ("scores", "lobby", "reports"):
                 cfg = load_config()
                 if not cfg.get("squad_host"):
                     return self.send_json(404, {"error": "This ARIA isn't hosting a squad board."}, CORS)
@@ -459,7 +461,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         u = urllib.parse.urlsplit(self.path)
-        if u.path == "/api/scores" or u.path.startswith("/api/lobby"):  # squad: friends post here from their own ARIA
+        if u.path == "/api/scores" or u.path == "/api/reports" or u.path.startswith("/api/lobby"):  # squad: friends post here from their own ARIA
             n = int(self.headers.get("Content-Length") or 0)
             try:
                 payload = json.loads(self.rfile.read(n) if n else b"{}")
@@ -512,6 +514,9 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(400, {"ok": False, "error": str(e)})
             sys.stderr.write(f"[aria] keys: {spec}{'' if keys.IS_WINDOWS else '  (simulated: not Windows)'}\n")
             return self.send_json(200, {"ok": True, "steps": len(steps), "simulated": not keys.IS_WINDOWS})
+        if u.path == "/api/report":  # save a job report on this PC (the page also posts it to the squad host)
+            r = SQUAD.add_report(payload.get("report"))
+            return self.send_json(200, {"ok": True, "id": r["id"]}) if r else self.send_json(400, {"ok": False, "error": "empty report"})
         if u.path == "/api/launcher":  # start the RSI Launcher (or bring it forward if it's already open)
             exe = find_launcher(load_config().get("launcher_path"))
             if not exe:

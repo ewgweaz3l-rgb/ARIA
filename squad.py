@@ -49,6 +49,61 @@ class Squad:
                 json.dump(all_, f, indent=1)
             return all_[game]
 
+    # ---------------- job reports (pilots telling each other what really happened at a terminal) ----------------
+    WAITS = {"none", "stock", "queue", "pad", "bugged", "pirates", "other"}
+
+    def _reports_path(self):
+        return os.path.join(self.root, "reports.json")
+
+    def load_reports(self):
+        try:
+            with open(self._reports_path(), "r", encoding="utf-8") as f:
+                d = json.load(f)
+            return d if isinstance(d, list) else []
+        except Exception:
+            return []
+
+    @classmethod
+    def clean_report(cls, r):
+        """Keep only the fields we use, typed and size-capped. Anything odd is dropped, not stored."""
+        if not isinstance(r, dict):
+            return None
+        def num_or_none(v, lo=0, hi=10**9):
+            try:
+                v = float(v)
+            except (TypeError, ValueError):
+                return None
+            return v if lo <= v <= hi else None
+        legs = []
+        for l in (r.get("legs") or [])[:12]:
+            if not isinstance(l, dict) or l.get("kind") not in ("buy", "sell"):
+                continue
+            legs.append({"kind": l["kind"], "cid": int(num_or_none(l.get("cid"), 0, 10**7) or 0), "commodity": str(l.get("commodity") or "")[:40],
+                         "term": int(num_or_none(l.get("term"), 0, 10**7) or 0), "termName": str(l.get("termName") or "")[:60],
+                         "planned": num_or_none(l.get("planned")), "actual": num_or_none(l.get("actual")),
+                         "match": l.get("match") if isinstance(l.get("match"), bool) else None,
+                         "stock": l.get("stock") if l.get("stock") in ("all", "partial", "none") else None,
+                         "scu": num_or_none(l.get("scu"), 0, 10**6)})
+        if not legs:
+            return None
+        return {"id": str(r.get("id") or secrets.token_hex(6))[:24], "t": int(num_or_none(r.get("t"), 0, 10**14) or time.time() * 1000),
+                "name": str(r.get("name") or "CMDR")[:12], "legs": legs,
+                "waits": [w for w in (r.get("waits") or []) if w in cls.WAITS][:7],
+                "minutes": num_or_none(r.get("minutes"), 0, 10000), "profit": num_or_none(r.get("profit"), -10**9, 10**10),
+                "note": str(r.get("note") or "")[:200], "ver": str(r.get("ver") or "")[:12]}
+
+    def add_report(self, r):
+        r = self.clean_report(r)
+        if not r:
+            return None
+        with self.lock:
+            all_ = [x for x in self.load_reports() if x.get("id") != r["id"]]
+            all_.append(r)
+            all_ = all_[-3000:]  # newest 3000 is plenty
+            with open(self._reports_path(), "w", encoding="utf-8") as f:
+                json.dump(all_, f)
+        return r
+
     # ---------------- lobbies ----------------
     def _load_lobbies(self):
         try:
@@ -207,6 +262,15 @@ class Squad:
                 if not game or score <= 0 or score > 10**9:
                     return 400, {"error": "bad score"}
                 return 200, {"ok": True, "scores": self.add_score(game, payload.get("name") or "CMDR", score, payload.get("extra"))}
+        if path == "/api/reports":
+            k = query.get("key") if method == "GET" else str(payload.get("key") or "")
+            if key != (k or ""):
+                return 403, {"error": "Wrong squad key."}
+            if method == "GET":
+                since = int(query.get("since") or 0)
+                return 200, {"reports": [r for r in self.load_reports() if r.get("t", 0) > since], "host": self.name_fn()}
+            r = self.add_report(payload.get("report"))
+            return (200, {"ok": True, "id": r["id"]}) if r else (400, {"error": "empty report"})
         if path.startswith("/api/lobby"):
             k = query.get("key") if method == "GET" else str(payload.get("key") or "")
             if key != (k or ""):
