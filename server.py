@@ -487,6 +487,15 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(400, {"ok": False, "error": str(e)})
             sys.stderr.write(f"[aria] keys: {spec}{'' if keys.IS_WINDOWS else '  (simulated: not Windows)'}\n")
             return self.send_json(200, {"ok": True, "steps": len(steps), "simulated": not keys.IS_WINDOWS})
+        if u.path == "/api/open":  # open a Windows settings page (fixed list, nothing user-supplied)
+            targets = {"sound": "ms-settings:sound", "privacy-mic": "ms-settings:privacy-microphone", "display": "ms-settings:display"}
+            uri = targets.get(payload.get("what") or "")
+            if not uri:
+                return self.send_json(400, {"ok": False, "error": "unknown target"})
+            if os.name == "nt":
+                try: os.startfile(uri)  # noqa
+                except Exception as e: return self.send_json(500, {"ok": False, "error": str(e)})
+            return self.send_json(200, {"ok": True, "opened": uri, "simulated": os.name != "nt"})
         if u.path == "/api/mfd/learn":
             if not MFD.available:
                 return self.send_json(400, {"ok": False, "error": "MFD buttons need ARIA running on Windows."})

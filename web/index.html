@@ -77,7 +77,7 @@ input:focus,select:focus{border-color:var(--cyan)}
 .examples button:hover{color:var(--amber);border-color:var(--amber-d)}
 .hangarchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
 .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line2);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--dim);background:var(--panel);cursor:pointer;white-space:nowrap}
-.chip:hover{color:var(--text)} .chip.amber{color:var(--amber);border-color:var(--amber-d)} .chip.cyan{color:var(--cyan);border-color:var(--cyan-d)}
+.chip:hover{color:var(--text)} .chip.amber{color:var(--amber);border-color:var(--amber-d)} .chip.cyan{color:var(--cyan);border-color:var(--cyan-d)} .chip.green{color:var(--green);border-color:var(--green)} .chip.red{color:var(--red);border-color:var(--red)}
 
 .brief{margin:16px 0;border-left:3px solid var(--amber);background:rgba(242,168,59,.05);padding:12px 16px;border-radius:0 8px 8px 0}
 .brief .who{font:700 11px var(--head);letter-spacing:.2em;color:var(--amber);margin-bottom:4px}
@@ -580,6 +580,21 @@ body.cockpit .cocktop #brief{display:none}
         <select id="voiceMode"><option value="mixed">Voice pack, browser voice for the rest</option><option value="clips">Voice pack only</option><option value="tts">Browser voice only</option><option value="off">Silent</option></select></label>
     </div>
     <div id="keysNote" class="sub" style="margin-top:8px"></div>
+    <div class="row" style="margin-top:14px;gap:14px;align-items:center;padding-top:12px;border-top:1px solid var(--line)">
+      <span class="chip" id="micPerm" title="Browser microphone permission">Mic: checking…</span>
+      <button class="btn small" id="micAllow">Allow microphone</button>
+      <label class="f" style="flex-direction:row;align-items:center;gap:8px;flex:1;min-width:260px">Microphone
+        <select id="micSel" style="flex:1"><option value="">System default</option></select></label>
+      <button class="btn ghost small" id="micTest" title="Show the level of the selected microphone for 10 seconds">Test level</button>
+      <div id="micMeter" style="width:120px;height:10px;border:1px solid var(--line2);border-radius:6px;overflow:hidden"><div id="micLvl" style="height:100%;width:0;background:var(--green)"></div></div>
+      <button class="btn ghost small" id="micWin" title="Chrome's speech recognizer always uses the Windows default microphone — change it here">Windows sound settings</button>
+    </div>
+    <div class="row" style="margin-top:10px;gap:14px;align-items:center">
+      <label class="f" style="flex-direction:row;align-items:center;gap:8px;min-width:260px">ARIA volume
+        <input id="aiVol" type="range" min="0" max="100" step="1" style="width:160px"><span id="aiVolV" class="mono">100%</span></label>
+      <button class="btn ghost small" id="aiVolTest">Say something</button>
+      <span class="sub" id="micNote">Speech recognition in Chrome/Edge listens on the Windows default mic; the picker here checks levels and tells you which one that is.</span>
+    </div>
   </div>
 
   <div class="panel" style="margin-top:14px">
@@ -1164,15 +1179,6 @@ async function runCommand(text) {
 
 /* voice: Web Speech API (Chrome/Edge). Ready now; swap in a local engine later. */
 let rec = null;
-function speak(text) {
-  if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  const pref = speechSynthesis.getVoices().find(v => /female|zira|jenny|aria|samantha|google uk english female/i.test(v.name));
-  if (pref) u.voice = pref;
-  u.rate = 1.03; u.pitch = 0.95;
-  speechSynthesis.speak(u);
-}
 function setupMic() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const mic = $('#mic');
@@ -2332,7 +2338,74 @@ async function loadVoicePack() {
   $('#vpCount').textContent = VOICE.pack.size;
 }
 function playClip(url) {
-  try { const a = new Audio(url); a.onplaying = () => { VOICE.mutedUntil = Date.now() + (a.duration || 2) * 1000 + 400; }; a.play().catch(() => {}); } catch {}
+  try { const a = new Audio(url); a.volume = AIVOL(); a.onplaying = () => { VOICE.mutedUntil = Date.now() + (a.duration || 2) * 1000 + 400; }; a.play().catch(() => {}); } catch {}
+}
+const AIVOL = () => Math.max(0, Math.min(1, (store.get('aiVol', 100)) / 100));
+/* microphone permission + device list. Chrome's SpeechRecognition always uses the OS default
+   device, so the picker is for checking levels and knowing which mic is "default". */
+const MIC = {stream: null, raf: 0, timer: 0};
+async function micRefresh() {
+  const perm = $('#micPerm'); if (!perm) return;
+  let state = 'prompt';
+  try { state = (await navigator.permissions.query({name: 'microphone'})).state; } catch {}
+  perm.textContent = state === 'granted' ? 'Mic: allowed' : state === 'denied' ? 'Mic: blocked' : 'Mic: not asked yet';
+  perm.className = 'chip ' + (state === 'granted' ? 'green' : state === 'denied' ? 'red' : 'cyan');
+  $('#micAllow').style.display = state === 'granted' ? 'none' : '';
+  $('#micNote').textContent = state === 'denied'
+    ? 'Blocked. Click the lock/mic icon in the address bar (or Edge: ⋯ → Settings → Site permissions → Microphone) and allow 127.0.0.1, then reload.'
+    : 'Speech recognition in Chrome/Edge listens on the Windows default mic; the picker here checks levels and shows which one that is.';
+  try {
+    const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+    const sel = $('#micSel'), cur = store.get('micId', '');
+    sel.innerHTML = '<option value="">System default</option>' + devs.map((d, i) => `<option value="${esc(d.deviceId)}">${esc(d.label || ('Microphone ' + (i + 1)))}</option>`).join('');
+    if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+    const def = devs.find(d => d.deviceId === 'default');
+    if (def && def.label) sel.options[0].textContent = 'System default — ' + def.label.replace(/^Default - /i, '');
+  } catch {}
+}
+async function micAllow() {
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({audio: true});
+    st.getTracks().forEach(t => t.stop());
+    toast('Microphone allowed.');
+  } catch (e) { toast(e && e.name === 'NotAllowedError' ? 'Microphone blocked — allow it from the icon in the address bar.' : 'No microphone found.'); }
+  micRefresh();
+}
+function micStopTest() {
+  cancelAnimationFrame(MIC.raf); clearTimeout(MIC.timer); MIC.raf = 0;
+  if (MIC.stream) { MIC.stream.getTracks().forEach(t => t.stop()); MIC.stream = null; }
+  const l = $('#micLvl'); if (l) l.style.width = '0';
+  const b = $('#micTest'); if (b) b.textContent = 'Test level';
+}
+async function micTest() {
+  if (MIC.stream) return micStopTest();
+  const id = $('#micSel').value;
+  try {
+    MIC.stream = await navigator.mediaDevices.getUserMedia({audio: id ? {deviceId: {exact: id}} : true});
+  } catch (e) { toast(e && e.name === 'NotAllowedError' ? 'Microphone blocked — allow it from the icon in the address bar.' : 'Could not open that microphone.'); micRefresh(); return; }
+  $('#micTest').textContent = 'Stop';
+  const ac = new (window.AudioContext || window.webkitAudioContext)(), src = ac.createMediaStreamSource(MIC.stream), an = ac.createAnalyser();
+  an.fftSize = 512; src.connect(an); const buf = new Uint8Array(an.fftSize);
+  const tick = () => {
+    an.getByteTimeDomainData(buf); let s = 0; for (const v of buf) { const d = (v - 128) / 128; s += d * d; }
+    const rms = Math.sqrt(s / buf.length), pct = Math.min(100, Math.round(rms * 400));
+    const l = $('#micLvl'); l.style.width = pct + '%'; l.style.background = pct > 90 ? 'var(--red)' : 'var(--green)';
+    MIC.raf = requestAnimationFrame(tick);
+  };
+  tick(); MIC.timer = setTimeout(() => { micStopTest(); ac.close(); }, 10000);
+  micRefresh();
+}
+function wireMicPanel() {
+  if (!$('#micPerm')) return;
+  $('#micAllow').onclick = micAllow; $('#micTest').onclick = micTest;
+  $('#micSel').onchange = () => store.set('micId', $('#micSel').value);
+  $('#micWin').onclick = () => fetch('/api/open', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({what: 'sound'})}).then(() => toast('Opening Windows sound settings — set the default input device there.')).catch(() => {});
+  const v = $('#aiVol'), vv = $('#aiVolV'); v.value = store.get('aiVol', 100); vv.textContent = v.value + '%';
+  v.oninput = () => { store.set('aiVol', +v.value); vv.textContent = v.value + '%'; };
+  $('#aiVolTest').onclick = () => { const m = $('#voiceMode').value; if (m === 'off') { toast('Replies are set to Silent.'); return; } say(`Volume ${v.value} percent, ${PILOT ? PILOT() : 'pilot'}.`); };
+  try { navigator.mediaDevices.addEventListener('devicechange', micRefresh); } catch {}
+  micRefresh();
+  try { navigator.permissions.query({name: 'microphone'}).then(p => { p.onchange = micRefresh; }); } catch {}
 }
 function speak(text) {
   if (!('speechSynthesis' in window)) return;
@@ -2340,7 +2413,8 @@ function speak(text) {
   const u = new SpeechSynthesisUtterance(text);
   const pref = speechSynthesis.getVoices().find(v => /female|zira|jenny|aria|samantha|google uk english female/i.test(v.name));
   if (pref) u.voice = pref;
-  u.rate = 1.03; u.pitch = 0.95;
+  u.rate = 1.03; u.pitch = 0.95; u.volume = AIVOL();
+  if (u.volume === 0) return;
   VOICE.mutedUntil = Date.now() + 600 + text.length * 70;
   u.onend = () => { VOICE.mutedUntil = Date.now() + 350; };
   speechSynthesis.speak(u);
@@ -3986,7 +4060,8 @@ async function bootFinish() {
 (function boot() {
   $('#bootName').textContent = AI().toUpperCase();
   bootSet('Contacting UEX…', .05);
-  setupMic(); renderHangarChips();
+  setupMic();
+  wireMicPanel(); renderHangarChips();
   const last = store.get('lastRun', null);
   if (last) { $('#shipIn').value = last.ship || ''; $('#scuIn').value = last.scu || ''; $('#budgetIn').value = last.budget || ''; $('#startIn').value = last.start || ''; }
   bootTrack('Market data loaded', tradeData().then(() => { if (last && last.system) $('#sysIn').value = last.system; }));

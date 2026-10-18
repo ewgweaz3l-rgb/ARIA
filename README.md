@@ -33,6 +33,13 @@ GitHub repo" (e.g. `drew/aria`). Every launch compares the repo's `VERSION` file
 Your settings, macros, voice clips, game files, cache and keybind backups are never overwritten.
 Settings → **Check** / **Update & restart** does it by hand.
 
+**Microphone & volume (Voice Macros room):** the **Mic** chip shows whether the browser has
+microphone permission; **Allow microphone** asks for it (if it says blocked, click the mic/lock icon in
+the address bar and allow 127.0.0.1). The picker lists your microphones and **Test level** shows a live
+meter for the selected one. Chrome/Edge speech recognition always listens on the *Windows default*
+input, so **Windows sound settings** opens the page where you set that. **ARIA volume** sets how loud
+replies are (voice pack clips and the browser voice alike); **Say something** previews it.
+
 ## Cockpit mode & the Cougar MFDs
 
 Press **▣** (or F9) for cockpit mode: the page rearranges itself around the two Cougar MFD
