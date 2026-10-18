@@ -73,8 +73,14 @@ def check():
             import base64
             latest = base64.b64decode(latest["content"]).decode().strip()
         else:
-            # raw.githubusercontent.com sits behind a 5-minute CDN cache; a fresh query string skips it.
-            latest = _get(f"https://raw.githubusercontent.com/{repo}/{branch}/VERSION?t={int(time.time())}").decode().strip()
+            # The contents API is live the moment a push lands; raw.githubusercontent.com lags up to
+            # 5 minutes behind its CDN cache. API first (60 checks/hour without a token), raw as fallback.
+            try:
+                import base64
+                j = json.loads(_get(f"https://api.github.com/repos/{repo}/contents/VERSION?ref={branch}"))
+                latest = base64.b64decode(j["content"]).decode().strip()
+            except Exception:
+                latest = _get(f"https://raw.githubusercontent.com/{repo}/{branch}/VERSION").decode().strip()
         return {"current": cur, "latest": latest, "available": _vt(latest) > _vt(cur), "repo": repo, "error": None}
     except Exception as e:
         return {"current": cur, "latest": None, "available": False, "repo": repo, "error": f"{type(e).__name__}: {e}"}
