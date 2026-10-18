@@ -220,7 +220,11 @@ body.cockpit #ufc{display:flex;flex-direction:row;align-items:stretch;gap:14px;m
 body.cockpit #ufc .uhead{flex-direction:column;align-items:flex-start;gap:3px;min-width:96px;border-right:1px solid var(--mline);padding-right:12px;font-size:10px}
 body.cockpit #ufc .uhead b{font-size:13px;letter-spacing:.2em}
 body.cockpit #ufc .udim{opacity:.7;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96px}
-body.cockpit #ufc .upad{flex:1;border:none;min-height:46px;max-height:76px;font-size:16px;line-height:1.4;padding:2px 0}
+body.cockpit #ufc .umain{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+body.cockpit #ufc .uhint{font:600 10px var(--mono);letter-spacing:.14em;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid var(--mline);padding-bottom:3px}
+body.cockpit #ufc .uhint b{color:var(--mw)}
+body.cockpit #ufc .upad{flex:1;border:none;min-height:40px;max-height:70px;font-size:16px;line-height:1.4;padding:2px 0}
+.mbody .ugrid.one{grid-template-columns:1fr}
 body.cockpit #ufc .ukeys{flex-direction:column;justify-content:center;gap:4px}
 body.cockpit #ufc .ukeys button{min-width:54px;padding:4px 8px;font-size:10px}
 .mbody .ugrid{min-height:0;flex:1;gap:4%}
@@ -3339,8 +3343,8 @@ function ufcPage(side, common) {
   const cells = S ? S.cells.map(([k, v]) => `<div class="ucell"><span>${k}</span><b>${esc(String(v))}</b></div>`).join('') : '';
   let body;
   if (UFC.mode === 'log') body = `<div class="ulog">${UFC.keylog.length ? UFC.keylog.map(k => `<div><span>${new Date(k.t).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}</span><span>${esc(k.src)}</span><b>${esc(k.keys)}</b><i>${esc(k.note)}</i></div>`).join('') : '<div class="faint">NO KEY PRESSES SENT YET</div>'}</div>`;
-  else body = `<div class="ugrid"><div class="ucells">${S ? `<div class="utitle">${S.title}</div><div class="uname">${esc(S.name)}</div>${cells}` : '<div class="utitle">STANDBY</div><div class="uname">ASK A ROUTE BELOW: “C2 HERCULES 750K FROM AREA18” · “NAV TO RUIN STATION” · “RTB”</div>'}</div>
-      <canvas id="ufcCanvas" class="ucanvas"></canvas></div>`;
+  else body = S ? `<div class="ugrid"><div class="ucells"><div class="utitle">${S.title}</div><div class="uname">${esc(S.name)}</div>${cells}</div>
+      <canvas id="ufcCanvas" class="ucanvas"></canvas></div>` : `<div class="ugrid one"><canvas id="ufcCanvas" class="ucanvas"></canvas></div>`;
   return {title: 'UFC', osb: o, body, after: () => { const c = $('#ufcCanvas'); if (c) { if (UFC.mode === 'shld') drawShieldAnim(c); else drawMini(c, S && S.plan, S && S.top); } }};
 }
 // the deck strip in the bottom band: ARIA's status lamp and what she last said, teletype style
@@ -3349,8 +3353,9 @@ function ufcRender() {
   const live = $('#keysLive').checked, S = ufcSummary();
   el.innerHTML = `<div class="uhead"><span class="ulamp ${VOICE.on ? 'on' : ''}"></span><b>${esc(AI().toUpperCase())}</b>
       <span class="${live ? 'ugood' : 'uwarn'}">${live ? 'KEYS LIVE' : 'PRACTICE'}</span><span>${PTTC.held ? '<span class="uwarn">● TALK</span>' : VOICE.on ? (pttMode() ? 'PTT' : 'OPEN MIC') : 'VOICE OFF'}</span>
-      ${S ? `<span class="udim">${S.title} · ${esc(String(S.cells[0][1]))}</span>` : ''}</div>
-    <div class="upad" id="ufcPad">${esc(UFC.msg.slice(0, UFC.typed))}</div>
+      </div>
+    <div class="umain"><div class="uhint">${S ? `<b>${S.title}</b> · ${esc(S.name)} · ${S.cells.slice(0, 4).map(([k, v]) => `${k} <b>${esc(String(v))}</b>`).join(' · ')}` : `<b>STANDBY</b> · ASK A ROUTE: “C2 HERCULES 750K FROM AREA18” · “NAV TO RUIN STATION” · “RTB” · OR JUST TALK`}</div>
+    <div class="upad" id="ufcPad">${esc(UFC.msg.slice(0, UFC.typed))}</div></div>
     <div class="ukeys"><button>SAY</button><button>RTB</button><button>MAP</button></div>`;
   const acts = [() => say(UFC.msg || 'Nothing to report.'), () => rtb(), () => { show('starmap'); setSystem('job'); }];
   $$('.ukeys button', el).forEach((b, i) => b.onclick = acts[i]);
