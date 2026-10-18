@@ -160,7 +160,16 @@ tr:first-child .rank{color:var(--amber)}
 /* modal */
 .modal{position:fixed;inset:0;z-index:50;display:none;place-items:center;background:rgba(0,0,0,.6)}
 .modal.on{display:grid}
-.modal .box{width:min(560px,92vw);background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:20px}
+.modal .box{width:min(560px,92vw);max-height:88vh;overflow-y:auto;overscroll-behavior:contain;position:relative;background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:20px;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.modal .box::-webkit-scrollbar{width:10px}.modal .box::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px}.modal .box::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+.modal .box.wide{width:min(720px,94vw)}
+.mhead{position:sticky;top:-20px;margin:-20px -20px 10px;padding:14px 20px 10px;background:var(--bg2);border-bottom:1px solid var(--line);z-index:2;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mhead h2{margin:0;flex:1}
+.mx{width:30px;height:30px;border-radius:8px;border:1px solid var(--line2);background:transparent;color:var(--dim);font-size:18px;line-height:1;cursor:pointer}
+.mx:hover{color:var(--text);border-color:var(--dim)}
+.mnav{display:flex;gap:4px;flex-wrap:wrap;width:100%}
+.mnav a{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--dim);text-decoration:none;cursor:pointer}
+.mnav a:hover{color:var(--text);border-color:var(--dim)}
 .modal p{color:var(--dim);font-size:13px}
 .toast{position:fixed;bottom:18px;left:18px;z-index:60;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:10px 14px;display:none;max-width:420px}
 .toast.on{display:block}
@@ -845,7 +854,7 @@ function attachShipPicker(input, onPick) {
 }
 function openCustomShip(prefill, done) {
   const list = CUSTOM.list();
-  $('#modalBox').innerHTML = `<h2>Add a ship</h2>
+  $('#modalBox').className = 'box'; $('#modalBox').innerHTML = `<h2>Add a ship</h2>
     <p>For ships the data sources don't list yet (new variants, concept ships flying early). ARIA uses your numbers.</p>
     <div class="row">
       <label class="f" style="flex:1;min-width:180px">Name<input id="csName" type="text" value="${esc(prefill || '')}" placeholder="e.g. Constellation Taurus Mk II"></label>
@@ -2097,7 +2106,7 @@ function renderHomeUI() {
 }
 async function editHome(after) {
   try { await loadMap(); } catch {}
-  $('#modalBox').innerHTML = `<h2>Home base</h2>
+  $('#modalBox').className = 'box'; $('#modalBox').innerHTML = `<h2>Home base</h2>
     <p>Where you spawn in game. Jobs can start here, and RTB brings you back. Change it whenever you move your spawn.</p>
     <label class="f">Home<input id="homeIn" type="text" list="placeList" value="${esc(HOME.get())}" placeholder="e.g. Port Tressler, New Babbage, Area18"></label>
     <div id="homeMsg" class="sub" style="margin-top:6px"></div>
@@ -3089,7 +3098,7 @@ setInterval(() => { if (CK.on) { mfdRender('L'); mfdRender('R'); if (UFC.mode ==
 function openOsbEditor() {
   const a = store.get('osbAssign', {});
   const rows = Object.entries(GAME).map(([id, terms]) => `<tr><td>${esc(terms[0])}</td><td><input data-g="${id}" value="${esc(a['game:' + id] || '')}" placeholder="${esc(MFDS.resolved[id] || 'auto from your binds')}" style="width:150px;padding:4px 6px"></td></tr>`).join('');
-  $('#modalBox').innerHTML = `<h2>MFD buttons</h2>
+  $('#modalBox').className = 'box'; $('#modalBox').innerHTML = `<h2>MFD buttons</h2>
     <p>Shield and power buttons find your game binds by name. If one says NO BIND, or you want a different key, set it here (same key syntax as macros, e.g. <span class="mono">ralt+np8</span> or <span class="mono">vj12</span>).</p>
     <table>${rows}</table>
     <div class="row" style="margin-top:12px"><button class="btn small" id="osbSave">Save</button><button class="btn ghost small" id="osbCancel">Cancel</button></div>`;
@@ -3711,11 +3720,13 @@ function setDim(v) { TH.set({dim: Math.max(.15, Math.min(1.4, v))}); }
    ===================================================================== */
 async function openSettings() {
   let st = {}; try { st = await (await fetch('/api/status')).json(); } catch {}
-  $('#modalBox').innerHTML = `<h2>Settings</h2>
-    <label class="f">UEX API token (optional)<input id="tokIn" type="text" placeholder="${st.uex_token ? 'Saved — paste a new one to replace' : 'Paste token from uexcorp.space → API → My Apps'}"></label>
+  $('#modalBox').className = 'box wide';
+  $('#modalBox').innerHTML = `<div class="mhead"><h2>Settings</h2><button class="mx" id="modalX" title="Close (Esc)">×</button>
+    <nav class="mnav">${['Data','Screen & updates','Squad','VR','Cockpit skin','Assistant','Your stuff'].map(n => `<a data-go="s-${n.replace(/[^a-z]/gi, '').toLowerCase()}">${n}</a>`).join('')}</nav></div>
+    <label class="f" id="s-data">UEX API token (optional)<input id="tokIn" type="text" placeholder="${st.uex_token ? 'Saved — paste a new one to replace' : 'Paste token from uexcorp.space → API → My Apps'}"></label>
     <p>UEX's public endpoints work without a token today. A free token raises your quota and keeps working if they tighten access. It's stored in <span class="mono">config.json</span> next to server.py, never in the page.</p>
     <div class="row" style="margin-top:6px"><button class="btn small" id="tokSave">Save token</button><button class="btn ghost small" id="cacheClr">Clear data cache (${st.cache_files ?? '?'} files)</button></div>
-    <h2 style="margin-top:22px">Screen & updates</h2>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-screenupdates">Screen & updates</h2>
     <div class="row">
       <label class="f" style="flex:1;min-width:220px">Open ARIA on<select id="dispSel"><option value="">Where it opened last time</option></select></label>
       <label class="chk" style="margin-top:14px"><input type="checkbox" id="dispFull"> Full screen</label>
@@ -3733,7 +3744,7 @@ async function openSettings() {
       <button class="btn small" id="updApply" style="margin-top:12px;display:none">Update & restart</button>
     </div>
     <p>ARIA <b id="verNow"></b>. The desktop app checks the repo every launch and updates itself; this is the manual way.</p>
-    <h2 style="margin-top:22px">Squad leaderboards</h2>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-squad">Squad leaderboards</h2>
     <div class="row" style="align-items:center"><label class="chk"><input type="checkbox" id="sqHost"> Host the squad board on this PC</label><span class="sub" id="sqHostInfo"></span></div>
     <div class="row" style="margin-top:8px">
       <label class="f" style="flex:1;min-width:220px">Join a friend's board — address<input id="sqUrl" type="text" placeholder="http://100.80.1.5:8777"></label>
@@ -3741,7 +3752,7 @@ async function openSettings() {
       <button class="btn ghost small" id="sqTest" style="margin-top:12px">Test</button><span class="sub" id="sqState" style="margin-top:14px"></span>
     </div>
     <p>One of you hosts; the rest join. Scores post to the host and every game's TOP10 shows the whole squad. Same network or VPN (Tailscale, Hamachi) just works; over the open internet the host forwards the port. Hosting needs ARIA restarted once to open the port.</p>
-    <h2 style="margin-top:22px">VR (WebXR)</h2>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-vr">VR (WebXR)</h2>
     <div class="row" style="align-items:center">
       <button class="btn small" id="vrEnter">Enter VR</button><span class="sub" id="vrState">Checking headset…</span>
     </div>
@@ -3753,7 +3764,7 @@ async function openSettings() {
       <label class="f" style="flex:1;min-width:150px">Tilt <span id="vrPiV" class="mono"></span><input id="vrPi" type="range" min="-30" max="20" step="1"></label>
     </div>
     <p>Needs Chrome or Edge and a running OpenXR runtime (SteamVR, Pimax Play, Oculus). The MFDs, the deck and the app band float in an arc in front of you. Point a controller and pull the trigger to click; squeeze the grip to recenter. Cougar buttons and voice keep working. Sliders apply live while you're in.</p>
-    <h2 style="margin-top:22px">Cockpit skin</h2>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-cockpitskin">Cockpit skin</h2>
     <div class="row">
       <label class="f" style="width:220px">Manufacturer<select id="thSel">${Object.entries(THEMES).map(([k, v]) => `<option value="${k}">${esc(v.name)}</option>`).join('')}</select></label>
       <label class="f" style="width:90px">Glyphs<input id="thMg" type="color"></label>
@@ -3771,7 +3782,7 @@ async function openSettings() {
       <label class="f" style="flex:1;min-width:180px">Effect strength<input id="thFxAmt" type="range" min="0" max="200" step="5"></label>
     </div>
     <p>Pick a maker's look, or change any colour to make it yours (the Custom entry keeps your mix). Brightness is also on the UFC's DIM key and the MFD rockers. True HDR isn't possible in a browser; bloom gives the glow.</p>
-    <h2 style="margin-top:22px">Assistant</h2>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-assistant">Assistant</h2>
     <div class="row"><label class="f" style="width:160px">Name<input id="aiNameIn" type="text" value="${esc(AI())}"></label>
       <label class="f" style="width:140px" title="Shown on game leaderboards">Pilot name<input id="pilotIn" type="text" value="${esc(PILOT())}" maxlength="10"></label>
       <label class="f" style="flex:1;min-width:200px">Star Citizen folder (optional)<input id="scPathIn" type="text" placeholder="Auto-detect — or e.g. D:\\Games\\StarCitizen\\LIVE"></label></div>
@@ -3779,12 +3790,13 @@ async function openSettings() {
     <div class="row" style="margin-top:8px"><label class="f" style="width:240px" title="Leave blank to detect. In game: Options → Keybindings lists vJoy as Joystick N.">vJoy joystick number in game<input id="vjInstIn" type="text" placeholder="Auto-detect"></label></div>
     <p>The name shows in the header and becomes the wake word. The game folder and vJoy number are only needed if ARIA can't detect them.</p>
     <div class="row"><button class="btn small" id="nameSave">Save</button></div>
-    <h2 style="margin-top:22px">Your stuff</h2>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-yourstuff">Your stuff</h2>
     <p>Hangar (${hangar.list().length} ships), owned blueprints (${owned.set.size}) and the fabrication queue live in this browser. Back them up or move them to another PC:</p>
     <div class="row"><button class="btn ghost small" id="expBtn">Export backup</button><label class="btn ghost small" style="cursor:pointer">Import backup<input type="file" id="impIn" accept=".json" hidden></label></div>
     <div class="row" style="justify-content:flex-end;margin-top:18px"><button class="btn ghost small" id="modalClose">Close</button></div>`;
-  $('#modal').classList.add('on');
-  $('#modalClose').onclick = () => $('#modal').classList.remove('on');
+  $('#modal').classList.add('on'); $('#modalBox').scrollTop = 0;
+  $('#modalClose').onclick = $('#modalX').onclick = () => $('#modal').classList.remove('on');
+  $$('#modalBox .mnav a').forEach(a => a.onclick = () => { const t = $('#' + a.dataset.go); t && t.scrollIntoView({behavior: 'smooth', block: 'start'}); });
   $('#ckOn').checked = CK.on; $('#ckOn').onchange = () => setCockpit($('#ckOn').checked);
   $('#sqHost').checked = !!st.squad_host; $('#sqUrl').value = st.squad_url || ''; $('#sqKey').value = st.squad_key || '';
   const sqInfo = () => { $('#sqHostInfo').innerHTML = st.squad_host ? `Friends join with <span class="mono">${(st.ips || []).map(ip => 'http://' + ip + ':' + st.port).join('</span> or <span class="mono">') || 'your IP:' + st.port}</span> · key <span class="mono">${esc(st.squad_key || '')}</span>` : ''; };
@@ -3916,6 +3928,7 @@ let bpT; $('#bpQ').oninput = () => { clearTimeout(bpT); bpT = setTimeout(() => r
 ['#bpType', '#bpMat', '#bpOwned', '#bpMissing', '#bpDefault'].forEach(s => $(s).onchange = () => renderBlueprints(true));
 $('#scrim').onclick = closeDrawer;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); $('#modal').classList.remove('on'); } });
+$('#modal').addEventListener('mousedown', e => { if (e.target === $('#modal')) $('#modal').classList.remove('on'); });
 $('#btnSettings').onclick = openSettings;
 $('#btnRefresh').onclick = refreshAll;
 $('#btnCockpit').onclick = () => setCockpit(!CK.on);
