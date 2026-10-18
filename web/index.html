@@ -598,6 +598,11 @@ body.cockpit .cocktop #brief{display:none}
     <div class="row" style="justify-content:space-between;align-items:baseline"><h3 style="margin:0 0 6px">Ore board</h3><span class="sub">Best raw sell vs best refined sell per SCU, live from UEX. Click an ore for every terminal.</span></div>
     <div class="tablewrap"><table id="mnOres"></table></div>
   </div>
+  <div class="panel" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Scan decoder</h3><span class="sub">Ping, read the signature number, type it here (or say “scan 6340”). Signatures are the base value × how many there are. Values as of patch 4.10 — community-measured.</span></div>
+    <div class="row" style="margin-top:8px;gap:10px;align-items:center"><input id="sigIn" type="text" inputmode="numeric" placeholder="e.g. 6340" style="width:160px;font:600 18px var(--mono);padding:6px 10px"><div id="sigOut" style="flex:1"></div></div>
+    <details style="margin-top:10px"><summary class="sub" style="cursor:pointer">Full cheat sheet (×1 to ×6)</summary><div class="tablewrap" id="sigTable" style="margin-top:8px"></div></details>
+  </div>
   <div class="grid2" style="margin-top:14px">
     <div class="panel">
       <h3 style="margin:0 0 6px">What are my bags worth?</h3>
@@ -1239,6 +1244,8 @@ async function runCommand(text) {
   if (!text.trim()) return runRoutes();
   const bq = parseBind(text);
   if (bq) { const spoken = VOICE.heardCommand; VOICE.heardCommand = false; show('voice'); $('#bindQ').value = bq; return runBind(bq, spoken); }
+  const sm = text.trim().match(/^(?:scan|ping|sig|signature|rs|radar)\s*[:#]?\s*([\d][\d,\. ]*k?)$/i);
+  if (sm) { if (CK.on && !['SCAN'].includes(MFDS.C.page)) mfdGo('C', 'SCAN'); SCAN.entry = String(Math.round(num(sm[1].replace(/[, ]/g, '').replace(/k$/i, '000')))); sigSay(SCAN.entry); if (!CK.on) show('mining'); return; }
   const hm = text.trim().match(/^(?:i'?m|i am|we'?re|we are|currently|now)\s+(?:at|in|on|parked at|landed at|docked at)\s+(.+?)[.!]?$/i) || text.trim().match(/^(?:set\s+)?(?:position|location|here)\s*(?:is|to|:)?\s+(.+)$/i);
   if (hm) { try { await loadMap(); } catch {} const e = resolvePlace(hm[1]); HERE.set(hm[1].trim()); if (e) MM.sys = e.sys;
     const line = e ? `Position set: ${e.name}.` : `I don't have ${hm[1].trim()} on the map, but I'll remember it.`; if (VOICE.heardCommand) { VOICE.heardCommand = false; say(line); } else ufcSay(line); return; }
@@ -3040,7 +3047,7 @@ const MFDS = {L: {page: store.get('mfdPageL', 'MENU')}, R: {page: store.get('mfd
   soi: store.get('mfdSoi', 'L'), brt: {L: 1, R: 1, C: 1, ...store.get('mfdBrt', {})}, flash: {},
   shld: {f: 0, a: 0, l: 0, r: 0}, pwr: {w: 0, s: 0, e: 0}, stop: store.get('jobStop', 0), mpage: 0,
   test: null, resolved: {}, lastPress: {}};
-const PAGE_CYCLE = ['MENU', 'MAP', 'UFC', 'ATC', 'CARGO', 'WPN', 'SHLD', 'PWR', 'NAV', 'JOB', 'MACR', 'VOICE', 'SYS', 'GAME'];
+const PAGE_CYCLE = ['MENU', 'HELP', 'MAP', 'SCAN', 'UFC', 'ATC', 'CARGO', 'WPN', 'SHLD', 'PWR', 'NAV', 'JOB', 'MACR', 'VOICE', 'SYS', 'GAME'];
 function osbPos(n) {
   if (n <= 5) return {side: 'top', k: n - 1};
   if (n <= 10) return {side: 'right', k: n - 6};
@@ -3141,20 +3148,19 @@ function pageDef0(side) {
   const keysOff = !$('#keysLive').checked;
   const warn = keysOff ? '<div class="mw amber">KEYS OFF · PRACTICE</div>' : '';
   if (p === 'MENU') {
-    // top: SHLD PWR WPN NAV MAP · right: ATC CARGO JOB MACR UFC · bottom (L→R): HOME SET VR ALGN SOI · left (top→bottom): HELP LOG VOICE SYS GAME
-    const o = {...common, 1: {l: 'SHLD', go: 'SHLD'}, 2: {l: 'PWR', go: 'PWR'}, 3: {l: 'WPN', go: 'WPN'}, 4: {l: 'NAV', go: 'NAV'}, 5: {l: 'MAP', go: 'MAP'},
-      6: {l: 'ATC', go: 'ATC'}, 7: {l: 'CARGO', go: 'CARGO'}, 8: {l: 'JOB', go: 'JOB'}, 9: {l: 'MACR', go: 'MACR'}, 10: {l: 'UFC', go: 'UFC'},
-      15: {l: 'HOME', fn: () => $('#ckHome').click()}, 14: {l: 'SET', fn: () => openSettings()}, 13: {l: VR.session ? 'VR OFF' : 'VR', fn: () => enterVR()}, 12: {l: 'ALGN', fn: () => startCal()},
-      20: {l: 'HELP', fn: () => openManual()}, 19: {l: 'LOG', fn: () => { UFC.mode = 'log'; const t = MFDS.C.page === 'UFC' || side === 'C' ? 'C' : side; mfdGo(t, 'UFC'); }},
-      18: {l: 'VOICE', go: 'VOICE'}, 17: {l: 'SYS', go: 'SYS'}, 16: {l: 'GAME', go: 'GAME'}};
+    // top: SHLD PWR WPN SCAN MAP · right: ATC CARGO JOB UFC NAV · bottom (L→R): HOME · · ALGN SOI · left (top→bottom): HELP · · SYS GAME
+    // LOG, VOICE, MACR, VR and SET live on the HELP page
+    const o = {...common, 1: {l: 'SHLD', go: 'SHLD'}, 2: {l: 'PWR', go: 'PWR'}, 3: {l: 'WPN', go: 'WPN'}, 4: {l: 'SCAN', go: 'SCAN'}, 5: {l: 'MAP', go: 'MAP'},
+      6: {l: 'ATC', go: 'ATC'}, 7: {l: 'CARGO', go: 'CARGO'}, 8: {l: 'JOB', go: 'JOB'}, 9: {l: 'UFC', go: 'UFC'}, 10: {l: 'NAV', go: 'NAV'},
+      15: {l: 'HOME', fn: () => $('#ckHome').click()}, 12: {l: 'ALGN', fn: () => startCal()},
+      20: {l: 'HELP', go: 'HELP'}, 17: {l: 'SYS', go: 'SYS'}, 16: {l: 'GAME', go: 'GAME'}};
     if (side === 'C') {
       // center MFD's own menu — top: PWR · NAV · UFC · right: ATC CARGO SYS LOG GAME · bottom: HOME SET MENU(→MAP) · SOI · left: HELP LOG RESET · SWAP
-      const log = {l: 'LOG', fn: () => { UFC.mode = 'log'; mfdGo('C', 'UFC'); }};
       for (const k of Object.keys(o)) if (k !== '11') delete o[k];
-      Object.assign(o, {1: {l: 'PWR', go: 'PWR'}, 3: {l: 'NAV', go: 'NAV'}, 5: {l: 'UFC', go: 'UFC'},
-        6: {l: 'ATC', go: 'ATC'}, 7: {l: 'CARGO', go: 'CARGO'}, 8: {l: 'SYS', go: 'SYS'}, 9: log, 10: {l: 'GAME', go: 'GAME'},
-        15: {l: 'HOME', fn: () => $('#ckHome').click()}, 14: {l: 'SET', fn: () => openSettings()}, 13: {l: 'MENU', go: 'MAP'},
-        20: {l: 'HELP', fn: () => openManual()}, 19: log, 18: {l: 'RESET', fn: () => { mfdGo('L', 'MENU'); mfdGo('R', 'NAV'); UFC.mode = 'route'; mfdGo('C', 'MAP'); mfdMsg('C', 'MFDS RESET'); }},
+      Object.assign(o, {1: {l: 'PWR', go: 'PWR'}, 2: {l: 'SCAN', go: 'SCAN'}, 3: {l: 'NAV', go: 'NAV'}, 5: {l: 'UFC', go: 'UFC'},
+        6: {l: 'ATC', go: 'ATC'}, 7: {l: 'CARGO', go: 'CARGO'}, 8: {l: 'SYS', go: 'SYS'}, 10: {l: 'GAME', go: 'GAME'},
+        15: {l: 'HOME', fn: () => $('#ckHome').click()}, 13: {l: 'MENU', go: 'MAP'},
+        20: {l: 'HELP', go: 'HELP'}, 18: {l: 'RESET', fn: () => { mfdGo('L', 'MENU'); mfdGo('R', 'NAV'); UFC.mode = 'route'; mfdGo('C', 'MAP'); mfdMsg('C', 'MFDS RESET'); }},
         16: {l: 'SWAP', fn: () => { const a = MFDS.L.page, b = MFDS.R.page; mfdGo('L', b); mfdGo('R', a); }}});
     }
     const st = DB.status || {}, uex = Object.values(st).find(s => s.src === 'uex'), wiki = Object.values(st).find(s => s.src === 'wiki');
@@ -3246,6 +3252,15 @@ function pageDef0(side) {
   if (p === 'GAME') return gamePage(side, common);
   if (p === 'UFC') return ufcPage(side, common);
   if (p === 'MAP') return mapPage(side, common);
+  if (p === 'SCAN') return scanPage(side, common);
+  if (p === 'HELP') {
+    const logGo = () => { UFC.mode = 'log'; mfdGo(side === 'C' || MFDS.C.page === 'UFC' ? 'C' : side, 'UFC'); };
+    return {title: 'HELP', osb: {...common, 1: {l: 'MANUAL', fn: () => openManual()}, 2: {l: 'SET', fn: () => openSettings()}, 3: {l: VR.session ? 'VR OFF' : 'VR', fn: () => enterVR()},
+      6: {l: 'LOG', fn: logGo}, 7: {l: 'VOICE', go: 'VOICE'}, 8: {l: 'MACR', go: 'MACR'}},
+      body: `<div class="mbig sm">HELP</div><div class="msub">${esc(AI().toUpperCase())} ${esc(STAT.version || '')}</div>
+        <div class="mrow"><span>MANUAL</span><b>HOW EVERYTHING WORKS</b></div><div class="mrow"><span>SET</span><b>SETTINGS</b></div><div class="mrow"><span>VR</span><b>PANELS IN HEADSET</b></div>
+        <div class="mrow"><span>LOG</span><b>KEYS ARIA SENT</b></div><div class="mrow"><span>VOICE</span><b>LISTEN · PTT</b></div><div class="mrow"><span>MACR</span><b>VOICE MACROS ON BUTTONS</b></div>`};
+  }
   if (p === 'ATC') {
     return {title: 'ATC', osb: {...common, 1: gameBtn(side, 'atc', 'HAIL', {say: 'Hailing station.'}), 2: gameBtn(side, 'gear', 'GEAR'), 3: gameBtn(side, 'auto', 'AUTO', {hold: 1.5}),
       4: gameBtn(side, 'vtol', 'VTOL'), 5: gameBtn(side, 'fr', 'FLT RDY'), 6: gameBtn(side, 'lite', 'LIGHT'),
@@ -4266,6 +4281,82 @@ async function refreshAll() {
 /* =====================================================================
    MINING & REFINING — raw ore prices, refined counterparts, refineries, bag calculator
    ===================================================================== */
+/* ---------------- scan / ping signatures (RS) — patch 4.10, community-measured (UEX / Prospector Index / Starvein) ---------------- */
+const SIGS = [
+  ...[['Quantainium', 3170], ['Stileron', 3185], ['Savrilium', 3200]].map(([n, b]) => ({n, b, cat: 'ore', tier: 'LEGENDARY'})),
+  ...[['Ouratite', 3370], ['Riccite', 3385], ['Lindinium', 3400]].map(([n, b]) => ({n, b, cat: 'ore', tier: 'EPIC'})),
+  ...[['Beryl', 3540], ['Taranite', 3555], ['Borase', 3570], ['Gold', 3585], ['Bexalite', 3600]].map(([n, b]) => ({n, b, cat: 'ore', tier: 'RARE'})),
+  ...[['Laranite', 3825], ['Aslarite', 3840], ['Titanium', 3855], ['Tungsten', 3870], ['Agricium', 3885], ['Torite', 3900]].map(([n, b]) => ({n, b, cat: 'ore', tier: 'UNCOMMON'})),
+  ...[['Hephaestanite', 4180], ['Tin', 4195], ['Quartz', 4210], ['Corundum', 4225], ['Copper', 4240], ['Silicon', 4255], ['Iron', 4270], ['Aluminum', 4285], ['Ice', 4300]].map(([n, b]) => ({n, b, cat: 'ore', tier: 'COMMON'})),
+  ...[['C-type asteroid', 4700], ['S-type asteroid', 4720], ['P-type asteroid', 4750], ['M-type asteroid', 4850], ['Q-type asteroid', 4870], ['E-type asteroid', 4900], ['I-type asteroid', 4000]].map(([n, b]) => ({n, b, cat: 'asteroid', tier: 'ASTEROID'})),
+  {n: 'Salvage panel / debris / harvestable', b: 2000, cat: 'salvage', tier: 'SALVAGE', max: 60},
+  {n: 'FPS deposit (hand mining) / capital wreck debris', b: 3000, cat: 'ground', tier: 'FPS', max: 30},
+  {n: 'ROC deposit (ground vehicle)', b: 4000, cat: 'ground', tier: 'ROC', max: 30}
+];
+function decodeSig(v) {
+  v = Math.round(num(String(v).replace(/[, ]/g, '').replace(/k$/i, '000')));
+  if (!(v > 0)) return {v, hits: [], near: []};
+  const hits = [], near = [];
+  for (const e of SIGS) { const n = v / e.b, max = e.max || 12;
+    if (Number.isInteger(n) && n >= 1 && n <= max) hits.push({...e, k: n});
+    else { const k = Math.round(n); if (k >= 1 && k <= max && Math.abs(v - k * e.b) <= Math.max(10, v * .003)) near.push({...e, k, off: v - k * e.b}); } }
+  // ores are the useful answer and their numbers rarely collide; fewer pieces is the likelier read
+  const rank = e => ({ore: 0, salvage: 1, asteroid: 2, ground: 3}[e.cat]) * 100 + e.k;
+  hits.sort((a, b) => rank(a) - rank(b)); near.sort((a, b) => Math.abs(a.off) - Math.abs(b.off));
+  // a mixed cluster: two different ores in one ping add up
+  const mixed = [];
+  if (!hits.length) { const ores = SIGS.filter(e => e.cat === 'ore');
+    for (let i = 0; i < ores.length; i++) for (let j = i + 1; j < ores.length; j++) for (let a = 1; a <= 4; a++) for (let c = 1; c <= 4; c++)
+      if (a * ores[i].b + c * ores[j].b === v) mixed.push({parts: [{...ores[i], k: a}, {...ores[j], k: c}], n: a + c});
+    mixed.sort((x, y) => x.n - y.n); }
+  return {v, hits, near: near.slice(0, 4), mixed: mixed.slice(0, 4)};
+}
+const sigLine = e => `${e.k} × ${e.n}${e.cat === 'ore' ? ' (' + e.tier.toLowerCase() + ')' : ''}`;
+function sigSay(v, quiet) {
+  const d = decodeSig(v); SCAN.last = d; store.set('scanLast', d.v);
+  const line = d.hits.length ? `Signature ${fmt(d.v)}: ${sigLine(d.hits[0])}${d.hits.length > 1 ? `, or ${d.hits.slice(1, 3).map(sigLine).join(', or ')}` : ''}.`
+    : d.mixed.length ? `Signature ${fmt(d.v)}: a mixed cluster — ${d.mixed[0].parts.map(sigLine).join(' plus ')}.`
+    : d.near.length ? `Signature ${fmt(d.v)}: no exact match. Closest is ${sigLine(d.near[0])}, off by ${fmt(Math.abs(d.near[0].off))}.` : `Signature ${fmt(d.v)}: nothing I know. Could be mixed rocks or a ship.`;
+  if (!quiet) { if (VOICE.heardCommand) { VOICE.heardCommand = false; say(line); } else ufcSay(line); }
+  if ($('#sigIn') && $('#sigIn').value !== String(d.v)) $('#sigIn').value = d.v;
+  renderSigOut(); mfdRenderAll();
+  return d;
+}
+function renderSigOut() {
+  const el = $('#sigOut'); if (!el) return; const d = SCAN.last;
+  if (!d || !d.v) { el.innerHTML = '<span class="sub">Type a signature.</span>'; return; }
+  el.innerHTML = d.hits.length ? d.hits.slice(0, 6).map((e, i) => `<div style="${i ? 'color:var(--dim)' : 'font-weight:600'}">${i ? 'or ' : ''}<b class="mono">${e.k} ×</b> ${esc(e.n)} <span class="chip" style="padding:0 6px">${e.tier.toLowerCase()}</span> <span class="sub mono">${fmt(e.b)} each</span></div>`).join('')
+    : d.mixed.length ? `<div class="warn">Mixed cluster:</div>${d.mixed.map((m, i) => `<div style="${i ? 'color:var(--dim)' : 'font-weight:600'}">${i ? 'or ' : ''}${m.parts.map(e => `<b class="mono">${e.k} ×</b> ${esc(e.n)}`).join(' + ')}</div>`).join('')}`
+    : d.near.length ? `<div class="warn">No exact match — closest:</div>${d.near.map(e => `<div>${e.k} × ${esc(e.n)} <span class="sub mono">(${e.off > 0 ? '+' : ''}${fmt(e.off)})</span></div>`).join('')}<div class="sub">Mixed clusters add up (e.g. 1 Quantainium + 1 Ice = 7470) and don't decode cleanly.</div>`
+    : '<div class="sub">Nothing matches — mixed rocks, a ship, or a new patch value.</div>';
+}
+function renderSigTable() {
+  const el = $('#sigTable'); if (!el || el.dataset.done) return; el.dataset.done = 1;
+  el.innerHTML = `<table><tr><th>What</th><th>Tier</th>${[1, 2, 3, 4, 5, 6].map(n => `<th class="r">×${n}</th>`).join('')}</tr>${SIGS.map(e => `<tr><td>${esc(e.n)}</td><td class="sub">${e.tier.toLowerCase()}</td>${[1, 2, 3, 4, 5, 6].map(n => `<td class="r num">${fmt(e.b * n)}</td>`).join('')}</tr>`).join('')}</table>`;
+}
+const SCAN = {entry: '', last: null, list: false, page: 0};
+// MFD page: punch the number in on the OSBs like a UFC keypad
+function scanPage(side, common) {
+  const key = d => ({l: String(d), fn: () => { if (SCAN.entry.length < 7) SCAN.entry += d; sigSay(SCAN.entry, true); }});
+  const o = {...common, 1: {l: 'CLR', fn: () => { SCAN.entry = ''; SCAN.last = null; mfdRenderAll(); renderSigOut(); }}, 2: {l: 'DEL', fn: () => { SCAN.entry = SCAN.entry.slice(0, -1); if (SCAN.entry) sigSay(SCAN.entry, true); else { SCAN.last = null; mfdRenderAll(); } }},
+    3: {l: SCAN.list ? 'DECODE' : 'LIST', on: SCAN.list, fn: () => { SCAN.list = !SCAN.list; SCAN.page = 0; mfdRenderAll(); }}, 4: {l: 'SAY', fn: () => { if (SCAN.last) sigSay(SCAN.last.v); }},
+    6: key(1), 7: key(2), 8: key(3), 9: key(4), 10: key(5), 20: key(6), 19: key(7), 18: key(8), 17: key(9), 16: key(0)};
+  let body;
+  if (SCAN.list) {
+    const per = 9, pages = Math.ceil(SIGS.length / per); SCAN.page = Math.min(SCAN.page, pages - 1);
+    o[5] = {l: `PG ${SCAN.page + 1}/${pages}`, fn: () => { SCAN.page = (SCAN.page + 1) % pages; mfdRenderAll(); }};
+    body = `<div class="msub">BASE × COUNT · PATCH 4.10</div>${SIGS.slice(SCAN.page * per, SCAN.page * per + per).map(e => `<div class="mrow"><span>${esc(e.n.split(' (')[0].split(' /')[0].toUpperCase())}</span><b>${fmt(e.b)} · ${fmt(e.b * 2)} · ${fmt(e.b * 3)}</b></div>`).join('')}`;
+  } else {
+    const d = SCAN.last;
+    body = `<div class="mbig" style="font-size:clamp(18px,13cqw,40px);margin:4px 0">${SCAN.entry ? fmt(+SCAN.entry) : d ? fmt(d.v) : '— — — —'}</div>
+      ${d && d.hits.length ? d.hits.slice(0, 5).map((e, i) => `<div class="mrow${i ? '' : ' hi'}"><span>${e.k} × ${esc(e.n.split(' (')[0].split(' /')[0].toUpperCase())}</span><b>${e.tier}</b></div>`).join('')
+        : d && d.mixed.length ? `<div class="mw amber">MIXED CLUSTER</div>${d.mixed.slice(0, 3).map(m => `<div class="mrow"><span>${m.parts.map(e => e.k + '×' + e.n.toUpperCase()).join(' + ')}</span><b></b></div>`).join('')}`
+        : d && d.near.length ? `<div class="mw amber">NO EXACT · CLOSEST</div>${d.near.slice(0, 3).map(e => `<div class="mrow"><span>${e.k} × ${esc(e.n.split(' (')[0].toUpperCase())}</span><b>${e.off > 0 ? '+' : ''}${fmt(e.off)}</b></div>`).join('')}`
+        : d ? '<div class="mw amber">NO MATCH · MIXED OR SHIP</div>' : '<div class="mnote">KEY IN THE PING NUMBER<br>OR SAY “SCAN 6340”</div>'}`;
+  }
+  return {title: 'SCAN', osb: o, body};
+}
+
 const MN = {data: null, sel: null, rows: store.get('mnRows', [{name: '', scu: ''}]), sort: 'refined'};
 const isRawName = n => /\((raw|ore)\)\s*$/i.test(n) || /\braw\b/i.test(n);
 const refinedName = n => n.replace(/\s*\((raw|ore)\)\s*$/i, '').replace(/\s+raw$/i, '').trim();
@@ -4369,6 +4460,9 @@ function mnCalcOut(d) {
 }
 ['#mnSys', '#mnKind'].forEach(id => $(id).onchange = () => renderMining());
 $('#mnFind').oninput = () => renderMining();
+$('#sigIn').oninput = () => { const v = $('#sigIn').value.trim(); SCAN.entry = v.replace(/\D/g, ''); if (v) sigSay(v, true); else { SCAN.last = null; renderSigOut(); } };
+$('#sigIn').onkeydown = e => { if (e.key === 'Enter' && $('#sigIn').value.trim()) sigSay($('#sigIn').value); };
+document.querySelector('#sigTable').closest('details').addEventListener('toggle', renderSigTable); renderSigOut();
 $('#mnMine').value = store.get('mnNotes', ''); $('#mnMine').oninput = () => store.set('mnNotes', $('#mnMine').value);
 
 function show(view) {
