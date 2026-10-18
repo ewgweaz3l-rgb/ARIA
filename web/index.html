@@ -190,6 +190,8 @@ tr:first-child .rank{color:var(--amber)}
 .mkt{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:12px}
 /* cockpit mode */
 body.cockpit{overflow:hidden;height:100vh}
+body.cockpit #ckRescue{display:block!important;position:fixed;right:8px;bottom:8px;z-index:140;opacity:.55}
+body.cockpit #ckRescue:hover{opacity:1}
 body.cockpit #appShell{position:fixed;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
 body.cockpit #appShell header{position:static}
 body.cockpit main{padding:10px 14px;max-width:none}
@@ -236,15 +238,21 @@ body.cockpit #jobBar{margin:0!important}
 .mstop.hi{opacity:1;color:var(--mw)}.mstop.done{opacity:.45}.mstop small{display:block;font-size:.75em;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mstop span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .mtest{position:absolute;inset:14% 16%;background:rgba(3,8,5,.92);border:1px solid var(--mg);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1em;letter-spacing:.14em;text-align:center}
 .mtest b{font:700 4em var(--head);margin:.15em 0}.mtest small{font-size:.85em;opacity:.7}.mtest.sm{font-size:1.1em;color:var(--macc);border-color:var(--macc)}
-#calib{position:fixed;inset:0;pointer-events:none;z-index:80}
+#calib{position:fixed;inset:0;pointer-events:none;z-index:150}
 .calbox{position:fixed;border:2px dashed var(--cyan);background:rgba(79,209,224,.08);pointer-events:auto;cursor:move;display:grid;place-items:center;color:var(--cyan);font:600 12px var(--head);letter-spacing:.14em;text-align:center}
 .calbox.sel{border-color:var(--amber);color:var(--amber);background:rgba(242,168,59,.1)}
 .calbox.auto{border-style:dotted;cursor:default;opacity:.6}.calbox.auto .calgrip{display:none}
-.calbox.ghost{pointer-events:none;background:none}.calbox.ghost span{display:none}.calbox.ghost .calgrip{display:none}
+
 .calbox small{font:11px var(--mono);letter-spacing:0;display:block}
-.calgrip{position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;background:var(--cyan);cursor:nwse-resize}
-.calbox.sel .calgrip{background:var(--amber)}
-.caltools{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);pointer-events:auto;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--dim);z-index:81;width:min(760px,96vw)}
+.hd{position:absolute;width:14px;height:14px;background:var(--cyan);border:2px solid #04070c;border-radius:3px;z-index:2}
+.calbox.sel .hd{background:var(--amber)}
+.hd-n{top:-8px;left:calc(50% - 7px);cursor:ns-resize}.hd-s{bottom:-8px;left:calc(50% - 7px);cursor:ns-resize}
+.hd-w{left:-8px;top:calc(50% - 7px);cursor:ew-resize}.hd-e{right:-8px;top:calc(50% - 7px);cursor:ew-resize}
+.hd-nw{top:-8px;left:-8px;cursor:nwse-resize}.hd-se{bottom:-8px;right:-8px;cursor:nwse-resize}
+.hd-ne{top:-8px;right:-8px;cursor:nesw-resize}.hd-sw{bottom:-8px;left:-8px;cursor:nesw-resize}
+.calbox.auto .hd{display:none}
+.caltools{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);pointer-events:auto;background:var(--panel2);border:1px solid var(--amber);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--dim);z-index:200;width:min(820px,96vw);box-shadow:0 14px 50px rgba(0,0,0,.7)}
+.calhead{cursor:move}
 .caltools b{color:var(--amber);font:700 11px var(--head);letter-spacing:.2em}
 .calhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
 .calsel{display:flex;gap:4px}.calsel button{background:none;border:1px solid var(--line2);border-radius:5px;color:var(--dim);font:600 11px var(--head);letter-spacing:.1em;padding:4px 9px;cursor:pointer}
@@ -342,7 +350,7 @@ body.cockpit .cocktop #brief{display:none}
 </style>
 </head>
 <body>
-<div id="mfdL" class="mfd" hidden></div><div id="mfdR" class="mfd" hidden></div><div id="cockTop" class="cocktop" hidden><div id="ufc" class="ufc"></div></div><div id="calib"></div>
+<div id="mfdL" class="mfd" hidden></div><div id="mfdR" class="mfd" hidden></div><div id="cockTop" class="cocktop" hidden><div id="ufc" class="ufc"></div></div><div id="calib"></div><button id="ckRescue" class="iconbtn" title="Cockpit layout (ALGN) — always reachable" hidden>⌗</button>
 <div id="appShell">
 <header>
   <div class="brand"><b>ARIA</b><span>Quartermaster</span></div>
@@ -2684,108 +2692,131 @@ function setCockpit(on) {
 }
 
 /* ---- calibration: drag the four areas onto the real bezels ---- */
+/* ---- calibration: 8-point handles like a photo crop, floating panel, undo ---- */
+CK.hist = CK.hist || [];
+function calSnap() { CK.hist.push(JSON.stringify(ckRects())); if (CK.hist.length > 60) CK.hist.shift(); }
+function calUndo() { const j = CK.hist.pop(); if (!j) { toast('Nothing to undo.'); return; } CK.rects = JSON.parse(j); store.set('ckRects', CK.rects); ckLayout(); }
+function calClamp(r) { r.w = Math.max(4, r.w); r.h = Math.max(4, r.h); return r; }
 function renderCal() {
   const R = ckRects(), cal = $('#calib');
   const names = {L: 'LEFT MFD screen', R: 'RIGHT MFD screen', TOP: 'Center console', APP: 'Bottom band'};
-  if (store.get('ckAutoBottom', false) && CK.sel === 'APP') CK.sel = 'TOP';
-  cal.innerHTML = Object.keys(names).map(k => `<div class="calbox${CK.sel === k ? ' sel' : ''}${k === 'APP' && store.get('ckAutoBottom', false) ? ' auto' : ''}${k === 'TOP' && CK.on ? ' ghost' : ''}" data-k="${k}" style="left:${R[k].x}vw;top:${R[k].y}vh;width:${R[k].w}vw;height:${R[k].h}vh">
-      <span>${names[k]}<br><small>${Math.round(R[k].w * innerWidth / 100)}×${Math.round(R[k].h * innerHeight / 100)} px</small></span><i class="calgrip"></i></div>`).join('') +
-    (CK.on ? '' : calPanel());
+  const auto = store.get('ckAutoBottom', false);
+  const panelOpen = !!$('#calTools');
+  cal.innerHTML = Object.keys(names).map(k => `<div class="calbox${CK.sel === k ? ' sel' : ''}${k === 'APP' && auto ? ' auto' : ''}" data-k="${k}" style="left:${R[k].x}vw;top:${R[k].y}vh;width:${R[k].w}vw;height:${R[k].h}vh">
+      <span>${names[k]}<br><small>${Math.round(R[k].w * innerWidth / 100)}×${Math.round(R[k].h * innerHeight / 100)} px</small></span>
+      ${['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'].map(h => `<i class="hd hd-${h}" data-h="${h}"></i>`).join('')}</div>`).join('') + calPanel();
   $$('.calbox', cal).forEach(box => {
     const k = box.dataset.k;
     box.onmousedown = ev => {
       if (box.classList.contains('auto')) return;
+      ev.preventDefault();
       CK.sel = k; $$('.calbox', cal).forEach(b => b.classList.toggle('sel', b === box));
-      const resize = ev.target.classList.contains('calgrip'), sx = ev.clientX, sy = ev.clientY, r0 = {...R[k]};
+      const h = ev.target.dataset.h || '', sx = ev.clientX, sy = ev.clientY, r0 = {...R[k]};
+      calSnap();
       const mv = e => {
-        const dx = (e.clientX - sx) / innerWidth * 100, dy = (e.clientY - sy) / innerHeight * 100;
-        if (resize) { R[k].w = Math.max(5, r0.w + dx); R[k].h = Math.max(5, r0.h + dy); } else { R[k].x = r0.x + dx; R[k].y = r0.y + dy; }
-        Object.assign(box.style, {left: R[k].x + 'vw', top: R[k].y + 'vh', width: R[k].w + 'vw', height: R[k].h + 'vh'});
-        ckLayoutLite();
+        let dx = (e.clientX - sx) / innerWidth * 100, dy = (e.clientY - sy) / innerHeight * 100;
+        const r = R[k];
+        if (!h) { r.x = r0.x + dx; r.y = r0.y + dy; }               // body: move
+        else {
+          let hh = h;
+          if (e.ctrlKey && hh.length === 2) hh = Math.abs(e.clientX - sx) >= Math.abs(e.clientY - sy) ? hh[1] : hh[0]; // Ctrl: one side only
+          if (hh.includes('e')) r.w = r0.w + dx;
+          if (hh.includes('s')) r.h = r0.h + dy;
+          if (hh.includes('w')) { r.x = r0.x + dx; r.w = r0.w - dx; }
+          if (hh.includes('n')) { r.y = r0.y + dy; r.h = r0.h - dy; }
+          if (e.shiftKey && hh.length === 2) { const k2 = r0.w / r0.h; r.h = r.w / k2; } // Shift on a corner: keep shape
+          calClamp(r);
+        }
+        ckLayoutLite(); calBoxSync(box, r);
       };
       const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); store.set('ckRects', R); ckLayout(); };
       addEventListener('mousemove', mv); addEventListener('mouseup', up);
-      ev.preventDefault();
     };
   });
-  if (CK.on) { UFC.mode = 'cal'; ufcRender(); } else wireCalPanel();
+  wireCalPanel();
+  mfdRender('L'); mfdRender('R');
 }
+function calBoxSync(box, r) { Object.assign(box.style, {left: r.x + 'vw', top: r.y + 'vh', width: r.w + 'vw', height: r.h + 'vh'}); $('small', box).textContent = `${Math.round(r.w * innerWidth / 100)}×${Math.round(r.h * innerHeight / 100)} px`; }
 function calPanel() {
   const R = ckRects(), k = CK.sel, r = R[k];
   const names = {L: 'Left MFD', R: 'Right MFD', TOP: 'Center console', APP: 'Bottom band'};
   const px = v => Math.round(v);
-  return `<div class="caltools" id="calTools">
-    <div class="calhead"><b>CALIBRATE</b>
-      <span class="calsel">${Object.keys(names).filter(x => x !== 'APP' || !store.get('ckAutoBottom', false)).map(x => `<button data-cs="${x}" class="${x === k ? 'on' : ''}">${names[x]}</button>`).join('')}</span>
-      <span class="usp"></span><label class="chk" style="padding:0"><input type="checkbox" id="calAuto" ${store.get('ckAutoBottom', false) ? 'checked' : ''}> Bottom band auto-fits</label>
-      <button class="btn small" id="calDone">Done</button><button class="btn ghost small" id="calReset">Reset</button></div>
+  const pos = CK.panelPos ? `left:${CK.panelPos.x}px;top:${CK.panelPos.y}px;transform:none;bottom:auto` : '';
+  const g = (k === 'L' || k === 'R') ? osbGeo(k) : null;
+  return `<div class="caltools" id="calTools" style="${pos}">
+    <div class="calhead" id="calDrag" title="Drag me anywhere"><b>CALIBRATE</b>
+      <span class="calsel">${Object.keys(names).map(x => `<button data-cs="${x}" class="${x === k ? 'on' : ''}">${names[x]}</button>`).join('')}</span>
+      <span class="usp"></span>
+      <button class="btn ghost small" id="calUndo" title="Ctrl+Z">↶ Undo</button><button class="btn ghost small" id="calResetOne">Reset this</button><button class="btn ghost small" id="calReset">Reset all</button><button class="btn small" id="calDone">Done</button></div>
     <div class="calgrid">
-      <label>◀ ▶ Left / right<input type="range" id="cx" min="-5" max="100" step="0.05" value="${r.x}"><span>${px(r.x * innerWidth / 100)} px</span>
-        <i><button data-nd="x:-1">◀</button><button data-nd="x:1">▶</button></i></label>
-      <label>▲ ▼ Up / down<input type="range" id="cy" min="-5" max="100" step="0.05" value="${r.y}"><span>${px(r.y * innerHeight / 100)} px</span>
-        <i><button data-nd="y:-1">▲</button><button data-nd="y:1">▼</button></i></label>
-      <label>↔ Width<input type="range" id="cw" min="3" max="100" step="0.05" value="${r.w}"><span>${px(r.w * innerWidth / 100)} px</span>
-        <i><button data-nd="w:-1">−</button><button data-nd="w:1">+</button></i></label>
-      <label>↕ Height<input type="range" id="ch" min="3" max="100" step="0.05" value="${r.h}"><span>${px(r.h * innerHeight / 100)} px</span>
-        <i><button data-nd="h:-1">−</button><button data-nd="h:1">+</button></i></label>
-      ${k === 'L' || k === 'R' ? (() => { const g = osbGeo(k); return `
+      <label>◀ ▶ Left / right<input type="range" id="cx" min="-5" max="100" step="0.05" value="${r.x}"><span>${px(r.x * innerWidth / 100)} px</span><i><button data-nd="x:-1">◀</button><button data-nd="x:1">▶</button></i></label>
+      <label>▲ ▼ Up / down<input type="range" id="cy" min="-5" max="100" step="0.05" value="${r.y}"><span>${px(r.y * innerHeight / 100)} px</span><i><button data-nd="y:-1">▲</button><button data-nd="y:1">▼</button></i></label>
+      <label>↔ Width<input type="range" id="cw" min="3" max="100" step="0.05" value="${r.w}"><span>${px(r.w * innerWidth / 100)} px</span><i><button data-nd="w:-1">−</button><button data-nd="w:1">+</button></i></label>
+      <label>↕ Height<input type="range" id="ch" min="3" max="100" step="0.05" value="${r.h}"><span>${px(r.h * innerHeight / 100)} px</span><i><button data-nd="h:-1">−</button><button data-nd="h:1">+</button></i></label>
+      ${g ? `
       <label>⇔ Button spacing (top/bottom)<input type="range" id="os" min="40" max="100" step="0.5" value="${g.spread}"><span>${g.spread}%</span><i><button data-og="spread:-1">−</button><button data-og="spread:1">+</button></i></label>
       <label>⇕ Button spacing (sides)<input type="range" id="ovs" min="40" max="100" step="0.5" value="${g.vspread}"><span>${g.vspread}%</span><i><button data-og="vspread:-1">−</button><button data-og="vspread:1">+</button></i></label>
       <label>⇥ Label inset (top/bottom)<input type="range" id="oi" min="0" max="12" step="0.25" value="${g.inset}"><span>${g.inset}%</span><i><button data-og="inset:-1">−</button><button data-og="inset:1">+</button></i></label>
       <label>⇥ Label inset (sides)<input type="range" id="ovi" min="0" max="12" step="0.25" value="${g.vinset}"><span>${g.vinset}%</span><i><button data-og="vinset:-1">−</button><button data-og="vinset:1">+</button></i></label>
-      <label>Aa Label size<input type="range" id="osc" min="50" max="180" step="5" value="${g.scale}"><span>${g.scale}%</span><i><button data-og="scale:-1">−</button><button data-og="scale:1">+</button></i></label>`; })() : ''}
+      <label>Aa Label size<input type="range" id="osc" min="50" max="180" step="5" value="${g.scale}"><span>${g.scale}%</span><i><button data-og="scale:-1">−</button><button data-og="scale:1">+</button></i></label>` : ''}
       ${k === 'TOP' ? `<label>▣ Fill the gap<span class="sub" style="text-align:left;grid-column:2/4">snap between the MFDs, top of screen to the bottom band</span><i><button data-fill>Fill</button></i></label>` : ''}
-      <label>⌕ Zoom (about center)<input type="range" id="cz" min="50" max="150" step="0.5" value="100"><span id="czv">100%</span>
-        <i><button data-zm="-1">−</button><button data-zm="1">+</button></i></label>
     </div>
-    <div class="sub">${k === 'L' || k === 'R' ? 'This MFD shows its button numbers (1–5 top, 6–10 right, 11–15 bottom, 16–20 left) while you adjust: size the box to the screen window, then use spacing and inset until each number sits by its real button.' : 'Pick an area, slide until the box fills the real screen window exactly. Nudge buttons move 1 px (hold Shift for 10). You can still drag the boxes.'}</div>
+    <div class="sub">Drag a box to move it · drag an edge handle to move that side · corner handle moves two sides (hold <b>Ctrl</b> for one side only, <b>Shift</b> to keep the shape) · arrow keys nudge 1 px (Shift = 10) · <b>Ctrl+Z</b> undo · <b>Esc</b> done.${g ? ' This MFD shows its button numbers while selected: 1–5 top, 6–10 right, 11–15 bottom, 16–20 left.' : ''}</div>
   </div>`;
 }
 function wireCalPanel() {
   const R = ckRects(), k = CK.sel, cal = $('#calib');
-  const update = () => { ckLayoutLite(); const box = $(`.calbox[data-k="${k}"]`, cal); if (box) { Object.assign(box.style, {left: R[k].x + 'vw', top: R[k].y + 'vh', width: R[k].w + 'vw', height: R[k].h + 'vh'}); $('small', box).textContent = `${Math.round(R[k].w * innerWidth / 100)}×${Math.round(R[k].h * innerHeight / 100)} px`; } };
-  const refresh = () => { if (UFC.mode === 'cal') ufcRender(); else { $('#calTools').outerHTML = calPanel(); wireCalPanel(); } };
+  const box = $(`.calbox[data-k="${k}"]`, cal);
+  const update = () => { ckLayoutLite(); if (box) calBoxSync(box, R[k]); };
+  const refresh = () => { $('#calTools').outerHTML = calPanel(); wireCalPanel(); };
   const save = () => store.set('ckRects', R);
-  $$('[data-cs]').forEach(b => b.onclick = () => { CK.sel = b.dataset.cs; renderCal(); mfdRender('L'); mfdRender('R'); });
-  mfdRender('L'); mfdRender('R');
+  // the panel floats: drag it by its header
+  const pan = $('#calTools'), head = $('#calDrag');
+  head.onmousedown = ev => {
+    if (ev.target.closest('button')) return;
+    const r = pan.getBoundingClientRect(), ox = ev.clientX - r.left, oy = ev.clientY - r.top;
+    const mv = e => { CK.panelPos = {x: Math.max(0, Math.min(innerWidth - r.width, e.clientX - ox)), y: Math.max(0, Math.min(innerHeight - 40, e.clientY - oy))}; Object.assign(pan.style, {left: CK.panelPos.x + 'px', top: CK.panelPos.y + 'px', transform: 'none', bottom: 'auto'}); };
+    const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); };
+    addEventListener('mousemove', mv); addEventListener('mouseup', up); ev.preventDefault();
+  };
+  $$('[data-cs]', pan).forEach(b => b.onclick = () => { CK.sel = b.dataset.cs; renderCal(); });
   for (const [id, f] of [['#cx', 'x'], ['#cy', 'y'], ['#cw', 'w'], ['#ch', 'h']]) {
-    const el = $(id); el.oninput = () => { R[k][f] = +el.value; update(); el.nextElementSibling.textContent = Math.round(R[k][f] * (f === 'x' || f === 'w' ? innerWidth : innerHeight) / 100) + ' px'; };
+    const el = $(id, pan); el.onmousedown = () => calSnap();
+    el.oninput = () => { R[k][f] = +el.value; calClamp(R[k]); update(); el.nextElementSibling.textContent = Math.round(R[k][f] * (f === 'x' || f === 'w' ? innerWidth : innerHeight) / 100) + ' px'; };
     el.onchange = () => { save(); ckLayout(); };
   }
-  let z0 = {...R[k]};
-  const cz = $('#cz');
-  cz.oninput = () => { const f = +cz.value / 100; const cx = z0.x + z0.w / 2, cy = z0.y + z0.h / 2; R[k].w = z0.w * f; R[k].h = z0.h * f; R[k].x = cx - R[k].w / 2; R[k].y = cy - R[k].h / 2; $('#czv').textContent = cz.value + '%'; update(); };
-  cz.onchange = () => { save(); ckLayout(); refresh(); };
-  $$('[data-nd]').forEach(b => b.onclick = ev => {
+  $$('[data-nd]', pan).forEach(b => b.onclick = ev => {
     const [f, d] = b.dataset.nd.split(':'); const px = ev.shiftKey ? 10 : 1; const step = px / (f === 'x' || f === 'w' ? innerWidth : innerHeight) * 100;
-    R[k][f] += +d * step; save(); ckLayout(); refresh();
-  });
-  $$('[data-zm]').forEach(b => b.onclick = ev => {
-    const f = 1 + (+b.dataset.zm) * (ev.shiftKey ? .05 : .01); const cx = R[k].x + R[k].w / 2, cy = R[k].y + R[k].h / 2;
-    R[k].w *= f; R[k].h *= f; R[k].x = cx - R[k].w / 2; R[k].y = cy - R[k].h / 2; save(); ckLayout(); refresh();
+    calSnap(); R[k][f] += +d * step; calClamp(R[k]); save(); ckLayout();
   });
   for (const [id, f] of [['#os', 'spread'], ['#ovs', 'vspread'], ['#oi', 'inset'], ['#ovi', 'vinset'], ['#osc', 'scale']]) {
-    const el = $(id); if (!el) continue;
+    const el = $(id, pan); if (!el) continue;
     el.oninput = () => { setOsbGeo(k, {[f]: +el.value}); el.nextElementSibling.textContent = el.value + '%'; };
   }
-  $$('[data-og]').forEach(b => b.onclick = ev => { const [f, d] = b.dataset.og.split(':'); const st = f === 'scale' ? 5 : (ev.shiftKey ? 2 : .5); setOsbGeo(k, {[f]: +(osbGeo(k)[f] + d * st).toFixed(2)}); refresh(); });
-  const fill = $('[data-fill]'); if (fill) fill.onclick = () => {
-    const l = R.L.x + R.L.w, r = R.R.x, top = 0.4, bot = R.APP.y - 0.8;
-    R.TOP = {x: l + 0.8, y: top, w: Math.max(10, r - l - 1.6), h: Math.max(10, bot - top)}; save(); ckLayout(); refresh();
+  $$('[data-og]', pan).forEach(b => b.onclick = ev => { const [f, d] = b.dataset.og.split(':'); const st = f === 'scale' ? 5 : (ev.shiftKey ? 2 : .5); setOsbGeo(k, {[f]: +(osbGeo(k)[f] + d * st).toFixed(2)}); refresh(); });
+  const fill = $('[data-fill]', pan); if (fill) fill.onclick = () => {
+    calSnap(); const l = R.L.x + R.L.w, r = R.R.x, top = 0.4, bot = R.APP.y - 0.8;
+    R.TOP = {x: l + 0.8, y: top, w: Math.max(10, r - l - 1.6), h: Math.max(10, bot - top)}; save(); ckLayout();
   };
-  $('#calAuto').onchange = () => { store.set('ckAutoBottom', $('#calAuto').checked); if ($('#calAuto').checked && CK.sel === 'APP') CK.sel = 'TOP'; ckLayout(); };
-  $('#calDone').onclick = () => { CK.cal = false; cal.innerHTML = ''; save(); toast('Cockpit layout saved.'); if (UFC.mode === 'cal') { UFC.mode = 'route'; ufcRender(); } mfdRender('L'); mfdRender('R'); };
-  $('#calReset').onclick = () => { CK.rects = JSON.parse(JSON.stringify(CK_DEFAULT)); store.set('ckRects', CK.rects); ckLayout(); };
+  $('#calUndo', pan).onclick = calUndo;
+  $('#calResetOne', pan).onclick = () => { calSnap(); R[k] = {...CK_DEFAULT[k]}; if (k === 'L' || k === 'R') { const g = store.get('osbGeo', {}); delete g[k]; store.set('osbGeo', g); } save(); ckLayout(); };
+  $('#calReset', pan).onclick = () => { calSnap(); CK.rects = JSON.parse(JSON.stringify(CK_DEFAULT)); store.set('ckRects', CK.rects); store.set('osbGeo', {}); ckLayout(); };
+  $('#calDone', pan).onclick = calDone;
 }
+function calDone() { CK.cal = false; $('#calib').innerHTML = ''; store.set('ckRects', ckRects()); toast('Cockpit layout saved.'); if (UFC.mode === 'cal') UFC.mode = 'route'; if (CK.on) { ufcRender(); mfdRender('L'); mfdRender('R'); } }
 function ckLayoutLite() { const R = ckRects(); ckPlace($('#mfdL'), R.L); ckPlace($('#mfdR'), R.R); ckPlace($('#cockTop'), R.TOP); ckPlace($('#appShell'), R.APP); }
-function startCal() { if (!CK.on) setCockpit(true); CK.cal = true; renderCal(); }
+function startCal() { if (!CK.on) setCockpit(true); CK.cal = true; CK.hist = []; renderCal(); }
 addEventListener('keydown', e => {
-  if (!CK.cal || !e.key.startsWith('Arrow')) return;
+  if (!CK.cal) return;
+  if (e.key === 'Escape') { calDone(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); calUndo(); return; }
+  if (!e.key.startsWith('Arrow') || e.target.tagName === 'INPUT') return;
   const R = ckRects()[CK.sel], px = (e.shiftKey ? 10 : 1);
   const dx = px / innerWidth * 100, dy = px / innerHeight * 100;
+  calSnap();
   if (e.altKey) { if (e.key === 'ArrowRight') R.w += dx; if (e.key === 'ArrowLeft') R.w -= dx; if (e.key === 'ArrowDown') R.h += dy; if (e.key === 'ArrowUp') R.h -= dy; }
   else { if (e.key === 'ArrowRight') R.x += dx; if (e.key === 'ArrowLeft') R.x -= dx; if (e.key === 'ArrowDown') R.y += dy; if (e.key === 'ArrowUp') R.y -= dy; }
-  e.preventDefault(); store.set('ckRects', ckRects()); ckLayout();
+  calClamp(R); e.preventDefault(); store.set('ckRects', ckRects()); ckLayout();
 });
 // calibration panel styles are below; renderCal() is re-run by ckLayout() while calibrating
 addEventListener('resize', () => { if (CK.on) ckLayout(); });
@@ -3094,14 +3125,12 @@ function ufcRender() {
     ['RTB', 'Course home', () => rtb()], ['MAP', 'Open the job view', () => { show('starmap'); setSystem('job'); }],
     ['SAY', 'Read it out', () => say(UFC.msg || (S ? S.name : 'Nothing to report.'))], ['LOG', 'Key press log', () => { UFC.mode = 'log'; ufcRender(); }],
     ['ALGN', 'Line up the MFD windows', () => startCal()], ['DIM', 'Screen brightness: 100 → 70 → 45 → 25 → 100', () => { const d = TH.get().dim; setDim(d > .9 ? .7 : d > .6 ? .45 : d > .35 ? .25 : 1); }], ['SET', 'Settings', () => openSettings()]],
-    cal: [['DONE', 'Save layout', () => $('#calDone') && $('#calDone').click()]],
+
     log: [['CLR', 'Clear log', () => { UFC.keylog = []; store.set('keylog', []); ufcRender(); }], ['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]],
     shld: [['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]]}[UFC.mode];
   const cells = S ? S.cells.map(([k, v]) => `<div class="ucell"><span>${k}</span><b>${esc(String(v))}</b></div>`).join('') : '';
   let body = '';
-  if (UFC.mode === 'cal') {
-    body = `<div class="ucal">${calPanel()}</div>`;
-  } else if (UFC.mode === 'log') {
+  if (UFC.mode === 'log') {
     body = `<div class="ulog">${UFC.keylog.length ? UFC.keylog.map(k => `<div><span>${new Date(k.t).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}</span><span>${esc(k.src)}</span><b>${esc(k.keys)}</b><i>${esc(k.note)}</i></div>`).join('') : '<div class="faint">NO KEY PRESSES SENT YET</div>'}</div>`;
   } else {
     body = `<div class="ugrid"><div class="ucells">${S ? `<div class="utitle">${S.title}</div><div class="uname">${esc(S.name)}</div>${cells}` : '<div class="utitle">STANDBY</div><div class="uname">ASK A ROUTE: “C2 HERCULES 750K FROM AREA18” · “NAV TO RUIN STATION” · “RTB”</div>'}</div>
@@ -3114,7 +3143,6 @@ function ufcRender() {
     <div class="ukeys">${keys.map(([l, tip]) => `<button title="${esc(tip)}">${l}</button>`).join('')}</div>`;
   $$('.ukeys button', el).forEach((b, i) => b.onclick = () => keys[i][2]());
   const c = $('#ufcCanvas'); if (c) { if (UFC.mode === 'shld') drawShieldAnim(c); else drawMini(c, S && S.plan, S && S.top); }
-  if (UFC.mode === 'cal') wireCalPanel();
   if (UFC.typed < UFC.msg.length) ufcType();
 }
 function miniCanvas(c) {
@@ -3588,6 +3616,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawe
 $('#btnSettings').onclick = openSettings;
 $('#btnRefresh').onclick = refreshAll;
 $('#btnCockpit').onclick = () => setCockpit(!CK.on);
+$('#ckRescue').onclick = () => CK.cal ? calDone() : startCal();
 document.addEventListener('keydown', e => { if (e.key === 'F9') setCockpit(!CK.on); });
 // starmap / nav
 $('#navGo').onclick = plotNav;
