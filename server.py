@@ -251,6 +251,10 @@ def wiki_fetch_all(path, query):
 
 
 GAME_STATE = {"t": 0, "running": False}
+# Mining charts by @RedMonsterSC (CC BY-SA 4.0) — https://redmonstergaming.com/mining-cheat-sheets/
+_RMG = "https://redmonstergaming.com/wp-content/uploads/2025/05/RedMonsterGaming_4-1-1_CheatSheets__"
+REF_IMAGES = {"rmg-minerals": _RMG + "0005_MineralPropertiesLight.png", "rmg-rocktypes": _RMG + "0003_RockTypeMatrixLight.png",
+              "rmg-detection": _RMG + "0001_DetectionDistancesLight.png"}
 
 
 def launcher_icon(custom=None):
@@ -365,6 +369,25 @@ class Handler(SimpleHTTPRequestHandler):
                 })
             elif kind == "macros":
                 return self.send_json(200, {"macros": load_macros(), "file": os.path.basename(MACROS)})
+            elif kind == "refimg":  # community reference charts, fetched once and kept in cache/ (fixed list — no open proxy)
+                name = rest.strip("/")
+                url = REF_IMAGES.get(name)
+                if not url:
+                    return self.send_json(404, {"error": "unknown chart"})
+                path = os.path.join(CACHE, "ref_" + name + ".png")
+                if not os.path.exists(path):
+                    try:
+                        data = http_get(url, {"Accept": "image/png,image/*,*/*"}, timeout=30)
+                        if not data.startswith(b"\x89PNG"):
+                            raise ValueError("not a png")
+                        with open(path, "wb") as f:
+                            f.write(data)
+                    except Exception as e:
+                        return self.send_json(502, {"error": f"couldn't download the chart: {e}"})
+                with open(path, "rb") as f:
+                    png = f.read()
+                self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Content-Length", str(len(png)))
+                self.send_header("Cache-Control", "max-age=604800"); self.end_headers(); self.wfile.write(png); return
             elif kind == "launcher_icon":  # the icon of YOUR installed RSI Launcher.exe, pulled from the exe itself
                 png = launcher_icon(load_config().get("launcher_path"))
                 if not png:

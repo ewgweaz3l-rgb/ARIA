@@ -21,7 +21,9 @@ A local Star Citizen assistant that runs on your own PC. Six rooms:
   for every terminal. "What are my bags worth?" takes your cargo readout and says sell-raw vs refine
   with the best terminal for each; the refinery list shows every refinery deck, UEX's per-ore yield
   bonus (best one highlighted for the selected ore) and the processing methods. Field notes plus a
-  notes box of your own.
+  notes box of your own. Reference charts (mineral properties, rock type matrix, detection distances):
+  Mining Charts provided by @RedMonsterSC and can be downloaded from https://redmonstergaming.com/mining-cheat-sheets/
+  (CC BY-SA 4.0) — ARIA downloads them from that page the first time you open the tab and keeps a copy in `cache/`.
 
 **Manual:** the **?** in the header (or Settings → Open the manual, or HELP on the center MFD) opens
 the built-in manual — every room, every key, what to type, troubleshooting — searchable, printable.
