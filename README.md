@@ -35,8 +35,11 @@ Settings → **Check** / **Update & restart** does it by hand.
 
 Press **▣** (or F9) for cockpit mode: the page rearranges itself around the two Cougar MFD
 bezels on your monitor — left and right MFD screens, the command console between them, and the
-job search / map / tabs in the open band below. Settings → **Calibrate MFD windows** lets you drag
-the four areas to line up exactly with your frames (arrow keys nudge 1 px, Shift = 10, Alt = resize).
+job search / map / tabs in the open band below. Settings → **Calibrate MFD windows** opens a
+slider panel: pick an area (left MFD, right MFD, center console, bottom band) and slide it
+left/right, up/down, wider/taller, or zoom about its center; nudge buttons move 1 px (Shift = 10).
+**Fill** snaps the center console into the gap between the MFDs. What's inside each area scales
+to fit it. Dragging the boxes still works.
 Settings → **Open ARIA on** picks the monitor and full screen.
 
 Each MFD runs F/A-18-style pages. The 20 buttons around the frame (OSBs) are the labels on screen;

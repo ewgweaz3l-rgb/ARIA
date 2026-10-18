@@ -193,7 +193,9 @@ body.cockpit #appShell{position:fixed;overflow:auto;border:1px solid var(--line)
 body.cockpit #appShell header{position:static}
 body.cockpit main{padding:10px 14px;max-width:none}
 body.cockpit .mapwrap{height:calc(var(--appH,45vh) - 40px);min-height:300px}
-body.cockpit .cocktop{position:fixed;display:flex!important;flex-direction:column;gap:8px;overflow:auto;padding:0 6px 6px}
+body.cockpit .cocktop{position:fixed;display:flex!important;flex-direction:column;gap:8px;overflow:auto;padding:0 6px 6px;container-type:inline-size}
+body.cockpit .cocktop .ufc{font-size:clamp(9px,1.5cqw,14px)}
+body.cockpit .cocktop .upad{font-size:1.05em}body.cockpit .cocktop .ucell b{font-size:1.25em}
 body.cockpit .cocktop header{position:static;border-radius:8px;border:1px solid var(--line);padding:6px 10px;flex-wrap:wrap;gap:8px}
 body.cockpit .cocktop nav{flex-basis:100%;order:3}
 body.cockpit .cocktop nav button{padding:5px 9px;font-size:11px}
@@ -202,45 +204,57 @@ body.cockpit .cocktop .console input{font-size:15px;padding:7px 4px}
 body.cockpit .cocktop .examples,body.cockpit .cocktop .hangarchips{display:none}
 body.cockpit .cocktop .brief{margin:0}
 body.cockpit #jobBar{margin:0!important}
-.mfd{position:fixed;display:block!important;background:#000;border-radius:6px;overflow:hidden;font-family:var(--mono);--mg:#5ef08a;--mw:#dfe6ee}
+.mfd{position:fixed;display:block!important;background:#000;border-radius:6px;overflow:hidden;font-family:var(--mono);--mg:#5ef08a;--mw:#dfe6ee;container-type:size}
+.mscreen{font-size:clamp(8px,2.7cqw,18px)}
 .mscreen{position:absolute;inset:0;background:radial-gradient(ellipse at center,#0b1a0f 0%,#030805 100%);color:var(--mg);text-shadow:0 0 6px rgba(94,240,138,.45)}
 .mscreen::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
 .mtitle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:700 11cqw/1 var(--head);letter-spacing:.3em;opacity:.08;pointer-events:none}
 .msoi{position:absolute;right:16%;top:6%;font-size:12px;color:var(--mg)}
-.osb{position:absolute;font:600 11px var(--mono);letter-spacing:.05em;padding:2px 5px;border:1px solid transparent;border-radius:3px;cursor:pointer;user-select:none;white-space:nowrap;line-height:1.1}
+.osb{position:absolute;font:600 .95em var(--mono);letter-spacing:.05em;padding:2px 5px;border:1px solid transparent;border-radius:3px;cursor:pointer;user-select:none;white-space:nowrap;line-height:1.1}
 .osb.top,.osb.bottom{transform:translateX(-50%);text-align:center}
 .osb.left,.osb.right{transform:translateY(-50%)}
 .osb:hover{border-color:rgba(94,240,138,.5)}
 .osb.on{background:var(--mg);color:#031;text-shadow:none}
 .osb.hit{background:#dfe6ee;color:#000;text-shadow:none}
-.mbody{position:absolute;left:16%;right:16%;top:13%;bottom:13%;display:flex;flex-direction:column;gap:3px;font-size:12px;overflow:hidden;container-type:inline-size}
+.mbody{position:absolute;left:16%;right:16%;top:13%;bottom:13%;display:flex;flex-direction:column;gap:.25em;font-size:1em;overflow:hidden;container-type:inline-size}
 .mbig{font:700 clamp(18px,20cqw,46px)/1 var(--head);letter-spacing:.14em;text-align:center;margin:auto 0 4px}
 .mbig.sm{font-size:clamp(14px,11cqw,24px);margin:6px 0 2px}
-.mclock{text-align:center;font-size:14px;margin-bottom:6px}
+.mclock{text-align:center;font-size:1.15em;margin-bottom:.4em}
 .mrow{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(94,240,138,.18);padding:2px 0;white-space:nowrap}
 .mrow.hi{color:var(--mw);border-color:var(--mg)} .mrow b{font-weight:600} .mrow .amber,.mw.amber{color:#f2a83b}
-.msub{font-size:10px;opacity:.75;letter-spacing:.12em}
-.mline{font-size:12px;color:var(--mw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mline.sm{font-size:10px;color:var(--mg);opacity:.8}
-.mnote{margin-top:auto;font-size:9px;letter-spacing:.1em;opacity:.65;text-align:center}
-.mw{font-size:10px;letter-spacing:.12em;text-align:center;margin-top:4px}
+.msub{font-size:.85em;opacity:.75;letter-spacing:.12em}
+.mline{font-size:1em;color:var(--mw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mline.sm{font-size:.85em;color:var(--mg);opacity:.8}
+.mnote{margin-top:auto;font-size:.75em;letter-spacing:.1em;opacity:.65;text-align:center}
+.mw{font-size:.85em;letter-spacing:.12em;text-align:center;margin-top:.3em}
 .msvg{width:100%;height:100%;flex:1;min-height:0}.msvg .mt{fill:var(--mw);font:600 8px var(--mono);text-anchor:middle}
 .mspace{flex:1}
-.mbar{display:grid;grid-template-columns:34px 1fr 28px;align-items:center;gap:6px;margin:6px 0}
-.mbar i{display:block;height:10px;background:var(--mg);box-shadow:0 0 8px rgba(94,240,138,.6);transition:width .2s}.mbar b{text-align:right}
+.mbar{display:grid;grid-template-columns:3em 1fr 2.4em;align-items:center;gap:.5em;margin:.5em 0}
+.mbar i{display:block;height:.8em;background:var(--mg);box-shadow:0 0 8px rgba(94,240,138,.6);transition:width .2s}.mbar b{text-align:right}
 .mstop{display:grid;grid-template-columns:18px 1fr;gap:6px;padding:2px 0;border-bottom:1px solid rgba(94,240,138,.18);opacity:.75}
-.mstop.hi{opacity:1;color:var(--mw)}.mstop.done{opacity:.45}.mstop small{display:block;font-size:9px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mstop span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.mtest{position:absolute;inset:14% 16%;background:rgba(3,8,5,.92);border:1px solid var(--mg);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;letter-spacing:.14em;text-align:center}
-.mtest b{font:700 48px var(--head);margin:6px 0}.mtest small{font-size:10px;opacity:.7}.mtest.sm{font-size:13px;color:#f2a83b;border-color:#f2a83b}
+.mstop.hi{opacity:1;color:var(--mw)}.mstop.done{opacity:.45}.mstop small{display:block;font-size:.75em;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mstop span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.mtest{position:absolute;inset:14% 16%;background:rgba(3,8,5,.92);border:1px solid var(--mg);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1em;letter-spacing:.14em;text-align:center}
+.mtest b{font:700 4em var(--head);margin:.15em 0}.mtest small{font-size:.85em;opacity:.7}.mtest.sm{font-size:1.1em;color:#f2a83b;border-color:#f2a83b}
 #calib{position:fixed;inset:0;pointer-events:none;z-index:80}
 .calbox{position:fixed;border:2px dashed var(--cyan);background:rgba(79,209,224,.08);pointer-events:auto;cursor:move;display:grid;place-items:center;color:var(--cyan);font:600 12px var(--head);letter-spacing:.14em;text-align:center}
 .calbox.sel{border-color:var(--amber);color:var(--amber);background:rgba(242,168,59,.1)}
+.calbox.auto{border-style:dotted;cursor:default;opacity:.6}.calbox.auto .calgrip{display:none}
 .calbox small{font:11px var(--mono);letter-spacing:0;display:block}
 .calgrip{position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;background:var(--cyan);cursor:nwse-resize}
 .calbox.sel .calgrip{background:var(--amber)}
-.caltools{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);pointer-events:auto;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--dim);display:flex;gap:10px;align-items:center;z-index:81;white-space:nowrap}
+.caltools{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);pointer-events:auto;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--dim);z-index:81;width:min(760px,96vw)}
 .caltools b{color:var(--amber);font:700 11px var(--head);letter-spacing:.2em}
+.calhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.calsel{display:flex;gap:4px}.calsel button{background:none;border:1px solid var(--line2);border-radius:5px;color:var(--dim);font:600 11px var(--head);letter-spacing:.1em;padding:4px 9px;cursor:pointer}
+.calsel button.on{color:var(--amber);border-color:var(--amber)}
+.calgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
+.calgrid label{display:grid;grid-template-columns:120px 1fr 62px auto;gap:8px;align-items:center;font-size:12px;color:var(--text)}
+.calgrid input[type=range]{width:100%;accent-color:var(--amber)}
+.calgrid span{font:11px var(--mono);color:var(--dim);text-align:right}
+.calgrid i{display:flex;gap:3px}.calgrid i button{background:var(--bg);border:1px solid var(--line2);border-radius:4px;color:var(--text);width:24px;height:22px;cursor:pointer;padding:0;font-size:12px}
+.caltools .sub{margin-top:6px}
+@media(max-width:900px){.calgrid{grid-template-columns:1fr}}
 /* chess on the MFD */
-.cstat{font-size:10px;letter-spacing:.12em;text-align:center;color:var(--mw);white-space:nowrap;overflow:hidden}
+.cstat{font-size:.85em;letter-spacing:.12em;text-align:center;color:var(--mw);white-space:nowrap;overflow:hidden}
 .cboard{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;max-height:78%;margin:2px auto;border:1px solid rgba(94,240,138,.5);align-self:center;width:min(100%,calc(78% * 1))}
 .csq{display:grid;place-items:center;font-size:clamp(10px,3.1cqw,22px);line-height:1;cursor:pointer;color:var(--mw);text-shadow:none;position:relative}
 .csq.lt{background:rgba(94,240,138,.16)}.csq.dk{background:rgba(94,240,138,.04)}
@@ -248,7 +262,7 @@ body.cockpit #jobBar{margin:0!important}
 .csq.cur{outline:2px solid #fff;outline-offset:-2px;z-index:1}
 .csq.sel{background:rgba(242,168,59,.45)}
 .csq.tgt::after{content:'';position:absolute;width:28%;height:28%;border-radius:50%;background:rgba(242,168,59,.8)}
-.cfoot{display:flex;justify-content:space-between;font-size:9px;opacity:.8;white-space:nowrap;overflow:hidden;gap:6px}
+.cfoot{display:flex;justify-content:space-between;font-size:.75em;opacity:.8;white-space:nowrap;overflow:hidden;gap:6px}
 /* UFC center deck */
 .ufc{display:none;background:#030805;border:1px solid #1c3a26;border-radius:8px;padding:8px 10px;color:#5ef08a;font-family:var(--mono);text-shadow:0 0 6px rgba(94,240,138,.35);position:relative;overflow:hidden;min-height:250px;flex-direction:column;gap:6px}
 .ufc::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px)}
@@ -2618,7 +2632,14 @@ const CK_DEFAULT = {
   APP: {x: 0.4,  y: 56.0, w: 99.2, h: 43.6}
 };
 const CK = {on: false, rects: null, moved: [], cal: false, sel: 'L'};
-function ckRects() { return CK.rects || (CK.rects = {...JSON.parse(JSON.stringify(CK_DEFAULT)), ...store.get('ckRects', {})}); }
+function ckRects() {
+  const R = CK.rects || (CK.rects = {...JSON.parse(JSON.stringify(CK_DEFAULT)), ...store.get('ckRects', {})});
+  if (store.get('ckAutoBottom', false)) {  // bottom band: full width, from just under the lowest upper area to the screen bottom
+    const low = Math.max(R.L.y + R.L.h, R.R.y + R.R.h, R.TOP.y + R.TOP.h);
+    R.APP = {x: 0.4, y: Math.min(90, low + 1.2), w: 99.2, h: Math.max(8, 100 - Math.min(90, low + 1.2) - 0.4)};
+  }
+  return R;
+}
 function ckPlace(el, r) { Object.assign(el.style, {left: r.x + 'vw', top: r.y + 'vh', width: r.w + 'vw', height: r.h + 'vh'}); }
 function ckLayout() {
   const R = ckRects();
@@ -2654,13 +2675,14 @@ function setCockpit(on) {
 function renderCal() {
   const R = ckRects(), cal = $('#calib');
   const names = {L: 'LEFT MFD screen', R: 'RIGHT MFD screen', TOP: 'Center console', APP: 'Bottom band'};
-  cal.innerHTML = Object.keys(names).map(k => `<div class="calbox${CK.sel === k ? ' sel' : ''}" data-k="${k}" style="left:${R[k].x}vw;top:${R[k].y}vh;width:${R[k].w}vw;height:${R[k].h}vh">
+  if (store.get('ckAutoBottom', false) && CK.sel === 'APP') CK.sel = 'TOP';
+  cal.innerHTML = Object.keys(names).map(k => `<div class="calbox${CK.sel === k ? ' sel' : ''}${k === 'APP' && store.get('ckAutoBottom', false) ? ' auto' : ''}" data-k="${k}" style="left:${R[k].x}vw;top:${R[k].y}vh;width:${R[k].w}vw;height:${R[k].h}vh">
       <span>${names[k]}<br><small>${Math.round(R[k].w * innerWidth / 100)}×${Math.round(R[k].h * innerHeight / 100)} px</small></span><i class="calgrip"></i></div>`).join('') +
-    `<div class="caltools"><b>CALIBRATE</b> Drag each box over the real screen window · corner = resize · click a box then arrow keys nudge 1 px (Shift = 10)
-      <button class="btn small" id="calDone">Done</button><button class="btn ghost small" id="calReset">Reset to photo defaults</button></div>`;
+    calPanel();
   $$('.calbox', cal).forEach(box => {
     const k = box.dataset.k;
     box.onmousedown = ev => {
+      if (box.classList.contains('auto')) return;
       CK.sel = k; $$('.calbox', cal).forEach(b => b.classList.toggle('sel', b === box));
       const resize = ev.target.classList.contains('calgrip'), sx = ev.clientX, sy = ev.clientY, r0 = {...R[k]};
       const mv = e => {
@@ -2674,7 +2696,61 @@ function renderCal() {
       ev.preventDefault();
     };
   });
-  $('#calDone').onclick = () => { CK.cal = false; cal.innerHTML = ''; store.set('ckRects', R); toast('Cockpit layout saved.'); };
+  wireCalPanel();
+}
+function calPanel() {
+  const R = ckRects(), k = CK.sel, r = R[k];
+  const names = {L: 'Left MFD', R: 'Right MFD', TOP: 'Center console', APP: 'Bottom band'};
+  const px = v => Math.round(v);
+  return `<div class="caltools" id="calTools">
+    <div class="calhead"><b>CALIBRATE</b>
+      <span class="calsel">${Object.keys(names).filter(x => x !== 'APP' || !store.get('ckAutoBottom', false)).map(x => `<button data-cs="${x}" class="${x === k ? 'on' : ''}">${names[x]}</button>`).join('')}</span>
+      <span class="usp"></span><label class="chk" style="padding:0"><input type="checkbox" id="calAuto" ${store.get('ckAutoBottom', false) ? 'checked' : ''}> Bottom band auto-fits</label>
+      <button class="btn small" id="calDone">Done</button><button class="btn ghost small" id="calReset">Reset</button></div>
+    <div class="calgrid">
+      <label>◀ ▶ Left / right<input type="range" id="cx" min="-5" max="100" step="0.05" value="${r.x}"><span>${px(r.x * innerWidth / 100)} px</span>
+        <i><button data-nd="x:-1">◀</button><button data-nd="x:1">▶</button></i></label>
+      <label>▲ ▼ Up / down<input type="range" id="cy" min="-5" max="100" step="0.05" value="${r.y}"><span>${px(r.y * innerHeight / 100)} px</span>
+        <i><button data-nd="y:-1">▲</button><button data-nd="y:1">▼</button></i></label>
+      <label>↔ Width<input type="range" id="cw" min="3" max="100" step="0.05" value="${r.w}"><span>${px(r.w * innerWidth / 100)} px</span>
+        <i><button data-nd="w:-1">−</button><button data-nd="w:1">+</button></i></label>
+      <label>↕ Height<input type="range" id="ch" min="3" max="100" step="0.05" value="${r.h}"><span>${px(r.h * innerHeight / 100)} px</span>
+        <i><button data-nd="h:-1">−</button><button data-nd="h:1">+</button></i></label>
+      ${k === 'TOP' ? `<label>▣ Fill the gap<span class="sub" style="text-align:left;grid-column:2/4">snap between the MFDs, top of screen to the bottom band</span><i><button data-fill>Fill</button></i></label>` : ''}
+      <label>⌕ Zoom (about center)<input type="range" id="cz" min="50" max="150" step="0.5" value="100"><span id="czv">100%</span>
+        <i><button data-zm="-1">−</button><button data-zm="1">+</button></i></label>
+    </div>
+    <div class="sub">Pick an area, slide until the green box fills the real screen window exactly. Nudge buttons move 1 px (hold Shift for 10). You can still drag the boxes.</div>
+  </div>`;
+}
+function wireCalPanel() {
+  const R = ckRects(), k = CK.sel, cal = $('#calib');
+  const update = () => { ckLayoutLite(); const box = $(`.calbox[data-k="${k}"]`, cal); if (box) { Object.assign(box.style, {left: R[k].x + 'vw', top: R[k].y + 'vh', width: R[k].w + 'vw', height: R[k].h + 'vh'}); $('small', box).textContent = `${Math.round(R[k].w * innerWidth / 100)}×${Math.round(R[k].h * innerHeight / 100)} px`; } };
+  const refresh = () => { $('#calTools').outerHTML = calPanel(); wireCalPanel(); };
+  const save = () => store.set('ckRects', R);
+  $$('[data-cs]').forEach(b => b.onclick = () => { CK.sel = b.dataset.cs; renderCal(); });
+  for (const [id, f] of [['#cx', 'x'], ['#cy', 'y'], ['#cw', 'w'], ['#ch', 'h']]) {
+    const el = $(id); el.oninput = () => { R[k][f] = +el.value; update(); el.nextElementSibling.textContent = Math.round(R[k][f] * (f === 'x' || f === 'w' ? innerWidth : innerHeight) / 100) + ' px'; };
+    el.onchange = () => { save(); ckLayout(); };
+  }
+  let z0 = {...R[k]};
+  const cz = $('#cz');
+  cz.oninput = () => { const f = +cz.value / 100; const cx = z0.x + z0.w / 2, cy = z0.y + z0.h / 2; R[k].w = z0.w * f; R[k].h = z0.h * f; R[k].x = cx - R[k].w / 2; R[k].y = cy - R[k].h / 2; $('#czv').textContent = cz.value + '%'; update(); };
+  cz.onchange = () => { save(); ckLayout(); refresh(); };
+  $$('[data-nd]').forEach(b => b.onclick = ev => {
+    const [f, d] = b.dataset.nd.split(':'); const px = ev.shiftKey ? 10 : 1; const step = px / (f === 'x' || f === 'w' ? innerWidth : innerHeight) * 100;
+    R[k][f] += +d * step; save(); ckLayout(); refresh();
+  });
+  $$('[data-zm]').forEach(b => b.onclick = ev => {
+    const f = 1 + (+b.dataset.zm) * (ev.shiftKey ? .05 : .01); const cx = R[k].x + R[k].w / 2, cy = R[k].y + R[k].h / 2;
+    R[k].w *= f; R[k].h *= f; R[k].x = cx - R[k].w / 2; R[k].y = cy - R[k].h / 2; save(); ckLayout(); refresh();
+  });
+  const fill = $('[data-fill]'); if (fill) fill.onclick = () => {
+    const l = R.L.x + R.L.w, r = R.R.x, top = 0.4, bot = R.APP.y - 0.8;
+    R.TOP = {x: l + 0.8, y: top, w: Math.max(10, r - l - 1.6), h: Math.max(10, bot - top)}; save(); ckLayout(); refresh();
+  };
+  $('#calAuto').onchange = () => { store.set('ckAutoBottom', $('#calAuto').checked); if ($('#calAuto').checked && CK.sel === 'APP') CK.sel = 'TOP'; ckLayout(); };
+  $('#calDone').onclick = () => { CK.cal = false; cal.innerHTML = ''; save(); toast('Cockpit layout saved.'); };
   $('#calReset').onclick = () => { CK.rects = JSON.parse(JSON.stringify(CK_DEFAULT)); store.set('ckRects', CK.rects); ckLayout(); };
 }
 function ckLayoutLite() { const R = ckRects(); ckPlace($('#mfdL'), R.L); ckPlace($('#mfdR'), R.R); ckPlace($('#cockTop'), R.TOP); ckPlace($('#appShell'), R.APP); }
@@ -2687,6 +2763,7 @@ addEventListener('keydown', e => {
   else { if (e.key === 'ArrowRight') R.x += dx; if (e.key === 'ArrowLeft') R.x -= dx; if (e.key === 'ArrowDown') R.y += dy; if (e.key === 'ArrowUp') R.y -= dy; }
   e.preventDefault(); store.set('ckRects', ckRects()); ckLayout();
 });
+// calibration panel styles are below; renderCal() is re-run by ckLayout() while calibrating
 addEventListener('resize', () => { if (CK.on) ckLayout(); });
 
 /* =====================================================================
