@@ -3031,7 +3031,7 @@ const MFDS = {L: {page: store.get('mfdPageL', 'MENU')}, R: {page: store.get('mfd
   soi: store.get('mfdSoi', 'L'), brt: {L: 1, R: 1, C: 1, ...store.get('mfdBrt', {})}, flash: {},
   shld: {f: 0, a: 0, l: 0, r: 0}, pwr: {w: 0, s: 0, e: 0}, stop: store.get('jobStop', 0), mpage: 0,
   test: null, resolved: {}, lastPress: {}};
-const PAGE_CYCLE = ['MENU', 'UFC', 'SHLD', 'PWR', 'NAV', 'JOB', 'MACR', 'VOICE', 'SYS', 'GAME'];
+const PAGE_CYCLE = ['MENU', 'UFC', 'ATC', 'CARGO', 'SHLD', 'PWR', 'NAV', 'JOB', 'MACR', 'VOICE', 'SYS', 'GAME'];
 function osbPos(n) {
   if (n <= 5) return {side: 'top', k: n - 1};
   if (n <= 10) return {side: 'right', k: n - 6};
@@ -3043,17 +3043,53 @@ const GAME = {
   shF: ['shield raise front', 'shields front', 'shield forward'], shA: ['shield raise back', 'shields back', 'shield rear'],
   shL: ['shield raise left', 'shields left'], shR: ['shield raise right', 'shields right'], shX: ['shield reset', 'reset shields', 'shields reset'],
   pwW: ['increase power weapons', 'power weapons'], pwS: ['increase power shields', 'power shields'], pwE: ['increase power engines', 'power engines'],
-  pwX: ['reset power', 'power reset']
+  pwX: ['reset power', 'power reset'],
+  // ATC & landing
+  atc: ['atc request', 'request landing', 'request landing takeoff', 'hail atc'], gear: ['toggle landing system', 'landing gear', 'landing system'],
+  auto: ['autoland', 'auto land', 'automated landing'], vtol: ['vtol toggle', 'toggle vtol', 'vtol'], fr: ['flight ready', 'flightready'],
+  lite: ['toggle headlights', 'headlights', 'lights'], svc: ['landing services', 'vehicle services', 'services'],
+  // doors & cargo
+  dOpen: ['open all doors', 'doors open all'], dClose: ['close all doors', 'doors close all'], dTog: ['toggle all doors', 'doors toggle'],
+  dLock: ['lock all doors', 'doors lock all'], dUnlock: ['unlock all doors', 'doors unlock all'], dLockT: ['toggle lock all doors', 'toggle all doorlocks']
 };
+const GAME_LBL = {atc: 'HAIL ATC', gear: 'GEAR', auto: 'AUTOLAND', vtol: 'VTOL', fr: 'FLIGHT READY', lite: 'LIGHTS', svc: 'SERVICES',
+  dOpen: 'OPEN ALL', dClose: 'CLOSE ALL', dTog: 'TOGGLE ALL', dLock: 'LOCK ALL', dUnlock: 'UNLOCK ALL', dLockT: 'TOGGLE LOCKS'};
+// one OSB that presses a game action found by name; `hold` forces a press-and-hold (autoland is hold-N by default)
+function gameBtn(side, id, l, opts = {}) {
+  return {l, fn: async fromMouse => {
+    let k = await gameKeys(id);
+    const a = (MFDS.found || {})[id];
+    if (!k && a && !a.keys) {  // the game has the action but nothing is bound to it: offer a vJoy button
+      if (MFDS.armBind === id) { MFDS.armBind = null; mfdMsg(side, `BINDING ${GAME_LBL[id]}…`);
+        if (await bindAction(a, 'vjoy', null, GAME_LBL[id].toLowerCase())) { delete MFDS.resolved[id]; await gameKeys(id); mfdMsg(side, `${GAME_LBL[id]} → ${prettyKeys(MFDS.resolved[id] || '').toUpperCase()} · RESTART SC`); mfdRender(side); }
+        else mfdMsg(side, 'BIND FAILED · DETAILS ON SCREEN');
+        return; }
+      MFDS.armBind = id; setTimeout(() => { if (MFDS.armBind === id) MFDS.armBind = null; }, 6000);
+      mfdMsg(side, `${GAME_LBL[id]} IS UNBOUND IN SC · PRESS AGAIN TO GIVE IT A VJOY BUTTON`); return;
+    }
+    if (!k) { mfdMsg(side, opts.miss || `NO BIND · ${GAME_LBL[id]} · SYS → EDIT`); return; }
+    if (opts.hold && !k.includes(':')) k += ':' + opts.hold;
+    await sendKeys(k, fromMouse); mfdMsg(side, `${GAME_LBL[id]} · ${prettyKeys(k).toUpperCase()}`); if (opts.say) say(opts.say, 'atc-' + id);
+  }};
+}
+function gameRows(side, ids) {
+  const pending = ids.filter(id => MFDS.resolved[id] === undefined && !store.get('osbAssign', {})['game:' + id]);
+  if (pending.length) Promise.all(pending.map(gameKeys)).then(() => { if (MFDS[side].page === 'ATC' || MFDS[side].page === 'CARGO') mfdRender(side); });
+  return ids.map(id => { const k = store.get('osbAssign', {})['game:' + id] || MFDS.resolved[id];
+    const a = (MFDS.found || {})[id];
+    return `<div class="mrow"><span>${GAME_LBL[id]}</span><b class="${k ? '' : 'amber'}">${k === undefined ? '…' : k ? esc(prettyKeys(k).toUpperCase()) : a ? 'UNBOUND · TAP ×2' : 'NO BIND'}</b></div>`; }).join('');
+}
 async function gameKeys(id) {
   const ov = store.get('osbAssign', {})['game:' + id];
   if (ov) return ov;
   if (MFDS.resolved[id] !== undefined) return MFDS.resolved[id];
   let keys = null;
   try {
+    MFDS.found = MFDS.found || {};
     for (const q of GAME[id] || []) {
       const r = await findBind(q);
       const top = r.results[0];
+      if (top && top.s >= .75 && !MFDS.found[id]) MFDS.found[id] = top.a;  // the action exists, maybe unbound
       if (top && top.s >= .75 && top.a.keys) { keys = top.a.keys; break; }
     }
   } catch {}
@@ -3081,7 +3117,7 @@ function pageDef(side) {
   const warn = keysOff ? '<div class="mw amber">KEYS OFF · PRACTICE</div>' : '';
   if (p === 'MENU') {
     const o = {...common, 1: {l: 'SHLD', go: 'SHLD'}, 2: {l: 'PWR', go: 'PWR'}, 3: {l: 'NAV', go: 'NAV'}, 4: {l: 'JOB', go: 'JOB'}, 5: {l: 'MACR', go: 'MACR'},
-      6: {l: 'VOICE', go: 'VOICE'}, 7: {l: 'SYS', go: 'SYS'}, 8: {l: 'GAME', go: 'GAME'}, 9: {l: 'UFC', go: 'UFC'}, 16: {l: 'SWAP', fn: () => { const a = MFDS.L.page, b = MFDS.R.page; mfdGo('L', b); mfdGo('R', a); }},
+      6: {l: 'VOICE', go: 'VOICE'}, 7: {l: 'SYS', go: 'SYS'}, 8: {l: 'GAME', go: 'GAME'}, 9: {l: 'UFC', go: 'UFC'}, 10: {l: 'ATC', go: 'ATC'}, 18: {l: 'CARGO', go: 'CARGO'}, 16: {l: 'SWAP', fn: () => { const a = MFDS.L.page, b = MFDS.R.page; mfdGo('L', b); mfdGo('R', a); }},
       // bottom row (left → right): HOME SET VR ALGN SOI · left column (top → bottom): HELP LOG … SWAP
       15: {l: 'HOME', fn: () => $('#ckHome').click()}, 14: {l: 'SET', fn: () => openSettings()}, 13: {l: VR.session ? 'VR OFF' : 'VR', fn: () => enterVR()},
       12: {l: 'ALGN', fn: () => startCal()}, 20: {l: 'HELP', fn: () => openManual()},
@@ -3174,6 +3210,17 @@ function pageDef(side) {
   }
   if (p === 'GAME') return gamePage(side, common);
   if (p === 'UFC') return ufcPage(side, common);
+  if (p === 'ATC') {
+    return {title: 'ATC', osb: {...common, 1: gameBtn(side, 'atc', 'HAIL', {say: 'Hailing station.'}), 2: gameBtn(side, 'gear', 'GEAR'), 3: gameBtn(side, 'auto', 'AUTO', {hold: 1.5}),
+      4: gameBtn(side, 'vtol', 'VTOL'), 5: gameBtn(side, 'fr', 'FLT RDY'), 6: gameBtn(side, 'lite', 'LIGHT'),
+      13: gameBtn(side, 'svc', 'SVC', {miss: 'SERVICES HAS NO KEY IN SC · SYS → EDIT TO SET ONE'}), 10: {l: 'CARGO', go: 'CARGO'}},
+      body: `<div class="mbig sm">ATC</div><div class="msub">${SCG.running ? 'SC LINKED' : 'SC NOT RUNNING'} · ${$('#keysLive').checked ? 'KEYS LIVE' : 'PRACTICE'}</div>${gameRows(side, ['atc', 'gear', 'auto', 'vtol', 'fr', 'lite', 'svc'])}`};
+  }
+  if (p === 'CARGO') {
+    return {title: 'CARGO', osb: {...common, 1: gameBtn(side, 'dOpen', 'OPEN'), 2: gameBtn(side, 'dClose', 'CLOSE'), 3: gameBtn(side, 'dTog', 'TOGGLE'),
+      4: gameBtn(side, 'dLock', 'LOCK'), 5: gameBtn(side, 'dUnlock', 'UNLCK'), 6: gameBtn(side, 'dLockT', 'LK TGL'), 10: {l: 'ATC', go: 'ATC'}},
+      body: `<div class="mbig sm">DOORS</div><div class="msub">ALL DOORS &amp; RAMPS ON THIS SHIP</div>${gameRows(side, ['dOpen', 'dClose', 'dTog', 'dLock', 'dUnlock', 'dLockT'])}`};
+  }
   if (p === 'SYS') {
     return {title: 'SYS', osb: {...common, 6: {l: 'REFR', fn: () => refreshAll()}, 7: {l: 'CAL', fn: () => startCal()}, 8: {l: 'TEST', fn: () => { MFDS.test = {until: Date.now() + 15000}; mfdRenderAll(); }},
       9: {l: 'FULL', fn: () => toggleFullscreen()}, 10: {l: 'EDIT', fn: () => openOsbEditor()},
@@ -3261,7 +3308,7 @@ function openOsbEditor() {
   const a = store.get('osbAssign', {});
   const rows = Object.entries(GAME).map(([id, terms]) => `<tr><td>${esc(terms[0])}</td><td><input data-g="${id}" value="${esc(a['game:' + id] || '')}" placeholder="${esc(MFDS.resolved[id] || 'auto from your binds')}" style="width:150px;padding:4px 6px"></td></tr>`).join('');
   $('#modalBox').className = 'box'; $('#modalBox').innerHTML = `<h2>MFD buttons</h2>
-    <p>Shield and power buttons find your game binds by name. If one says NO BIND, or you want a different key, set it here (same key syntax as macros, e.g. <span class="mono">ralt+np8</span> or <span class="mono">vj12</span>).</p>
+    <p>Shield, power, ATC and door buttons find your game binds by name. If one says NO BIND, or you want a different key, set it here (same key syntax as macros, e.g. <span class="mono">ralt+np8</span> or <span class="mono">vj12</span>).</p>
     <table>${rows}</table>
     <div class="row" style="margin-top:12px"><button class="btn small" id="osbSave">Save</button><button class="btn ghost small" id="osbCancel">Cancel</button></div>`;
   $('#modal').classList.add('on');
