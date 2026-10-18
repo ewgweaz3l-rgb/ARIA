@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
+  --mg:#5ef08a; --mw:#dfe6ee; --macc:#f2a83b; --mline:#1c3a26; --mline2:#2a5a3a; --mbg1:#030805; --mbg2:#0b1a0f; --mglow:6px; --mdim:1; --mscan:.16;
   --bg:#06090f; --bg2:#0a0f18; --panel:#0e1521; --panel2:#121b2a; --line:#1c2839; --line2:#26364c;
   --text:#d9e3f0; --dim:#8394ab; --faint:#55657c;
   --amber:#f2a83b; --amber-d:#3a2a10; --cyan:#4fd1e0; --cyan-d:#0f2c33;
@@ -204,24 +205,24 @@ body.cockpit .cocktop .console input{font-size:15px;padding:7px 4px}
 body.cockpit .cocktop .examples,body.cockpit .cocktop .hangarchips{display:none}
 body.cockpit .cocktop .brief{margin:0}
 body.cockpit #jobBar{margin:0!important}
-.mfd{position:fixed;display:block!important;background:#000;border-radius:6px;overflow:hidden;font-family:var(--mono);--mg:#5ef08a;--mw:#dfe6ee;container-type:size}
+.mfd{position:fixed;filter:brightness(var(--mdim));display:block!important;background:#000;border-radius:6px;overflow:hidden;font-family:var(--mono);container-type:size}
 .mscreen{font-size:clamp(8px,2.7cqw,18px)}
-.mscreen{position:absolute;inset:0;background:radial-gradient(ellipse at center,#0b1a0f 0%,#030805 100%);color:var(--mg);text-shadow:0 0 6px rgba(94,240,138,.45)}
-.mscreen::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.mscreen{position:absolute;inset:0;background:radial-gradient(ellipse at center,var(--mbg2) 0%,var(--mbg1) 100%);color:var(--mg);text-shadow:0 0 var(--mglow) color-mix(in srgb, var(--mg) 45%, transparent)}
+.mscreen::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,var(--mscan)) 0 1px,transparent 1px 3px)}
 .mtitle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:700 11cqw/1 var(--head);letter-spacing:.3em;opacity:.08;pointer-events:none}
 .msoi{position:absolute;right:16%;top:6%;font-size:12px;color:var(--mg)}
 .osb{position:absolute;font:600 .95em var(--mono);letter-spacing:.05em;padding:2px 5px;border:1px solid transparent;border-radius:3px;cursor:pointer;user-select:none;white-space:nowrap;line-height:1.1}
 .osb.top,.osb.bottom{transform:translateX(-50%);text-align:center}
 .osb.left,.osb.right{transform:translateY(-50%)}
-.osb:hover{border-color:rgba(94,240,138,.5)}
+.osb:hover{border-color:color-mix(in srgb, var(--mg) 50%, transparent)}
 .osb.on{background:var(--mg);color:#031;text-shadow:none}
-.osb.hit{background:#dfe6ee;color:#000;text-shadow:none}
+.osb.hit{background:var(--mw);color:#000;text-shadow:none}
 .mbody{position:absolute;left:16%;right:16%;top:13%;bottom:13%;display:flex;flex-direction:column;gap:.25em;font-size:1em;overflow:hidden;container-type:inline-size}
 .mbig{font:700 clamp(18px,20cqw,46px)/1 var(--head);letter-spacing:.14em;text-align:center;margin:auto 0 4px}
 .mbig.sm{font-size:clamp(14px,11cqw,24px);margin:6px 0 2px}
 .mclock{text-align:center;font-size:1.15em;margin-bottom:.4em}
-.mrow{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(94,240,138,.18);padding:2px 0;white-space:nowrap}
-.mrow.hi{color:var(--mw);border-color:var(--mg)} .mrow b{font-weight:600} .mrow .amber,.mw.amber{color:#f2a83b}
+.mrow{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid color-mix(in srgb, var(--mg) 18%, transparent);padding:2px 0;white-space:nowrap}
+.mrow.hi{color:var(--mw);border-color:var(--mg)} .mrow b{font-weight:600} .mrow .amber,.mw.amber{color:var(--macc)}
 .msub{font-size:.85em;opacity:.75;letter-spacing:.12em}
 .mline{font-size:1em;color:var(--mw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mline.sm{font-size:.85em;color:var(--mg);opacity:.8}
 .mnote{margin-top:auto;font-size:.75em;letter-spacing:.1em;opacity:.65;text-align:center}
@@ -229,11 +230,11 @@ body.cockpit #jobBar{margin:0!important}
 .msvg{width:100%;height:100%;flex:1;min-height:0}.msvg .mt{fill:var(--mw);font:600 8px var(--mono);text-anchor:middle}
 .mspace{flex:1}
 .mbar{display:grid;grid-template-columns:3em 1fr 2.4em;align-items:center;gap:.5em;margin:.5em 0}
-.mbar i{display:block;height:.8em;background:var(--mg);box-shadow:0 0 8px rgba(94,240,138,.6);transition:width .2s}.mbar b{text-align:right}
-.mstop{display:grid;grid-template-columns:18px 1fr;gap:6px;padding:2px 0;border-bottom:1px solid rgba(94,240,138,.18);opacity:.75}
+.mbar i{display:block;height:.8em;background:var(--mg);box-shadow:0 0 8px color-mix(in srgb, var(--mg) 60%, transparent);transition:width .2s}.mbar b{text-align:right}
+.mstop{display:grid;grid-template-columns:18px 1fr;gap:6px;padding:2px 0;border-bottom:1px solid color-mix(in srgb, var(--mg) 18%, transparent);opacity:.75}
 .mstop.hi{opacity:1;color:var(--mw)}.mstop.done{opacity:.45}.mstop small{display:block;font-size:.75em;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mstop span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .mtest{position:absolute;inset:14% 16%;background:rgba(3,8,5,.92);border:1px solid var(--mg);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1em;letter-spacing:.14em;text-align:center}
-.mtest b{font:700 4em var(--head);margin:.15em 0}.mtest small{font-size:.85em;opacity:.7}.mtest.sm{font-size:1.1em;color:#f2a83b;border-color:#f2a83b}
+.mtest b{font:700 4em var(--head);margin:.15em 0}.mtest small{font-size:.85em;opacity:.7}.mtest.sm{font-size:1.1em;color:var(--macc);border-color:var(--macc)}
 #calib{position:fixed;inset:0;pointer-events:none;z-index:80}
 .calbox{position:fixed;border:2px dashed var(--cyan);background:rgba(79,209,224,.08);pointer-events:auto;cursor:move;display:grid;place-items:center;color:var(--cyan);font:600 12px var(--head);letter-spacing:.14em;text-align:center}
 .calbox.sel{border-color:var(--amber);color:var(--amber);background:rgba(242,168,59,.1)}
@@ -256,39 +257,39 @@ body.cockpit #jobBar{margin:0!important}
 @media(max-width:900px){.calgrid{grid-template-columns:1fr}}
 /* chess on the MFD */
 .cstat{font-size:.85em;letter-spacing:.12em;text-align:center;color:var(--mw);white-space:nowrap;overflow:hidden}
-.cboard{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;max-height:78%;margin:2px auto;border:1px solid rgba(94,240,138,.5);align-self:center;width:min(100%,calc(78% * 1))}
+.cboard{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;max-height:78%;margin:2px auto;border:1px solid color-mix(in srgb, var(--mg) 50%, transparent);align-self:center;width:min(100%,calc(78% * 1))}
 .csq{display:grid;place-items:center;font-size:clamp(10px,3.1cqw,22px);line-height:1;cursor:pointer;color:var(--mw);text-shadow:none;position:relative}
-.csq.lt{background:rgba(94,240,138,.16)}.csq.dk{background:rgba(94,240,138,.04)}
-.csq.blk{color:#5ef08a}
+.csq.lt{background:color-mix(in srgb, var(--mg) 16%, transparent)}.csq.dk{background:color-mix(in srgb, var(--mg) 4%, transparent)}
+.csq.blk{color:var(--mg)}
 .csq.cur{outline:2px solid #fff;outline-offset:-2px;z-index:1}
 .csq.sel{background:rgba(242,168,59,.45)}
 .csq.tgt::after{content:'';position:absolute;width:28%;height:28%;border-radius:50%;background:rgba(242,168,59,.8)}
 .cfoot{display:flex;justify-content:space-between;font-size:.75em;opacity:.8;white-space:nowrap;overflow:hidden;gap:6px}
 /* UFC center deck */
-.ufc{display:none;background:#030805;border:1px solid #1c3a26;border-radius:8px;padding:8px 10px;color:#5ef08a;font-family:var(--mono);text-shadow:0 0 6px rgba(94,240,138,.35);position:relative;overflow:hidden;min-height:250px;flex-direction:column;gap:6px}
-.ufc::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px)}
+.ufc{display:none;filter:brightness(var(--mdim));background:var(--mbg1);border:1px solid var(--mline);border-radius:8px;padding:8px 10px;color:var(--mg);font-family:var(--mono);text-shadow:0 0 6px color-mix(in srgb, var(--mg) 35%, transparent);position:relative;overflow:hidden;min-height:250px;flex-direction:column;gap:6px}
+.ufc::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,var(--mscan)) 0 1px,transparent 1px 3px)}
 body.cockpit .ufc{display:flex}
 .uhead{display:flex;align-items:center;gap:8px;font:600 10px var(--mono);letter-spacing:.18em}
-.usp{flex:1}.ugood{color:#5ef08a}.uwarn{color:#f2a83b}
-.ulamp{width:8px;height:8px;border-radius:50%;background:#1c3a26}.ulamp.on{background:#5ef08a;box-shadow:0 0 8px #5ef08a}
-.upad{min-height:38px;max-height:56px;overflow:hidden;font:500 13px/1.4 var(--mono);color:#dfe6ee;border-top:1px solid #1c3a26;border-bottom:1px solid #1c3a26;padding:5px 2px}
+.usp{flex:1}.ugood{color:var(--mg)}.uwarn{color:var(--macc)}
+.ulamp{width:8px;height:8px;border-radius:50%;background:var(--mline)}.ulamp.on{background:var(--mg);box-shadow:0 0 8px var(--mg)}
+.upad{min-height:38px;max-height:56px;overflow:hidden;font:500 13px/1.4 var(--mono);color:var(--mw);border-top:1px solid var(--mline);border-bottom:1px solid var(--mline);padding:5px 2px}
 .ugrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,42%);gap:10px;flex:1;min-height:150px}
 .ucells{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px;align-content:start}
 .utitle{grid-column:1/-1;font:600 10px var(--mono);letter-spacing:.2em;opacity:.7}
-.uname{grid-column:1/-1;font:700 13px var(--head);letter-spacing:.06em;color:#dfe6ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
-.ucell span{display:block;font-size:9px;letter-spacing:.16em;opacity:.65}.ucell b{font:600 15px var(--mono);color:#dfe6ee}
-.ucanvas{width:100%;height:100%;min-height:150px;background:radial-gradient(ellipse at center,#07140b 0%,#030805 100%);border:1px solid #1c3a26;border-radius:4px}
+.uname{grid-column:1/-1;font:700 13px var(--head);letter-spacing:.06em;color:var(--mw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.ucell span{display:block;font-size:9px;letter-spacing:.16em;opacity:.65}.ucell b{font:600 15px var(--mono);color:var(--mw)}
+.ucanvas{width:100%;height:100%;min-height:150px;background:radial-gradient(ellipse at center,var(--mbg2) 0%,var(--mbg1) 100%);border:1px solid var(--mline);border-radius:4px}
 .ukeys{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-.ukeys button{background:#06110a;border:1px solid #2a5a3a;border-radius:3px;color:#5ef08a;font:600 11px var(--mono);letter-spacing:.14em;padding:5px 12px;cursor:pointer;min-width:62px}
-.ukeys button:hover{background:#5ef08a;color:#031;text-shadow:none}
+.ukeys button{background:var(--mbg1);border:1px solid var(--mline2);border-radius:3px;color:var(--mg);font:600 11px var(--mono);letter-spacing:.14em;padding:5px 12px;cursor:pointer;min-width:62px}
+.ukeys button:hover{background:var(--mg);color:#031;text-shadow:none}
 .ulog{flex:1;overflow:auto;font-size:11px;min-height:150px}
 .ucal{flex:1;overflow:auto;min-height:150px}
 .ucal .caltools{position:static;transform:none;width:auto;background:none;border:none;padding:0;color:#8fd9a8}
-.ucal .calhead b{color:#f2a83b}.ucal .calsel button{color:#8fd9a8;border-color:#2a5a3a}.ucal .calsel button.on{color:#f2a83b;border-color:#f2a83b}
-.ucal .calgrid label{color:#dfe6ee}.ucal .calgrid span{color:#8fd9a8}.ucal .calgrid i button{background:#06110a;border-color:#2a5a3a;color:#5ef08a}
+.ucal .calhead b{color:var(--macc)}.ucal .calsel button{color:#8fd9a8;border-color:var(--mline2)}.ucal .calsel button.on{color:var(--macc);border-color:var(--macc)}
+.ucal .calgrid label{color:var(--mw)}.ucal .calgrid span{color:#8fd9a8}.ucal .calgrid i button{background:var(--mbg1);border-color:var(--mline2);color:var(--mg)}
 .ucal .sub{color:#8fd9a8;opacity:.8}
-.ulog>div{display:grid;grid-template-columns:72px 52px 1fr 1fr;gap:8px;padding:2px 0;border-bottom:1px solid rgba(94,240,138,.15)}
-.ulog b{color:#dfe6ee}.ulog i{opacity:.6;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ulog>div{display:grid;grid-template-columns:72px 52px 1fr 1fr;gap:8px;padding:2px 0;border-bottom:1px solid color-mix(in srgb, var(--mg) 15%, transparent)}
+.ulog b{color:var(--mw)}.ulog i{opacity:.6;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.cockpit .cocktop #brief{display:none}
 /* ship picker */
 .ddrop{position:fixed;z-index:70;display:none;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.55);overflow:hidden}
@@ -3074,7 +3075,7 @@ function ufcRender() {
     ['NEXT', 'Reinvest: next leg from the sell point', () => { const b = $('[data-next="0"]'); if (b) b.click(); }],
     ['RTB', 'Course home', () => rtb()], ['MAP', 'Open the job view', () => { show('starmap'); setSystem('job'); }],
     ['SAY', 'Read it out', () => say(UFC.msg || (S ? S.name : 'Nothing to report.'))], ['LOG', 'Key press log', () => { UFC.mode = 'log'; ufcRender(); }],
-    ['ALGN', 'Line up the MFD windows', () => startCal()], ['SET', 'Settings', () => openSettings()]],
+    ['ALGN', 'Line up the MFD windows', () => startCal()], ['DIM', 'Screen brightness: 100 → 70 → 45 → 25 → 100', () => { const d = TH.get().dim; setDim(d > .9 ? .7 : d > .6 ? .45 : d > .35 ? .25 : 1); }], ['SET', 'Settings', () => openSettings()]],
     cal: [['DONE', 'Save layout', () => $('#calDone') && $('#calDone').click()]],
     log: [['CLR', 'Clear log', () => { UFC.keylog = []; store.set('keylog', []); ufcRender(); }], ['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]],
     shld: [['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]]}[UFC.mode];
@@ -3106,7 +3107,8 @@ function miniCanvas(c) {
 }
 function drawMini(c, P, top) {
   const {ctx, W, H} = miniCanvas(c); if (!W) return;
-  const G = '#5ef08a', D = 'rgba(94,240,138,.35)', A = '#f2a83b';
+  const G = themeColor('--mg'), A = themeColor('--macc') === '#ffffff' ? themeColor('--mw') : themeColor('--macc'); ctx.globalAlpha = 1;
+  const D = G + '66';
   ctx.font = '600 10px IBM Plex Mono, monospace'; ctx.fillStyle = D;
   if (!MAP.systems.size) { ctx.fillText('STARMAP LOADING', 8, 14); return; }
   const path = P ? P.sysPath || MAP.route.sysPath : null;
@@ -3147,7 +3149,7 @@ function drawMini(c, P, top) {
 }
 function drawShieldAnim(c) {
   const {ctx, W, H} = miniCanvas(c); if (!W) return;
-  const G = '#5ef08a', cx = W / 2, cy = H / 2, r = Math.min(W, H) * .36, s = MFDS.shld;
+  const G = themeColor('--mg'), cx = W / 2, cy = H / 2, r = Math.min(W, H) * .36, s = MFDS.shld;
   const t = UFC.pulse ? (performance.now() - UFC.pulse.t) / 1400 : 1, face = UFC.pulse && UFC.pulse.face;
   const arcs = {f: [-Math.PI * .75, -Math.PI * .25], r: [-Math.PI * .25, Math.PI * .25], a: [Math.PI * .25, Math.PI * .75], l: [Math.PI * .75, Math.PI * 1.25]};
   for (const [k, [a0, a1]] of Object.entries(arcs)) {
@@ -3162,7 +3164,7 @@ function drawShieldAnim(c) {
     for (let i = 0; i < 6; i++) { const p = ((t * 2 + i / 6) % 1), rr = r * .35 + p * r * .6; ctx.fillStyle = `rgba(255,255,255,${1 - p})`; ctx.beginPath(); ctx.arc(cx + Math.cos(mid) * rr, cy + Math.sin(mid) * rr, 2.5, 0, 7); ctx.fill(); }
   }
   if (face === 'x' && t < 1) { ctx.strokeStyle = `rgba(255,255,255,${1 - t})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r * (1.1 - t * .3), 0, 7); ctx.stroke(); }
-  ctx.strokeStyle = '#dfe6ee'; ctx.lineWidth = 1.5; ctx.beginPath();
+  ctx.strokeStyle = themeColor('--mw'); ctx.lineWidth = 1.5; ctx.beginPath();
   [[0, -.42], [.17, .05], [.34, .32], [.1, .22], [0, .4], [-.1, .22], [-.34, .32], [-.17, .05]].forEach(([x, y], i) => i ? ctx.lineTo(cx + x * r * 1.6, cy + y * r * 1.6) : ctx.moveTo(cx + x * r * 1.6, cy + y * r * 1.6)); ctx.closePath(); ctx.stroke();
   ctx.fillStyle = G; ctx.font = '600 10px IBM Plex Mono, monospace'; ctx.textAlign = 'center';
   ctx.fillText(`SHIELDS  F+${s.f} A+${s.a} L+${s.l} R+${s.r}`, cx, H - 6);
@@ -3365,6 +3367,38 @@ function chessPage(side, common) {
 }
 
 /* =====================================================================
+   THEMES — manufacturer skins for the cockpit, dimmer, bloom
+   ===================================================================== */
+const THEMES = {
+  aria:     {name: 'ARIA stock',          mg: '#5ef08a', mw: '#dfe6ee', acc: '#f2a83b', bg1: '#030805', bg2: '#0b1a0f', scan: .16, glow: 6},
+  drake:    {name: 'Drake Interplanetary', mg: '#f28b3b', mw: '#f3e6d6', acc: '#ffb347', bg1: '#0a0604', bg2: '#1c0f08', scan: .28, glow: 5},
+  rsi:      {name: 'RSI',                  mg: '#8fd3ff', mw: '#ffffff', acc: '#ffffff', bg1: '#03070f', bg2: '#0a1a33', scan: .06, glow: 10},
+  anvil:    {name: 'Anvil Aerospace',      mg: '#c9d86a', mw: '#ecead9', acc: '#ffcc33', bg1: '#050703', bg2: '#121608', scan: .2,  glow: 5},
+  origin:   {name: 'Origin Jumpworks',     mg: '#e8d9a6', mw: '#ffffff', acc: '#d4af37', bg1: '#0a0a0c', bg2: '#1a1a1f', scan: .04, glow: 8},
+  aegis:    {name: 'Aegis Dynamics',       mg: '#ff5f4f', mw: '#f0dcdc', acc: '#ff9a3b', bg1: '#0a0404', bg2: '#1e0909', scan: .22, glow: 6},
+  misc:     {name: 'MISC',                 mg: '#6ee7d8', mw: '#e6fbf7', acc: '#ffd166', bg1: '#03090a', bg2: '#081a1c', scan: .12, glow: 7},
+  crusader: {name: 'Crusader Industries',  mg: '#8ab4ff', mw: '#f2f5ff', acc: '#ffffff', bg1: '#04060f', bg2: '#0d1540', scan: .08, glow: 9},
+  custom:   {name: 'Custom'}
+};
+const TH = {get() { const t = store.get('theme', {}); return {id: 'aria', ...THEMES.aria, dim: 1, bloom: 1, ...t}; }, set(o) { store.set('theme', {...this.get(), ...o}); applyTheme(); }};
+const hex2 = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const mix = (h, k) => { const [r, g, b] = hex2(h); return '#' + [r, g, b].map(v => Math.round(v * k).toString(16).padStart(2, '0')).join(''); };
+function applyTheme() {
+  const t = TH.get(), r = document.documentElement.style;
+  r.setProperty('--mg', t.mg); r.setProperty('--mw', t.mw); r.setProperty('--macc', t.acc);
+  r.setProperty('--mbg1', t.bg1); r.setProperty('--mbg2', t.bg2);
+  r.setProperty('--mline', mix(t.mg, .22)); r.setProperty('--mline2', mix(t.mg, .36));
+  r.setProperty('--mglow', (t.glow * t.bloom) + 'px'); r.setProperty('--mscan', t.scan);
+  r.setProperty('--mdim', t.dim);
+  // the main app takes the skin's accent too
+  r.setProperty('--amber', t.acc === '#ffffff' ? t.mg : t.acc); r.setProperty('--cyan', t.mg);
+  r.setProperty('--amber-d', mix(t.acc === '#ffffff' ? t.mg : t.acc, .25)); r.setProperty('--cyan-d', mix(t.mg, .22));
+  if (CK.on) { mfdRender('L'); mfdRender('R'); if (UFC.mode === 'route') ufcRender(); }
+}
+const themeColor = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#5ef08a';
+function setDim(v) { TH.set({dim: Math.max(.15, Math.min(1.4, v))}); }
+
+/* =====================================================================
    SETTINGS / NAV / BOOT
    ===================================================================== */
 async function openSettings() {
@@ -3391,6 +3425,20 @@ async function openSettings() {
       <button class="btn small" id="updApply" style="margin-top:12px;display:none">Update & restart</button>
     </div>
     <p>ARIA <b id="verNow"></b>. The desktop app checks the repo every launch and updates itself; this is the manual way.</p>
+    <h2 style="margin-top:22px">Cockpit skin</h2>
+    <div class="row">
+      <label class="f" style="width:220px">Manufacturer<select id="thSel">${Object.entries(THEMES).map(([k, v]) => `<option value="${k}">${esc(v.name)}</option>`).join('')}</select></label>
+      <label class="f" style="width:90px">Glyphs<input id="thMg" type="color"></label>
+      <label class="f" style="width:90px">Text<input id="thMw" type="color"></label>
+      <label class="f" style="width:90px">Accent<input id="thAcc" type="color"></label>
+      <label class="f" style="width:90px">Screen<input id="thBg" type="color"></label>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label class="f" style="flex:1;min-width:180px">Screen brightness <span id="thDimV" class="mono"></span><input id="thDim" type="range" min="15" max="140" step="1"></label>
+      <label class="f" style="flex:1;min-width:180px">Bloom / glow <span id="thBloomV" class="mono"></span><input id="thBloom" type="range" min="0" max="250" step="5"></label>
+      <label class="f" style="flex:1;min-width:180px">Scanlines <span id="thScanV" class="mono"></span><input id="thScan" type="range" min="0" max="40" step="1"></label>
+    </div>
+    <p>Pick a maker's look, or change any colour to make it yours (the Custom entry keeps your mix). Brightness is also on the UFC's DIM key and the MFD rockers. True HDR isn't possible in a browser; bloom gives the glow.</p>
     <h2 style="margin-top:22px">Assistant</h2>
     <div class="row"><label class="f" style="width:160px">Name<input id="aiNameIn" type="text" value="${esc(AI())}"></label>
       <label class="f" style="flex:1;min-width:200px">Star Citizen folder (optional)<input id="scPathIn" type="text" placeholder="Auto-detect — or e.g. D:\\Games\\StarCitizen\\LIVE"></label></div>
@@ -3405,6 +3453,16 @@ async function openSettings() {
   $('#modal').classList.add('on');
   $('#modalClose').onclick = () => $('#modal').classList.remove('on');
   $('#ckOn').checked = CK.on; $('#ckOn').onchange = () => setCockpit($('#ckOn').checked);
+  const thFill = () => { const t = TH.get(); $('#thSel').value = t.id; $('#thMg').value = t.mg; $('#thMw').value = t.mw; $('#thAcc').value = t.acc; $('#thBg').value = t.bg2;
+    $('#thDim').value = Math.round(t.dim * 100); $('#thDimV').textContent = Math.round(t.dim * 100) + '%'; $('#thBloom').value = Math.round(t.bloom * 100); $('#thBloomV').textContent = Math.round(t.bloom * 100) + '%'; $('#thScan').value = Math.round(t.scan * 100); $('#thScanV').textContent = Math.round(t.scan * 100) + '%'; };
+  thFill();
+  $('#thSel').onchange = () => { const id = $('#thSel').value; if (id === 'custom') { TH.set({id}); return; } const p = THEMES[id]; TH.set({id, mg: p.mg, mw: p.mw, acc: p.acc, bg1: p.bg1, bg2: p.bg2, scan: p.scan, glow: p.glow}); thFill(); };
+  const custom = patch => { TH.set({id: 'custom', ...patch}); $('#thSel').value = 'custom'; };
+  $('#thMg').oninput = () => custom({mg: $('#thMg').value}); $('#thMw').oninput = () => custom({mw: $('#thMw').value}); $('#thAcc').oninput = () => custom({acc: $('#thAcc').value});
+  $('#thBg').oninput = () => custom({bg2: $('#thBg').value, bg1: mix($('#thBg').value, .35)});
+  $('#thDim').oninput = () => { TH.set({dim: +$('#thDim').value / 100}); $('#thDimV').textContent = $('#thDim').value + '%'; };
+  $('#thBloom').oninput = () => { TH.set({bloom: +$('#thBloom').value / 100}); $('#thBloomV').textContent = $('#thBloom').value + '%'; };
+  $('#thScan').oninput = () => { TH.set({scan: +$('#thScan').value / 100}); $('#thScanV').textContent = $('#thScan').value + '%'; };
   $('#ckCal').onclick = () => { $('#modal').classList.remove('on'); startCal(); };
   $('#mfdSetL').onclick = () => { if (!CK.on) setCockpit(true); $('#modal').classList.remove('on'); mfdLearn('L'); };
   $('#mfdSetR').onclick = () => { if (!CK.on) setCockpit(true); $('#modal').classList.remove('on'); mfdLearn('R'); };
@@ -3545,7 +3603,7 @@ $('#bindQ').onkeydown = e => { if (e.key === 'Enter') runBind($('#bindQ').value)
   const last = store.get('lastRun', null);
   if (last) { $('#shipIn').value = last.ship || ''; $('#scuIn').value = last.scu || ''; $('#budgetIn').value = last.budget || ''; $('#startIn').value = last.start || ''; }
   tradeData().then(() => { if (last && last.system) $('#sysIn').value = last.system; }).catch(() => {});
-  applyName();
+  applyName(); applyTheme();
   $('#wakeWord').value = store.get('wakeWord', AI().toLowerCase());
   $('#wakeOn').checked = store.get('wakeOn', false);
   $('#keysLive').checked = store.get('keysLive', false);

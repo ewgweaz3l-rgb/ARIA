@@ -55,6 +55,11 @@ answers on the scratchpad teletype-style, with cash / time / stops / jumps, a mi
 the route lit, and soft keys: ACPT (make it a job), NEXT (reinvest leg), RTB, MAP, SAY, LOG. Shield
 reroutes from the SHLD page animate here. LOG keeps the last 60 key presses ARIA sent.
 
+**Skins:** Settings ⚙ → Cockpit skin. Pick a manufacturer (ARIA stock, Drake, RSI, Anvil, Origin,
+Aegis, MISC, Crusader) or change any colour for your own mix. Brightness slider (also the DIM soft
+key on the deck and the MFD rockers), bloom/glow, and scanline strength. The main app takes the
+skin's accent colours too.
+
 **GAME page — chess vs ARIA.** Something to do in quantum. MENU → GAME. The rockers move the
 cursor (left pair up/down, right pair left/right), the next rocker selects; the legal moves for
 the selected piece appear on the OSBs — press one to play it. NEW / BLK (play black) / level
