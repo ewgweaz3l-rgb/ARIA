@@ -225,6 +225,8 @@ body.cockpit #ufc .uhint{font:600 10px var(--mono);letter-spacing:.14em;opacity:
 body.cockpit #ufc .uhint b{color:var(--mw)}
 body.cockpit #ufc .upad{flex:1;border:none;min-height:40px;max-height:70px;font-size:16px;line-height:1.4;padding:2px 0}
 .mbody .ugrid.one{grid-template-columns:1fr}
+.mbody .mmcv{flex:1;min-height:0;width:100%}
+.mmfoot{display:flex;justify-content:space-between;gap:8px;font-size:.78em;white-space:nowrap;overflow:hidden}.mmfoot b{color:var(--mw);overflow:hidden;text-overflow:ellipsis}
 body.cockpit #ufc .ukeys{flex-direction:column;justify-content:center;gap:4px}
 body.cockpit #ufc .ukeys button{min-width:54px;padding:4px 8px;font-size:10px}
 .mbody .ugrid{min-height:0;flex:1;gap:4%}
@@ -782,6 +784,7 @@ const SOURCES = {
   blueprints:   {src: 'wiki', urls: ['/api/wiki_all/blueprints']},
   positions:    {src: 'wiki', urls: ['/api/wiki/locations/positions']},
   refineries:   {src: 'uex',  urls: ['/api/uex/terminals?type=refinery']},
+  allTerms:     {src: 'uex',  urls: ['/api/uex/terminals']},
   refMethods:   {src: 'uex',  urls: ['/api/uex/refineries_methods']},
   refYields:    {src: 'uex',  urls: ['/api/uex/refineries_yields']},
   refAudits:    {src: 'uex',  urls: ['/api/uex/refineries_audits']},
@@ -1233,6 +1236,9 @@ async function runCommand(text) {
   if (!text.trim()) return runRoutes();
   const bq = parseBind(text);
   if (bq) { const spoken = VOICE.heardCommand; VOICE.heardCommand = false; show('voice'); $('#bindQ').value = bq; return runBind(bq, spoken); }
+  const hm = text.trim().match(/^(?:i'?m|i am|we'?re|we are|currently|now)\s+(?:at|in|on|parked at|landed at|docked at)\s+(.+?)[.!]?$/i) || text.trim().match(/^(?:set\s+)?(?:position|location|here)\s*(?:is|to|:)?\s+(.+)$/i);
+  if (hm) { try { await loadMap(); } catch {} const e = resolvePlace(hm[1]); HERE.set(hm[1].trim()); if (e) MM.sys = e.sys;
+    const line = e ? `Position set: ${e.name}.` : `I don't have ${hm[1].trim()} on the map, but I'll remember it.`; if (VOICE.heardCommand) { VOICE.heardCommand = false; say(line); } else ufcSay(line); return; }
   if (/^\s*(rtb|r t b|return to base|back to base|go home|head home|take me home|home)\s*$/i.test(text)) return rtb();
   const nav = parseNav(text);
   if (nav) {
@@ -3027,11 +3033,11 @@ addEventListener('resize', () => { if (CK.on) ckLayout(); });
    MFD PAGES — F/A-18E/F DDI style. OSB numbering (Cougar): 1-5 top left→right,
    6-10 right top→bottom, 11-15 bottom right→left, 16-20 left bottom→top.
    ===================================================================== */
-const MFDS = {L: {page: store.get('mfdPageL', 'MENU')}, R: {page: store.get('mfdPageR', 'NAV')}, C: {page: store.get('mfdPageC', 'UFC')},
+const MFDS = {L: {page: store.get('mfdPageL', 'MENU')}, R: {page: store.get('mfdPageR', 'NAV')}, C: {page: 'MAP'},
   soi: store.get('mfdSoi', 'L'), brt: {L: 1, R: 1, C: 1, ...store.get('mfdBrt', {})}, flash: {},
   shld: {f: 0, a: 0, l: 0, r: 0}, pwr: {w: 0, s: 0, e: 0}, stop: store.get('jobStop', 0), mpage: 0,
   test: null, resolved: {}, lastPress: {}};
-const PAGE_CYCLE = ['MENU', 'UFC', 'ATC', 'CARGO', 'SHLD', 'PWR', 'NAV', 'JOB', 'MACR', 'VOICE', 'SYS', 'GAME'];
+const PAGE_CYCLE = ['MENU', 'MAP', 'UFC', 'ATC', 'CARGO', 'WPN', 'SHLD', 'PWR', 'NAV', 'JOB', 'MACR', 'VOICE', 'SYS', 'GAME'];
 function osbPos(n) {
   if (n <= 5) return {side: 'top', k: n - 1};
   if (n <= 10) return {side: 'right', k: n - 6};
@@ -3050,9 +3056,15 @@ const GAME = {
   lite: ['toggle headlights', 'headlights', 'lights'], svc: ['landing services', 'vehicle services', 'services'],
   // doors & cargo
   dOpen: ['open all doors', 'doors open all'], dClose: ['close all doors', 'doors close all'], dTog: ['toggle all doors', 'doors toggle'],
-  dLock: ['lock all doors', 'doors lock all'], dUnlock: ['unlock all doors', 'doors unlock all'], dLockT: ['toggle lock all doors', 'toggle all doorlocks']
+  dLock: ['lock all doors', 'doors lock all'], dUnlock: ['unlock all doors', 'doors unlock all'], dLockT: ['toggle lock all doors', 'toggle all doorlocks'],
+  // weapons: missiles, countermeasures, bombs
+  msl: ['missile operator mode', 'missile mode', 'toggle missile mode'], mslCyc: ['cycle missile type', 'cycle missiles', 'missile type next'],
+  mslUp: ['increase armed missiles', 'arm missiles', 'missiles increase'], mslDn: ['decrease armed missiles', 'missiles decrease', 'reset armed missiles'],
+  mslFire: ['launch missiles', 'fire missiles', 'launch missile'], cmD: ['launch decoy', 'countermeasure decoy', 'decoy'], cmN: ['launch noise', 'countermeasure noise', 'noise'],
+  bomb: ['bomb operator mode', 'bombing mode', 'bomb mode'], bombDrop: ['drop bomb', 'release bomb', 'launch bomb'], gimbal: ['gimbal mode', 'cycle gimbal', 'toggle gimbal']
 };
 const GAME_LBL = {atc: 'HAIL ATC', gear: 'GEAR', auto: 'AUTOLAND', vtol: 'VTOL', fr: 'FLIGHT READY', lite: 'LIGHTS', svc: 'SERVICES',
+  msl: 'MISSILE MODE', mslCyc: 'CYCLE TYPE', mslUp: 'ARM +', mslDn: 'ARM −', mslFire: 'LAUNCH', cmD: 'DECOY', cmN: 'NOISE', bomb: 'BOMB MODE', bombDrop: 'DROP', gimbal: 'GIMBAL',
   dOpen: 'OPEN ALL', dClose: 'CLOSE ALL', dTog: 'TOGGLE ALL', dLock: 'LOCK ALL', dUnlock: 'UNLOCK ALL', dLockT: 'TOGGLE LOCKS'};
 // one OSB that presses a game action found by name; `hold` forces a press-and-hold (autoland is hold-N by default)
 function gameBtn(side, id, l, opts = {}) {
@@ -3074,7 +3086,7 @@ function gameBtn(side, id, l, opts = {}) {
 }
 function gameRows(side, ids) {
   const pending = ids.filter(id => MFDS.resolved[id] === undefined && !store.get('osbAssign', {})['game:' + id]);
-  if (pending.length) Promise.all(pending.map(gameKeys)).then(() => { if (MFDS[side].page === 'ATC' || MFDS[side].page === 'CARGO') mfdRender(side); });
+  if (pending.length) Promise.all(pending.map(gameKeys)).then(() => { if (['ATC', 'CARGO', 'WPN'].includes(MFDS[side].page)) mfdRender(side); });
   return ids.map(id => { const k = store.get('osbAssign', {})['game:' + id] || MFDS.resolved[id];
     const a = (MFDS.found || {})[id];
     return `<div class="mrow"><span>${GAME_LBL[id]}</span><b class="${k ? '' : 'amber'}">${k === undefined ? '…' : k ? esc(prettyKeys(k).toUpperCase()) : a ? 'UNBOUND · TAP ×2' : 'NO BIND'}</b></div>`; }).join('');
@@ -3116,12 +3128,12 @@ function pageDef(side) {
   const keysOff = !$('#keysLive').checked;
   const warn = keysOff ? '<div class="mw amber">KEYS OFF · PRACTICE</div>' : '';
   if (p === 'MENU') {
-    const o = {...common, 1: {l: 'SHLD', go: 'SHLD'}, 2: {l: 'PWR', go: 'PWR'}, 3: {l: 'NAV', go: 'NAV'}, 4: {l: 'JOB', go: 'JOB'}, 5: {l: 'MACR', go: 'MACR'},
-      6: {l: 'VOICE', go: 'VOICE'}, 7: {l: 'SYS', go: 'SYS'}, 8: {l: 'GAME', go: 'GAME'}, 9: {l: 'UFC', go: 'UFC'}, 10: {l: 'ATC', go: 'ATC'}, 18: {l: 'CARGO', go: 'CARGO'}, 16: {l: 'SWAP', fn: () => { const a = MFDS.L.page, b = MFDS.R.page; mfdGo('L', b); mfdGo('R', a); }},
-      // bottom row (left → right): HOME SET VR ALGN SOI · left column (top → bottom): HELP LOG … SWAP
-      15: {l: 'HOME', fn: () => $('#ckHome').click()}, 14: {l: 'SET', fn: () => openSettings()}, 13: {l: VR.session ? 'VR OFF' : 'VR', fn: () => enterVR()},
-      12: {l: 'ALGN', fn: () => startCal()}, 20: {l: 'HELP', fn: () => openManual()},
-      19: {l: 'LOG', fn: () => { UFC.mode = 'log'; const t = MFDS.C.page === 'UFC' || side === 'C' ? 'C' : side; mfdGo(t, 'UFC'); }}};
+    // top: SHLD PWR WPN NAV MAP · right: ATC CARGO JOB MACR UFC · bottom (L→R): HOME SET VR ALGN SOI · left (top→bottom): HELP LOG VOICE SYS GAME
+    const o = {...common, 1: {l: 'SHLD', go: 'SHLD'}, 2: {l: 'PWR', go: 'PWR'}, 3: {l: 'WPN', go: 'WPN'}, 4: {l: 'NAV', go: 'NAV'}, 5: {l: 'MAP', go: 'MAP'},
+      6: {l: 'ATC', go: 'ATC'}, 7: {l: 'CARGO', go: 'CARGO'}, 8: {l: 'JOB', go: 'JOB'}, 9: {l: 'MACR', go: 'MACR'}, 10: {l: 'UFC', go: 'UFC'},
+      15: {l: 'HOME', fn: () => $('#ckHome').click()}, 14: {l: 'SET', fn: () => openSettings()}, 13: {l: VR.session ? 'VR OFF' : 'VR', fn: () => enterVR()}, 12: {l: 'ALGN', fn: () => startCal()},
+      20: {l: 'HELP', fn: () => openManual()}, 19: {l: 'LOG', fn: () => { UFC.mode = 'log'; const t = MFDS.C.page === 'UFC' || side === 'C' ? 'C' : side; mfdGo(t, 'UFC'); }},
+      18: {l: 'VOICE', go: 'VOICE'}, 17: {l: 'SYS', go: 'SYS'}, 16: {l: 'GAME', go: 'GAME'}};
     const st = DB.status || {}, uex = Object.values(st).find(s => s.src === 'uex'), wiki = Object.values(st).find(s => s.src === 'wiki');
     const done = P ? P.stops.slice(0, MFDS.stop + 1).flatMap(s => s.actions).reduce((a, x) => a + (x.profit || 0), 0) : 0;
     return {title: 'MENU', osb: o, body: `<div class="mbig">${esc(AI().toUpperCase())}</div>
@@ -3210,11 +3222,17 @@ function pageDef(side) {
   }
   if (p === 'GAME') return gamePage(side, common);
   if (p === 'UFC') return ufcPage(side, common);
+  if (p === 'MAP') return mapPage(side, common);
   if (p === 'ATC') {
     return {title: 'ATC', osb: {...common, 1: gameBtn(side, 'atc', 'HAIL', {say: 'Hailing station.'}), 2: gameBtn(side, 'gear', 'GEAR'), 3: gameBtn(side, 'auto', 'AUTO', {hold: 1.5}),
       4: gameBtn(side, 'vtol', 'VTOL'), 5: gameBtn(side, 'fr', 'FLT RDY'), 6: gameBtn(side, 'lite', 'LIGHT'),
       13: gameBtn(side, 'svc', 'SVC', {miss: 'SERVICES HAS NO KEY IN SC · SYS → EDIT TO SET ONE'}), 10: {l: 'CARGO', go: 'CARGO'}},
       body: `<div class="mbig sm">ATC</div><div class="msub">${SCG.running ? 'SC LINKED' : 'SC NOT RUNNING'} · ${$('#keysLive').checked ? 'KEYS LIVE' : 'PRACTICE'}</div>${gameRows(side, ['atc', 'gear', 'auto', 'vtol', 'fr', 'lite', 'svc'])}`};
+  }
+  if (p === 'WPN') {
+    return {title: 'WPN', osb: {...common, 1: gameBtn(side, 'msl', 'MSL'), 2: gameBtn(side, 'mslCyc', 'TYPE'), 3: gameBtn(side, 'mslUp', 'ARM+'), 4: gameBtn(side, 'mslDn', 'ARM−'), 5: gameBtn(side, 'mslFire', 'LNCH'),
+      6: gameBtn(side, 'cmD', 'DECOY'), 7: gameBtn(side, 'cmN', 'NOISE'), 8: gameBtn(side, 'gimbal', 'GMBL'), 13: gameBtn(side, 'bomb', 'BOMB'), 14: gameBtn(side, 'bombDrop', 'DROP'), 10: {l: 'SHLD', go: 'SHLD'}},
+      body: `<div class="mbig sm">WEAPONS</div><div class="msub">MISSILES · COUNTERMEASURES · BOMBS</div>${gameRows(side, ['msl', 'mslCyc', 'mslUp', 'mslDn', 'mslFire', 'cmD', 'cmN', 'gimbal', 'bomb', 'bombDrop'])}`};
   }
   if (p === 'CARGO') {
     return {title: 'CARGO', osb: {...common, 1: gameBtn(side, 'dOpen', 'OPEN'), 2: gameBtn(side, 'dClose', 'CLOSE'), 3: gameBtn(side, 'dTog', 'TOGGLE'),
@@ -3391,6 +3409,102 @@ const UFC_KEYS = {
     ['DIM', 'Screen brightness: 100 → 70 → 45 → 25 → 100', () => { const d = TH.get().dim; setDim(d > .9 ? .7 : d > .6 ? .45 : d > .35 ? .25 : 1); }]],
   log: [['CLR', 'Clear log', () => { UFC.keylog = []; store.set('keylog', []); ufcRender(); }], ['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]],
   shld: [['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]]};
+/* ---------------- MAP page: the starmap on an MFD ----------------
+   top: STN MKT MED filters · SYS cycles the system · right: NAV CTR RTB · left: TGT ▲▼ · bottom: ZM+ ZM− */
+const MM = {f: store.get('mmFilt', {stn: true, mkt: true, med: false}), sys: null, tgt: 0, zoom: 1, med: null, loading: false};
+const HERE = {get: () => store.get('here', ''), set(v) { store.set('here', v); MM.tgt = 0; mfdRenderAll(); }};
+function hereEnt() { const h = HERE.get(); return h ? resolvePlace(h) : null; }
+async function mmLoad() {
+  if (MM.loading) return; MM.loading = true;
+  try { await loadMap(); } catch {}
+  // medical: whatever UEX flags as a clinic/hospital; otherwise every rest stop and landing-zone station (they all have a clinic in current builds)
+  try { const all = await DB.opt('allTerms'); const med = new Set();
+    for (const t of all || []) { if (num(t.is_medical) || num(t.is_medical_center) || num(t.has_clinic) || num(t.has_medical) || /medical|clinic|hospital/i.test(String(t.type || '') + ' ' + (t.name || ''))) { const e = entityForTerminal(t); if (e) med.add(e.uuid); } }
+    MM.med = med.size ? {set: med, src: 'uex'} : null; } catch { MM.med = null; }
+  MM.loading = false; mfdRenderAll();
+}
+const isStation = e => /station|manmade/.test(norm(e.type)) || /\b(station|gateway|port|l[1-5])\b/i.test(e.name);
+function mmMarkers(S) {
+  const out = [], me = hereEnt();
+  for (const e of S.ents) {
+    if (me && e.uuid === me.uuid) continue;  // you're already here
+    const stn = isStation(e), mkt = MAP.termByEnt.has(e.uuid), med = MM.med ? MM.med.set.has(e.uuid) : (stn && /\b(l[1-5]|station|port)\b/i.test(e.name)) || /^(area ?18|lorville|orison|new babbage)$/i.test(e.name);
+    const on = (MM.f.stn && stn) || (MM.f.mkt && mkt) || (MM.f.med && med);
+    if (on) out.push({e, stn, mkt, med});
+  }
+  const h = hereEnt();
+  if (h && h.sys === S.key) out.sort((a, b) => Math.hypot(a.e.x - h.x, a.e.y - h.y, a.e.z - h.z) - Math.hypot(b.e.x - h.x, b.e.y - h.y, b.e.z - h.z));
+  else out.sort((a, b) => a.e.name.localeCompare(b.e.name));
+  return out;
+}
+function mmSys() {
+  const h = hereEnt(), he = homeEnt();
+  if (!MM.sys || !MAP.systems.has(MM.sys)) MM.sys = (h && h.sys) || (he && he.sys) || (MAP.systems.has('stanton') ? 'stanton' : [...MAP.systems.keys()][0]);
+  return MAP.systems.get(MM.sys);
+}
+function askHere(then) {
+  $('#modalBox').className = 'box'; $('#modalBox').innerHTML = `<h2>Where are you?</h2>
+    <p>ARIA can't see your position in game — tell her where you are and the map centers on you, NAV plots from here, and RTB knows the way home. You can also just say <span class="mono">“I'm at Port Tressler”</span>.</p>
+    <label class="f">Current location<input id="hereIn" type="text" list="placeList" value="${esc(HERE.get())}" placeholder="Station, city, outpost or moon"></label>
+    <div id="hereMsg" class="sub" style="margin-top:6px"></div>
+    <div class="row" style="margin-top:12px"><button class="btn small" id="hereOk">Set</button>${HOME.get() ? `<button class="btn ghost small" id="hereHome">At home (${esc(HOME.get())})</button>` : ''}<button class="btn ghost small" id="hereCancel">Cancel</button></div>`;
+  $('#modal').classList.add('on'); setTimeout(() => $('#hereIn').select(), 50);
+  const chk = () => { const e = resolvePlace($('#hereIn').value); $('#hereMsg').innerHTML = !$('#hereIn').value.trim() ? '' : e ? `On the map as <b>${esc(e.name)}</b> · ${esc(sysName(e.sys))}` : '<span class="warn">Not on the map — try the station or city name.</span>'; };
+  $('#hereIn').oninput = chk; chk();
+  const done = v => { HERE.set(v); const e = hereEnt(); if (e) MM.sys = e.sys; MM.zoom = Math.max(MM.zoom, 1); $('#modal').classList.remove('on'); if (v) ufcSay(`Position set: ${v}.`); then && v && then(v); };
+  $('#hereOk').onclick = () => done($('#hereIn').value.split(' · ')[0].trim()); $('#hereIn').onkeydown = e => { if (e.key === 'Enter') $('#hereOk').click(); };
+  if ($('#hereHome')) $('#hereHome').onclick = () => done(HOME.get());
+  $('#hereCancel').onclick = () => $('#modal').classList.remove('on');
+}
+function mapPage(side, common) {
+  if (!MAP.systems.size || (MM.med === null && !MM.loading && !MM.tried)) { MM.tried = true; mmLoad(); }
+  const S = MAP.systems.size ? mmSys() : null;
+  const marks = S ? mmMarkers(S) : [];
+  MM.tgt = Math.max(0, Math.min(marks.length - 1, MM.tgt));
+  const T = marks[MM.tgt], here = HERE.get();
+  const f = k => ({l: k.toUpperCase(), on: MM.f[k], fn: () => { MM.f[k] = !MM.f[k]; store.set('mmFilt', MM.f); MM.tgt = 0; mfdRenderAll(); }});
+  const o = {...common, 1: f('stn'), 2: f('mkt'), 3: f('med'),
+    5: {l: S ? S.name.toUpperCase().slice(0, 7) : 'SYS', fn: () => { const ks = [...MAP.systems.keys()]; MM.sys = ks[(ks.indexOf(MM.sys) + 1) % ks.length]; MM.tgt = 0; mfdRenderAll(); }},
+    6: {l: 'NAV', fn: () => { if (!T) { mfdMsg(side, 'NO TARGET · PICK ONE WITH TGT'); return; }
+      const go = h => { $('#navFrom').value = h; $('#navTo').value = T.e.name + ' · ' + sysName(T.e.sys); plotNav().then(() => mfdRenderAll()); };
+      if (here) go(here); else askHere(go); }},
+    7: {l: 'CTR', on: !!here, fn: () => askHere()},
+    8: {l: 'RTB', fn: () => { if (here) $('#navFrom').value = here; rtb(); }},
+    20: {l: 'TGT ▲', fn: () => { MM.tgt = Math.max(0, MM.tgt - 1); mfdRenderAll(); }}, 19: {l: 'TGT ▼', fn: () => { MM.tgt = Math.min(marks.length - 1, MM.tgt + 1); mfdRenderAll(); }},
+    12: {l: 'ZM+', fn: () => { MM.zoom = Math.min(64, MM.zoom * 2); mfdRenderAll(); }}, 13: {l: 'ZM−', fn: () => { MM.zoom = Math.max(1, MM.zoom / 2); mfdRenderAll(); }}};
+  const he = hereEnt(), dist = T && he && he.sys === T.e.sys ? Math.hypot(T.e.x - he.x, T.e.y - he.y, T.e.z - he.z) : null;
+  const tags = T ? [T.stn && 'STN', T.mkt && 'MKT', T.med && 'MED'].filter(Boolean).join(' ') : '';
+  const body = `<canvas id="mmCanvas${side}" class="ucanvas mmcv"></canvas>
+    <div class="mmfoot"><span>${here ? 'YOU · ' + esc(here.toUpperCase()) : 'CTR · SET YOUR POSITION'}</span><b>${T ? esc(T.e.name.toUpperCase()) + (dist != null ? ' · ' + fmtDist(dist) : '') + ' · ' + tags : marks.length ? '' : 'NOTHING MATCHES · ' + (MAP.systems.size ? 'TURN ON STN / MKT / MED' : 'STARMAP LOADING')}</b></div>`;
+  return {title: 'MAP', osb: o, body, after: () => { const c = $('#mmCanvas' + side); if (c && S) drawMfdMap(c, S, marks, T); }};
+}
+function drawMfdMap(c, S, marks, T) {
+  const {ctx, W, H} = miniCanvas(c); if (!W) return;
+  const G = themeColor('--mg'), Wt = themeColor('--mw'), A = themeColor('--macc') === '#ffffff' ? Wt : themeColor('--macc'), D = G + '55';
+  const star = S.star || {x: 0, y: 0}, he = hereEnt(), inSys = he && he.sys === S.key;
+  const bodies = S.ents.filter(e => ['planet', 'jumppoint'].includes(norm(e.type)));
+  const R = Math.max(1e9, ...bodies.map(e => Math.hypot(e.x - star.x, e.y - star.y))) * 1.1;
+  const ctr = MM.zoom > 1 ? (inSys ? he : T ? T.e : star) : star;
+  const sc = Math.min(W, H) / 2 / R * MM.zoom, cx = W / 2, cy = H / 2;
+  const X = e => cx + (e.x - ctr.x) * sc, Y = e => cy - (e.y - ctr.y) * sc;
+  ctx.font = '600 9px IBM Plex Mono, monospace';
+  for (const b of bodies) { const r = Math.hypot(b.x - star.x, b.y - star.y) * sc; ctx.strokeStyle = 'rgba(' + getComputedStyle(document.documentElement).getPropertyValue('--mgrgb') + ',.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(X(star), Y(star), r, 0, 7); ctx.stroke(); }
+  ctx.fillStyle = A; ctx.beginPath(); ctx.arc(X(star), Y(star), 4, 0, 7); ctx.fill();
+  for (const b of bodies) { ctx.fillStyle = G; ctx.beginPath(); ctx.arc(X(b), Y(b), norm(b.type) === 'jumppoint' ? 2.5 : 3.5, 0, 7); ctx.fill(); ctx.fillStyle = D; ctx.textAlign = 'left'; ctx.fillText(b.name.toUpperCase(), X(b) + 6, Y(b) + 3); }
+  // route, if one is plotted in this system
+  const P = curPlan();
+  if (P) { const legs = P.segs.flatMap(sg => sg.legs).filter(l => !l.jump && l.from.sys === S.key); ctx.strokeStyle = A; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath(); legs.forEach(l => { ctx.moveTo(X(l.from), Y(l.from)); ctx.lineTo(X(l.to), Y(l.to)); }); ctx.stroke(); ctx.setLineDash([]); }
+  // markers: square = station, diamond = market, cross = medical (a place can be several)
+  for (const m of marks) { const x = X(m.e), y = Y(m.e); if (x < -10 || y < -10 || x > W + 10 || y > H + 10) continue; const hot = m === T; ctx.strokeStyle = hot ? Wt : G; ctx.fillStyle = hot ? Wt : G; ctx.lineWidth = hot ? 2 : 1.2;
+    if (m.stn) ctx.strokeRect(x - 3, y - 3, 6, 6);
+    if (m.mkt) { ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x + 5, y); ctx.lineTo(x, y + 5); ctx.lineTo(x - 5, y); ctx.closePath(); ctx.stroke(); }
+    if (m.med) { ctx.fillRect(x - .9, y - 4.5, 1.8, 9); ctx.fillRect(x - 4.5, y - .9, 9, 1.8); }
+    if (hot || MM.zoom >= 8) { ctx.fillStyle = hot ? Wt : D; ctx.textAlign = 'left'; ctx.fillText(m.e.name.toUpperCase(), x + 7, y - 5); } }
+  if (T) { const x = X(T.e), y = Y(T.e); ctx.strokeStyle = Wt; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.stroke(); }
+  if (inSys) { const x = X(he), y = Y(he); ctx.fillStyle = A; ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x + 6, y + 5); ctx.lineTo(x - 6, y + 5); ctx.closePath(); ctx.fill(); ctx.fillStyle = A; ctx.textAlign = 'left'; ctx.fillText('YOU', x + 8, y + 4); }
+  ctx.fillStyle = D; ctx.textAlign = 'right'; ctx.fillText(`${S.name.toUpperCase()} · ×${MM.zoom} · ${marks.length} MARKS`, W - 4, H - 4); ctx.textAlign = 'left';
+}
+
 // the center MFD's UFC page: route summary + mini starmap (or shield pulse / key log), soft keys on the OSBs
 function ufcPage(side, common) {
   const S = ufcSummary(), keys = UFC_KEYS[UFC.mode];
