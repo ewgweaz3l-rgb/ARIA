@@ -36,7 +36,7 @@ function vrPanelsDef() {
   return [
     {id: 'L', el: $('#mfdL'), w: 0.42, yaw: -1, dy: 0, dz: 0, every: 180},
     {id: 'R', el: $('#mfdR'), w: 0.42, yaw: 1, dy: 0, dz: 0, every: 180},
-    {id: 'U', el: $('#ufc'), w: 0.62, yaw: 0, dy: 0.08, dz: 0.05, every: 250},
+    {id: 'U', el: $('#cockTop'), w: 0.62, yaw: 0, dy: 0.08, dz: 0.05, every: 250},
     {id: 'A', el: $('#appShell'), w: 1.3, yaw: 0, dy: -0.52, dz: 0.1, every: 700, scale: .6}
   ].filter(p => p.el);
 }
@@ -124,6 +124,13 @@ function vrFrame(time, frame) {
 async function enterVR() {
   if (VR.session) return exitVR();
   if (!await vrCheck()) { toast(esc(VR.status), 7000); return; }
+  // WebXR immersive sessions are exclusive: the browser takes the headset from whatever holds it.
+  // If a game is running in the headset right now, it loses the HMD (grey void) and may crash.
+  if (!store.get('vrAck', false)) {
+    const ok = confirm(`ARIA VR takes over the headset — it is not an overlay.\n\nOnly enter when NO game is running in VR (Star Citizen on the monitor is fine). If a game is in the headset right now, it will lose it and may crash.\n\nTo see ARIA inside a VR game, pin the ARIA window with an overlay tool instead (XSOverlay, Desktop+, OVR Toolkit).\n\nContinue?`);
+    if (!ok) return;
+    store.set('vrAck', true);
+  }
   if (!CK.on) setCockpit(true);
   if (!window.html2canvas) { await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'vendor/html2canvas.min.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); }).catch(() => {}); }
   if (!window.html2canvas) { toast('vendor/html2canvas.min.js is missing — update ARIA.'); return; }

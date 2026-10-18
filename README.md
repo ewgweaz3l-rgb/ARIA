@@ -45,7 +45,7 @@ replies are (voice pack clips and the browser voice alike); **Say something** pr
 Press **▣** (or F9) for cockpit mode: the page rearranges itself around the two Cougar MFD
 bezels on your monitor — left and right MFD screens, the command console between them, and the
 job search / map / tabs in the band below. **ALGN** on the deck, the **⌗** button bottom-right,
-or Settings → Calibrate opens the layout tool: every area (left MFD, right MFD, center console,
+or Settings → Calibrate opens the layout tool: every area (left MFD, right MFD, center MFD,
 bottom band) is a free box with 8 crop handles — edge handles move one side, corners move two
 (Ctrl = one side only, Shift = keep shape), drag the middle to move. Sliders and 1-px nudges in the
 floating panel (drag it anywhere by its header). For the MFDs the panel also has button spacing,
@@ -62,10 +62,16 @@ focus. Pages: **MENU · SHLD** (shield facing + reset) **· PWR** (weapons/shiel
 pair = page cycle, bottom = SOI. Any button that needs the game shows **NO BIND** until ARIA finds
 the action in your keybinds (SYS → EDIT sets one by hand). SYS → TEST shows button numbers.
 
-**UFC (center deck):** the panel between the MFDs. Ask a route by voice or keyboard and it
-answers on the scratchpad teletype-style, with cash / time / stops / jumps, a mini starmap with
-the route lit, and soft keys: ACPT (make it a job), NEXT (reinvest leg), RTB, MAP, SAY, LOG. Shield
-reroutes from the SHLD page animate here. LOG keeps the last 60 key presses ARIA sent.
+**Center MFD:** the screen between the Cougars is a third MFD — same pages as the other two
+(MENU, SHLD, PWR, NAV, JOB, MACR, VOICE, SYS, GAME), mouse/VR-driven since there's no bezel, and its
+own **UFC** page: the route summary (cash / time / stops / jumps / dist / fuel) with the mini starmap,
+soft keys on the OSBs — ACPT (make it a job), NEXT (reinvest leg), RTB, MAP, SAY, LOG, ALGN, DIM, VR,
+SET, HOME. Shield reroutes from the SHLD page animate here; LOG keeps the last 60 key presses ARIA
+sent. It can be the SOI like the others, so games and the keyboard work on it too.
+
+**The deck strip:** what ARIA says prints teletype-style in the bottom band, right under the header
+and above the ask bar, with her status lamp (keys live / practice, PTT / open mic) and SAY / RTB /
+MAP keys. The ask bar and the job bar stay visible in cockpit mode whatever tab is open.
 
 **Skins:** Settings ⚙ → Cockpit skin. Pick a manufacturer (ARIA stock, Drake, RSI, Anvil, Origin,
 Aegis, MISC, Crusader) or change any colour for your own mix. Brightness slider (also the DIM soft
@@ -86,8 +92,16 @@ Settings → VR has distance, height, spread, panel size and tilt, live while yo
 
 Needs Chrome or Edge (the ARIA app window is Edge/Chrome already) and a running OpenXR runtime:
 SteamVR, Pimax Play, Oculus/Meta. Windows Mixed Reality headsets work only on Windows builds
-before 24H2 (Microsoft removed WMR). Star Citizen itself stays on your monitor or in whatever VR
-mod you use; ARIA's panels are a separate overlay-style space.
+before 24H2 (Microsoft removed WMR).
+
+**Important — it is not an overlay.** A WebXR session is exclusive: the browser takes the headset
+from whatever has it. Enter ARIA VR only when no game is running in the headset (Star Citizen on
+your monitor is fine). If a game *is* in the headset, it loses the HMD — the SteamVR/Pimax grey void —
+and it can crash (NVIDIA driver errors included). ARIA asks once before the first entry. To see ARIA
+*inside* a VR game, pin the ARIA window with an overlay tool: **XSOverlay**, **Desktop+** (free,
+SteamVR) or **OVR Toolkit** — all of them show any desktop window as a panel you can grab in-game,
+and ARIA's cockpit mode is built to be pinned that way. A native SteamVR-overlay mode for ARIA is on
+the list.
 
 **GAME page — the arcade.** Something to do in quantum. MENU → GAME. Pick a game on the side OSBs;
 the rockers are the d-pad (left pair up/down, right pair left/right), the lower rockers are A and
