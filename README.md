@@ -63,11 +63,20 @@ Aegis, MISC, Crusader) or change any colour for your own mix. Brightness slider 
 key on the deck and the MFD rockers), bloom/glow, and scanline strength. The main app takes the
 skin's accent colours too.
 
-**GAME page — chess vs ARIA.** Something to do in quantum. MENU → GAME. The rockers move the
-cursor (left pair up/down, right pair left/right), the next rocker selects; the legal moves for
-the selected piece appear on the OSBs — press one to play it. NEW / BLK (play black) / level
-(ROOK → EASY → MED → HARD) / UNDO. The game and your W-L-D record survive restarts. Mouse clicks
-on squares work too.
+Each skin has a **personality** (Settings → Personality, with a strength slider): **Analog**
+(ARIA, Anvil, Aegis) — a radar sweep with phosphor persistence and needle-style bars; **Smooth**
+(RSI, Origin, MISC, Crusader) — soft fades, no scanlines, no flicker; **Glitch** (Drake) — CRT
+static, a rolling bar, occasional tears and jitter.
+
+**GAME page — the arcade.** Something to do in quantum. MENU → GAME. Pick a game on the side OSBs;
+the rockers are the d-pad (left pair up/down, right pair left/right), the lower rockers are A and
+B. Keyboard arrows / space / shift work when that MFD is the SOI. NEW, PAUSE, TOP10 on the top row.
+Every game has a top-10 leaderboard under your pilot name (Settings → Pilot name).
+- **CHESS** vs ARIA — rockers move the cursor, legal moves land on the OSBs; four levels; UNDO.
+- **CARGO** — tetris. A rotates, B hard-drops, down soft-drops.
+- **RUNNER** — the dino. A/up jumps, down ducks.
+- **ROIDS** — asteroids. Left/right turn, up thrusts, A fires, B hyperspace.
+More games land one or two per version.
 
 The Cougars are detected by their USB id. If the SYS page says NOT FOUND, use SYS → SET L / SET R
 (or Settings ⚙ → Set left/right MFD) and press any button on that MFD.
