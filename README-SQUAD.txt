@@ -21,3 +21,14 @@ Tailscale/Hamachi, nothing to forward.
 Files kept on the box: squad_config.json (key, name), scores.json, lobbies.json.
 Change the key: edit squad_config.json and restart (or rerun with --key).
 Update later: copy a newer squad_server.py + squad.py over the old ones and restart.
+
+RAILWAY (cloud, always on, HTTPS, no port forwarding)
+  1. railway.com -> New Project -> Deploy from GitHub repo -> ewgweaz3l-rgb/ARIA.
+     The repo's Dockerfile + railway.json build ONLY the squad server (not the desktop app).
+  2. Service -> Variables:  SQUAD_KEY = <pick a key>   SQUAD_NAME = <name on the boards>
+  3. Service -> right-click -> Attach Volume, mount path /data  (without it, scores reset
+     on every deploy; the status page warns you in amber).
+  4. Settings -> Networking -> Generate Domain. That https://….up.railway.app address +
+     the key go into everyone's ARIA -> Settings -> Squad -> Test.
+  Auto-update: Railway redeploys on every push to main, but railway.json's watchPatterns
+  limit that to pushes that touch the squad server files, so app updates don't bounce it.

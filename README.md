@@ -138,6 +138,11 @@ first run and keeps it in `squad_config.json`; the board and open lobbies are vi
 Scheduler → "At startup" → `pythonw squad_server.py`. Everyone, including you, then joins it from
 Settings → Squad as usual.
 
+**Squad server on Railway (cloud).** The repo's `Dockerfile` + `railway.json` build only the squad
+server. New Railway project → deploy this repo → variables `SQUAD_KEY` and `SQUAD_NAME` → attach a volume
+at `/data` → generate a domain. Everyone pastes the `https://….up.railway.app` address and key into
+Settings → Squad. Railway redeploys when squad-server files change on `main`; app-only pushes don't touch it.
+
 **Versus — GAME → SQUAD.** Play a squad mate on the same host: **CHESS**, **TANKS** (turn-based
 artillery: angle, power, wind, craters, one nuke each) and **FLEET** (battleship on a 10×10 grid).
 One of you hosts a lobby, the other sees it under SQUAD and joins; the game opens on both MFDs the
