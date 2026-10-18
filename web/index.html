@@ -666,6 +666,7 @@ body.cockpit .cocktop #brief{display:none}
   <div class="panel">
     <div class="row" style="align-items:center;gap:16px">
       <button class="btn" id="listenBtn" style="min-width:190px">🎙 Start listening</button>
+      <button class="btn ghost small" id="voiceTest" title="Listen for 6 seconds right now (no push-to-talk) and show exactly what happens">Test voice</button>
       <div style="flex:1;min-width:220px">
         <div class="sub" id="voiceState">Not listening.</div>
         <div class="mono" id="heard" style="font-size:15px;margin-top:2px;color:var(--text)">—</div>
@@ -2651,19 +2652,51 @@ function startRec() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { toast('Always-on voice needs Chrome or Edge.'); VOICE.on = false; updateVoiceUI(); return; }
   const r = new SR(); r.continuous = true; r.interimResults = true; r.lang = 'en-US';
+  let interim = '', gotFinal = false;
+  r.onstart = () => vlog('mic open — recognizer started');
+  r.onaudiostart = () => vlog('hearing audio');
+  r.onspeechstart = () => vlog('speech detected');
   r.onresult = e => {
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const res = e.results[i], t = res[0].transcript.trim();
       $('#heard').textContent = t || '—';
-      if (res.isFinal) handleUtterance(t);
+      if (res.isFinal) { gotFinal = true; interim = ''; vlog(`heard: “${t}”`); handleUtterance(t); }
+      else interim = t;
     }
   };
   r.onerror = e => {
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { VOICE.on = false; updateVoiceUI(); toast('Microphone blocked — allow it from the icon in the address bar.'); }
+    VOICE.lastErr = e.error; vlog(`⚠ recognizer error: ${e.error}`);
+    const why = {
+      'not-allowed': 'Microphone blocked — allow it from the icon in the address bar (Voice Macros → Allow microphone).',
+      'service-not-allowed': 'The browser refused speech recognition. Voice needs Microsoft Edge or Google Chrome (not Brave/Opera/Firefox).',
+      'network': "Speech recognition couldn't reach its online service. Browser voice needs internet (Edge uses Microsoft's, Chrome uses Google's) — check a firewall/VPN/ad-blocker isn't blocking it.",
+      'audio-capture': "No microphone could be opened. Check Windows' default input device (Voice Macros → Windows sound settings).",
+      'language-not-supported': 'English (US) speech recognition isn’t available in this browser.'}[e.error];
+    if (why) { toast(why, 9000); ufcSay(why); }
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { VOICE.on = false; updateVoiceUI(); }
   };
   // always-on mode keeps restarting; push-to-talk only restarts while the button is still held
-  r.onend = () => { VOICE.rec = null; if (VOICE.on && (!pttMode() || PTTC.held)) setTimeout(() => { if (VOICE.on && !VOICE.rec && (!pttMode() || PTTC.held)) startRec(); }, 250); else updateVoiceUI(); };
-  try { r.start(); VOICE.rec = r; } catch {}
+  r.onend = () => {
+    // a quick PTT release can end the session before the recognizer marks the words final — use what it heard
+    if (!gotFinal && interim) { vlog(`heard (unfinalized): “${interim}”`); handleUtterance(interim); interim = ''; }
+    VOICE.rec = null; if (VOICE.on && (!pttMode() || PTTC.held)) setTimeout(() => { if (VOICE.on && !VOICE.rec && (!pttMode() || PTTC.held)) startRec(); }, 250); else updateVoiceUI(); };
+  try { r.start(); VOICE.rec = r; } catch (e) { vlog('⚠ could not start recognizer: ' + e.message); }
+}
+// one-shot test that bypasses push-to-talk: tells apart "recognizer broken" from "PTT not starting it"
+function voiceTest() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast('This browser has no speech recognition. Voice needs Microsoft Edge or Google Chrome.', 8000); return; }
+  if (VOICE.rec) { try { VOICE.rec.stop(); } catch {} }
+  const r = new SR(); r.lang = 'en-US'; r.interimResults = true; let heard = '', err = '';
+  const b = $('#voiceTest'); b.disabled = true; b.textContent = 'Say “call ATC”…';
+  r.onstart = () => vlog('TEST: recognizer started — talk now');
+  r.onaudiostart = () => vlog('TEST: audio flowing');
+  r.onresult = e => { heard = [...e.results].map(x => x[0].transcript).join(' '); $('#heard').textContent = heard; };
+  r.onerror = e => { err = e.error; vlog('TEST ⚠ ' + e.error); };
+  r.onend = () => { b.disabled = false; b.textContent = 'Test voice';
+    const msg = heard ? `Voice works — I heard “${heard}”. If push-to-talk still does nothing, the problem is the button, not the mic.` : err ? `Voice test failed: ${err}. ${err === 'network' ? 'Speech recognition needs internet and its online service unblocked.' : err === 'not-allowed' ? 'Allow the microphone.' : err === 'no-speech' ? "It heard nothing — check Windows' default input." : ''}` : "Voice test heard nothing. Check Windows' default microphone.";
+    toast(esc(msg), 10000); ufcSay(msg); vlog('TEST: ' + msg); };
+  try { r.start(); setTimeout(() => { try { r.stop(); } catch {} }, 6000); } catch (e) { b.disabled = false; b.textContent = 'Test voice'; toast('Could not start: ' + esc(e.message)); }
 }
 function setListening(on) {
   VOICE.on = on; store.set('voiceOn', on);
@@ -2703,11 +2736,12 @@ function handleUtterance(raw) {
   if (bq) { vlog(`→ bind: ${bq}`); show('voice'); $('#bindQ').value = bq; runBind(bq, true); return; }
   const m = matchMacro(t);
   if (m) return fireMacro(m);
-  if (/make me rich|haul|trade|\bnav\b|navigate|course|take me|how far|distance|route|go to|jump to|\brtb\b|return to base|go home|head home/.test(t) || /\d+(\.\d+)?\s*(k|m|million|thousand)\b/.test(t)) {
+  if (/make me rich|haul|trade|\bnav\b|navigate|course|take me|how far|distance|route|go to|jump to|\brtb\b|return to base|go home|head home|where am i|where are we|locate|find me|\bscan\b|\bping\b|signature|\b(i'?m|i am|we'?re|we are) (at|in|on|docked|landed|parked)|position/.test(t) || /\d+(\.\d+)?\s*(k|m|million|thousand)\b/.test(t)) {
     VOICE.heardCommand = true; $('#cmd').value = t; vlog(`→ ARIA: ${t}`); runCommand(t); return;
   }
   vlog(`no match: ${t}`);
-  if (woke) say('Say again?', 'say-again');
+  // push-to-talk is deliberate, so always answer — and show what was heard so a mis-hear is obvious
+  if (woke || pttMode()) { say('Say again?', 'say-again'); if (CK.on) ufcSay(`I heard “${t}” — no macro or command matches that.`); else toast(`Heard “${esc(t)}” — no macro or command matches.`, 5000); }
 }
 function fireMacro(m, test) {
   if (!test && m === VOICE.lastMacro && Date.now() - VOICE.lastFire < 900) return;
@@ -2799,11 +2833,11 @@ function onPTT(st) {
   if (!pttMode() || !VOICE.on) return;
   const pressed = st.down && (!prev || !prev.down || st.seq !== prev.seq);
   if (pressed) {
-    clearTimeout(PTTC.stopT); PTTC.held = true; beep(880);
+    clearTimeout(PTTC.stopT); PTTC.held = true; beep(880); vlog('PTT down — listening');
     $('#voiceState').textContent = 'Talk…';
     if (!VOICE.rec) startRec();
   } else if (!st.down && PTTC.held) {
-    PTTC.held = false; beep(620);
+    PTTC.held = false; beep(620); vlog('PTT up');
     // keep the mic open a moment so the last word finishes, then let the final result come in
     PTTC.stopT = setTimeout(() => { if (!PTTC.held && VOICE.rec) { try { VOICE.rec.stop(); } catch {} } updateVoiceUI(); }, 700);
   }
@@ -4695,6 +4729,7 @@ $('#navShip').onchange = () => { $('#navSpeed').value = ''; qtSpecs(); };
 // voice
 $('#pill-voice').onclick = () => setListening(!VOICE.on);
 $('#listenBtn').onclick = () => setListening(!VOICE.on);
+$('#voiceTest').onclick = voiceTest;
 $('#listenMode').onchange = () => { store.set('listenMode', $('#listenMode').value); if (VOICE.on) { setListening(false); setListening(true); } updateVoiceUI(); };
 $('#wakeOn').onchange = () => { store.set('wakeOn', $('#wakeOn').checked); updateVoiceUI(); };
 $('#wakeWord').onchange = () => store.set('wakeWord', $('#wakeWord').value.trim().toLowerCase());
