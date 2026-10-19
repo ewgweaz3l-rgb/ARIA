@@ -118,7 +118,12 @@ body.pitbandhide #appShell,body.pitbandhide #dcsTT{display:none!important}
 .pcorner b{font:700 8px var(--head);letter-spacing:.12em;color:#c9cfd6;opacity:.8}
 .pcorner button{width:70%;flex:1;border:1px solid #3a424d;background:#2a2f36;color:#aeb7c2;border-radius:4px;font-size:9px;padding:0;line-height:1}
 .pcorner button.down{background:#1c2026;border-color:#7cf59a;color:#7cf59a}
-.pswapc{position:absolute;border:1px solid #3a424d;background:#16191e;color:#c9cfd6;border-radius:6px;font:700 11px var(--head);letter-spacing:.1em;padding:5px 9px}
+.pswitch{width:64px;height:92px;border:1px solid #3a424d;background:linear-gradient(#22262c,#15181c);border-radius:8px;padding:5px 0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;color:#7b8591;font:700 9px var(--head);letter-spacing:.1em;box-shadow:0 2px 0 #0b0d10}
+.pswitch span.on{color:#7cf59a;text-shadow:0 0 6px rgba(124,245,154,.5)}
+.pswitch i{position:relative;width:22px;height:34px;border-radius:50%;background:radial-gradient(#0b0d10 35%,#2b3139 36%,#1a1e23 70%);display:block}
+.pswitch b{position:absolute;left:7px;width:8px;height:20px;border-radius:4px;background:linear-gradient(90deg,#9aa4b0,#e4e8ec 45%,#7b8591);box-shadow:0 1px 2px #000;transition:top .12s}
+.pswitch.up b{top:-6px}.pswitch.dn b{top:20px}
+.pswitch:hover{border-color:#6d7a89}
 #pitDock{position:absolute;display:flex;gap:4px;z-index:3}
 #pitDock button{background:#0d1014;border:1px solid #2c333c;color:#aeb7c2;border-radius:5px;font:700 10px var(--head);letter-spacing:.12em;padding:4px 8px}
 #pitDock button.on,#pitDock button:hover{border-color:#7cf59a;color:#7cf59a}
@@ -148,7 +153,7 @@ body.pitbandhide #appShell,body.pitbandhide #dcsTT{display:none!important}
 .puchan{background:#05120a;border:1px solid #1d3a26;border-radius:calc(var(--u)*1);text-align:center;font-size:1.5em;height:calc(var(--u)*8);line-height:calc(var(--u)*8)}
 .puknob{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:calc(var(--u)*.8)}.puknob button{height:calc(var(--u)*8)}
 .pupull{border-radius:50%!important;background:radial-gradient(#4a525c,#1e2228)!important}
-.puswap{background:#0d1014!important;font-size:.7em!important;padding:calc(var(--u)*1.5) calc(var(--u)*3)!important;letter-spacing:.12em!important}
+.pufc .pswitch{align-self:end;height:calc(var(--u)*22);width:calc(var(--u)*15);background:linear-gradient(#22262c,#15181c)!important;font-size:calc(var(--u)*2.4)!important}
 .pufc.nodata .puscratch::before{content:'UFC — waiting for the jet';color:#3f6e4c;font-size:.6em;letter-spacing:.1em}
 .dcsinner{position:absolute;border:1px dashed #5fd3f0;pointer-events:none;text-decoration:none}
 
@@ -853,6 +858,8 @@ body.cockpit .cocktop #brief{display:none}
         <label class="f" style="margin-top:8px">DDI ring width <span class="sub" id="pitDdiRingV"></span><input type="range" id="pitDdiRing" min="5" max="18" step="1"></label>
         <label class="f">Bottom band<select id="pitBand"><option value="indent">Indent — start below any panel that reaches into it</option><option value="over">Overlap — panels sit on top of the band</option><option value="hide">Hidden — a small ▴ ARIA tab opens it</option></select></label>
         <label class="f">Panel brightness <span class="sub" id="pitDimV"></span><input type="range" id="pitDim" min="15" max="100" step="5"></label>
+        <div class="f" style="margin-top:6px">UFC ⇄ AMPCD key or HOTAS button <span class="row" style="gap:6px;align-items:center"><b class="mono" id="pitKeyLbl">none</b><button class="btn ghost small" id="pitKeyLearn">Learn</button><button class="btn ghost small" id="pitKeyClear">Clear</button></span>
+          <span class="sub">Works while DCS has focus. The lever beside the center display does the same.</span></div>
       </div>
     </div>
     <p class="sub" style="margin-top:8px"><b>Dimming the DCS displays:</b> the BRT / CONT / MODE corners on each bezel turn the jet's own knobs (click ▲▼ or scroll). <b>DCS-BIOS:</b> <span id="pitBios"></span></p>

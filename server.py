@@ -447,6 +447,10 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(200, {"displays": winsys.monitors(), "current": cfg.get("display"), "fullscreen": cfg.get("fullscreen", False)})
             elif kind == "ptt" and rest == "stream":
                 return self.ptt_stream()
+            elif kind == "pitkey" and rest == "stream":
+                return self.ptt_stream(PITKEY)
+            elif kind == "pitkey":
+                return self.send_json(200, PITKEY.state())
             elif kind == "ptt":
                 return self.send_json(200, PTT.state())
             else:
@@ -477,19 +481,20 @@ class Handler(SimpleHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError, OSError):
             return
 
-    def ptt_stream(self):
+    def ptt_stream(self, watcher=None):
         """Server-sent events: one message per push-to-talk change. Event-driven,
         so it keeps working when the browser throttles timers in a background window."""
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        st = PTT.state()
+        w = watcher or PTT
+        st = w.state()
         try:
             while True:
                 self.wfile.write(f"data: {json.dumps(st)}\n\n".encode())
                 self.wfile.flush()
-                st = PTT.wait(st["seq"], st["down"], timeout=15)
+                st = w.wait(st["seq"], st["down"], timeout=15)
         except (BrokenPipeError, ConnectionResetError, OSError):
             return
 
@@ -545,6 +550,15 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(400, {"ok": False, "error": "Push-to-talk needs ARIA running on Windows."})
             PTT.learn()
             return self.send_json(200, {"ok": True})
+        if u.path == "/api/pitkey/learn":  # the UFC ⇄ AMPCD swap key / HOTAS button
+            if not PITKEY.available:
+                return self.send_json(400, {"ok": False, "error": "Key watching needs ARIA running on Windows."})
+            PITKEY.learn()
+            return self.send_json(200, {"ok": True})
+        if u.path == "/api/pitkey/clear":
+            PITKEY.clear()
+            cfg = load_config(); cfg.pop("pit_swap", None); save_config(cfg)
+            return self.send_json(200, {"ok": True})
         if u.path == "/api/ptt/clear":
             PTT.clear()
             cfg = load_config(); cfg.pop("ptt", None); save_config(cfg)
@@ -579,6 +593,8 @@ class Handler(SimpleHTTPRequestHandler):
                     if payload.get("focus"):
                         winsys.focus_dcs()
                     return self.send_json(200, {"ok": True, "simulated": os.name != "nt"})
+                if act == "shape" and payload.get("ping"):  # keep ARIA's panels above DCS
+                    return self.send_json(200, {"ok": winsys.raise_aria()})
                 if act == "shape":  # cockpit mode: ARIA's window becomes only its panels; viewports are holes
                     rects = None if payload.get("off") else list(payload.get("rects") or [])
                     return self.send_json(200, {"ok": winsys.shape_aria(rects, bool(payload.get("topmost", True)))})
@@ -749,6 +765,14 @@ def _save_ptt(binding):
 
 
 PTT = ptt_mod.PTT(load_config().get("ptt"), on_learn=_save_ptt)
+
+
+def _save_pitkey(binding):
+    cfg = load_config(); cfg["pit_swap"] = binding; save_config(cfg)
+    sys.stderr.write(f"[aria] UFC/AMPCD swap bound to {binding.get('label')}\n")
+
+
+PITKEY = ptt_mod.PTT(load_config().get("pit_swap"), on_learn=_save_pitkey)
 
 
 def _save_mfd(assign):

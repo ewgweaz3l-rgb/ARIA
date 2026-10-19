@@ -29,6 +29,11 @@ if IS_WINDOWS:
         _fields_ = [("cb", wintypes.DWORD), ("DeviceName", ctypes.c_wchar * 32), ("DeviceString", ctypes.c_wchar * 128),
                     ("StateFlags", wintypes.DWORD), ("DeviceID", ctypes.c_wchar * 128), ("DeviceKey", ctypes.c_wchar * 128)]
 
+    # 64-bit handles: without these, HWND_TOPMOST (-1) gets truncated and the window never stays on top
+    user32.SetWindowPos.argtypes = (wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT)
+    user32.SetWindowPos.restype = wintypes.BOOL
+    HWND_TOPMOST, HWND_NOTOPMOST = wintypes.HWND(-1), wintypes.HWND(-2)
+
     MonitorEnumProc = ctypes.WINFUNCTYPE(ctypes.c_int, wintypes.HMONITOR, wintypes.HDC, ctypes.POINTER(wintypes.RECT), wintypes.LPARAM)
     EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
 
@@ -107,7 +112,7 @@ def shape_aria(rects, topmost=True):
     for hwnd in wins:
         if rects is None:
             user32.SetWindowRgn(hwnd, None, True)
-            user32.SetWindowPos(hwnd, -2, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)  # NOTOPMOST, NOSIZE|NOMOVE|NOACTIVATE
+            user32.SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)  # NOTOPMOST, NOSIZE|NOMOVE|NOACTIVATE
             continue
         wr, pt = wintypes.RECT(), wintypes.POINT(0, 0)
         user32.GetWindowRect(hwnd, ctypes.byref(wr))
@@ -122,7 +127,19 @@ def shape_aria(rects, topmost=True):
             gdi32.CombineRgn(rgn, rgn, part, 2)  # RGN_OR
             gdi32.DeleteObject(part)
         user32.SetWindowRgn(hwnd, rgn, True)  # the window owns the region from here on
-        user32.SetWindowPos(hwnd, -1 if topmost else -2, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)
+        user32.SetWindowPos(hwnd, HWND_TOPMOST if topmost else HWND_NOTOPMOST, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)
+    return bool(wins)
+
+
+def raise_aria():
+    """Put ARIA's (shaped) window back on top of DCS without taking focus."""
+    if not IS_WINDOWS:
+        return False
+    wins = aria_windows()
+    for hwnd in wins:
+        if user32.IsIconic(hwnd):
+            user32.ShowWindow(hwnd, 4)  # SW_SHOWNOACTIVATE
+        user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0040)
     return bool(wins)
 
 

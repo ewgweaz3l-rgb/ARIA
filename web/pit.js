@@ -97,6 +97,15 @@ function pitPointer(root) {
 const pbtn = (name) => `data-p='${JSON.stringify([[name, '1']])}' data-r='${JSON.stringify([[name, '0']])}'`;
 
 /* ---------------- drawing ---------------- */
+// the UFC ⇄ AMPCD toggle: a two-position lever (also on a key / HOTAS button: Settings → Cockpit panels)
+function pitSwitchHtml(cls, style) {
+  const up = PIT.cfg.center === 'ufc';
+  return `<button class="pswitch ${up ? 'up' : 'dn'} ${cls}" id="pitSwapC" style="${style}" title="Center display: flip between the UFC face and the AMPCD${PIT.keyLabel ? ' (or press ' + esc(PIT.keyLabel) + ')' : ''}">
+    <span class="${up ? 'on' : ''}">UFC</span><i><b></b></i><span class="${up ? '' : 'on'}">AMPCD</span></button>`;
+}
+function pitFlip() { PIT.cfg.center = PIT.cfg.center === 'ufc' ? 'ampcd' : 'ufc'; pitSave(); pitLayout(); pitSettingsSync(); }
+
+/* ---------------- drawing (panels) ---------------- */
 function ringHtml(id, kind, g) {
   const b = g.bezel, d = g.disp, s = Math.min(g.t * .72, d.w * PIT.cfg.spread / 100 / 5 * .8);
   const bw = {t: d.y - b.y, l: d.x - b.x, r: b.x + b.w - d.x - d.w, b: b.y + b.h - d.y - d.h};
@@ -137,7 +146,7 @@ function ufcHtml(o) {
     </div>
     <div class="puright">${osw}</div>
     <div class="pufns">${fn}</div>
-    <div class="pucomms">${comm(1)}<button class="puswap" id="pitSwapC" title="Show the AMPCD here">⇄ AMPCD</button>${comm(2)}</div>
+    <div class="pucomms">${comm(1)}${pitSwitchHtml('', 'position:relative')}${comm(2)}</div>
   </div>`;
 }
 // Hornet UFC glyphs: ` and ~ are the narrow "1" and "2" of two-digit COMM channels
@@ -157,8 +166,11 @@ function pitLayout() {
   if (c.osbR && DCS.layout.use.RIGHT_MFCD) { const g = ddiGeo(R.RIGHT_MFCD, W, H); html += ringHtml('pitR', 'RIGHT_DDI', g); panels.push(g); }
   let ufcBox = null;
   if (c.center === 'ufc') { ufcBox = pct(R.CENTER_MFCD, W, H); html += ufcHtml(ufcBox); }
-  else if (c.amp) { const g = ampGeo(R.CENTER_MFCD, W, H); html += ringHtml('pitC', 'AMPCD', g); panels.push(g);
-    html += `<button class="pswapc" id="pitSwapC" style="left:${g.bezel.x + g.bezel.w + 6}px;top:${g.bezel.y + g.bezel.h - 28}px">⇄ UFC</button>`; }
+  else {  // AMPCD: always a clickable bezel — inside the box when the viewport is inset, around it otherwise
+    const g = c.amp ? ampGeo(R.CENTER_MFCD, W, H) : ddiGeo(R.CENTER_MFCD, W, H); html += ringHtml('pitC', 'AMPCD', g); panels.push(g);
+    const o = pct(R.CENTER_MFCD, W, H), spare = o.x + o.w - (g.bezel.x + g.bezel.w), sw = 64, sh = 92;
+    const x = spare >= sw + 8 ? g.bezel.x + g.bezel.w + (spare - sw) / 2 : g.bezel.x + g.bezel.w + 6;
+    html += pitSwitchHtml('', `position:absolute;left:${x}px;top:${g.bezel.y + g.bezel.h - sh}px`); }
   // the band: indented under whatever panels reach into it, overlapped, or hidden
   let band = pct(R.BAND, W, H);
   const blockers = panels.map(g => g.bezel).concat(ufcBox ? [ufcBox] : []);
@@ -214,11 +226,14 @@ async function pitEnter() {
   PIT.on = true; document.body.classList.add('dcsck');
   if (!$('#dcsPit')) { const d = document.createElement('div'); d.id = 'dcsPit'; document.body.appendChild(d); pitPointer(d); d.addEventListener('click', pitDockClick); }
   setTimeout(pitLayout, 350); setTimeout(pitLayout, 1200);
+  // DCS takes the foreground whenever you fly; keep ARIA's panels above it
+  clearInterval(PIT.keep); PIT.keep = setInterval(() => { if (PIT.on && !$('.modal.on, #dcsEd')) fetch('/api/dcs/shape', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ping: true})}).catch(() => {}); }, 2000);
+  pitKeyStream();
   dlogAdd('PIT', 'Cockpit panels on the MFD screen.');
 }
 async function pitExit() {
   if (!PIT.on) return;
-  PIT.on = false; PIT.lastShape = ''; document.body.classList.remove('dcsck', 'pitbandhide');
+  PIT.on = false; PIT.lastShape = ''; clearInterval(PIT.keep); document.body.classList.remove('dcsck', 'pitbandhide');
   $('#dcsPit') && ($('#dcsPit').innerHTML = '');
   ['#appShell', '#dcsTT'].forEach(id => $(id).removeAttribute('style'));
   await fetch('/api/dcs/shape', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({off: true})}).catch(() => {});
@@ -227,9 +242,9 @@ async function pitExit() {
 }
 function pitDockClick(e) {
   const a = e.target.closest('[data-a]') && e.target.closest('[data-a]').dataset.a, c = PIT.cfg;
-  if (e.target.closest('#pitSwapC')) { c.center = c.center === 'ufc' ? 'ampcd' : 'ufc'; pitSave(); pitLayout(); pitSettingsSync(); return; }
+  if (e.target.closest('#pitSwapC')) { pitFlip(); fetch('/api/dcs/bios', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cmds: [], focus: true})}).catch(() => {}); return; }
   if (!a) return;
-  if (a === 'center') c.center = c.center === 'ufc' ? 'ampcd' : 'ufc';
+  if (a === 'center') { pitFlip(); return; }
   else if (a === 'osbL' || a === 'osbR') c[a] = !c[a];
   else if (a === 'dim') { const steps = [100, 75, 55, 35, 20]; c.dim = steps[(steps.indexOf(c.dim) + 1) % steps.length] || 100; }
   else if (a === 'band') PIT.bandOpen = !PIT.bandOpen;
@@ -237,6 +252,14 @@ function pitDockClick(e) {
   pitSave(); pitLayout(); pitSettingsSync();
 }
 addEventListener('resize', () => { if (PIT.on) pitLayout(); });
+// the swap key / HOTAS button (watched system-wide by ARIA, so it works while DCS has focus)
+function pitKeyStream() {
+  if (PIT.es) return;
+  try { PIT.es = new EventSource('/api/pitkey/stream');
+    PIT.es.onmessage = ev => { try { const st = JSON.parse(ev.data); PIT.keyLabel = st.binding ? st.binding.label : '';
+      if (PIT.keySeq != null && st.seq > PIT.keySeq && PIT.on) pitFlip(); PIT.keySeq = st.seq;
+      const l = $('#pitKeyLbl'); if (l) l.textContent = st.learning ? 'press it now…' : (st.binding ? st.binding.label : 'none'); } catch {} }; } catch {}
+}
 document.addEventListener('fullscreenchange', () => {  // Esc out of full screen = leave cockpit mode
   if (!PIT.on) return; if (document.fullscreenElement) { PIT.full = true; setTimeout(pitLayout, 200); } else if (PIT.full) { PIT.full = false; pitExit(); } });
 // modals (settings etc.) need the whole window while they're open
@@ -274,5 +297,8 @@ function pitSettingsInit() {
   f('pitBand').onchange = () => { c.band = f('pitBand').value; PIT.bandOpen = false; upd(); };
   f('pitDim').oninput = () => { c.dim = +f('pitDim').value; upd(); };
   f('pitGo').onclick = pitEnter;
+  f('pitKeyLearn').onclick = () => { fetch('/api/pitkey/learn', {method: 'POST'}); $('#pitKeyLbl').textContent = 'press it now…'; };
+  f('pitKeyClear').onclick = () => fetch('/api/pitkey/clear', {method: 'POST'});
+  pitKeyStream();
   pitSettingsSync();
 }
