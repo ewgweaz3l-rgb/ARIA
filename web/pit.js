@@ -8,8 +8,8 @@
    Clicks go to DCS through DCS-BIOS ("UFC_1 1" / "UFC_1 0"), then focus goes back to DCS. */
 
 const PIT = {
-  on: false, held: null, warned: false, bandOpen: false,
-  cfg: Object.assign({center: 'ufc', amp: true, osbL: false, osbR: false, ring: 13, ddiRing: 9, spread: 70, band: 'indent', dim: 100}, store.get('dcsPit', {}))
+  on: false, held: null, tog: {}, warned: false, bandOpen: false,
+  cfg: Object.assign({look: 'helios', center: 'ufc', amp: true, osbL: false, osbR: false, ring: 13, ddiRing: 9, spread: 70, band: 'indent', dim: 100}, store.get('dcsPit', {}))
 };
 function pitSave() { store.set('dcsPit', PIT.cfg); }
 
@@ -28,20 +28,22 @@ function ddiGeo(r, W, H) {
   return {disp, t, bezel: {x: x0, y: y0, w: x1 - x0, h: y1 - y0}};
 }
 // the viewport DCS should draw into (dcsCompute uses this, so the written file matches the bezel)
+const pitHel = () => PIT.cfg.look === 'helios' && !PIT.noHel;
 function pitViewRect(key, r, W, H) {
+  if (key === 'CENTER_MFCD' && PIT.cfg.look === 'helios') return helAmpGeo(r, W, H).disp;  // the Helios AMPCD frame's screen
   if (key === 'CENTER_MFCD' && PIT.cfg.amp) return ampGeo(r, W, H).disp;
   return pct(r, W, H);
 }
 
 /* ---------------- what each button sends ---------------- */
 const pad2 = n => String(n).padStart(2, '0');
-// Hornet bezel numbering, clockwise: left 1-5 (top→bottom), top 6-10 (left→right), right 11-15 (top→bottom), bottom 16-20 (right→left)
+// Hornet bezel numbering (as Helios): left 1-5 (bottom→top), top 6-10 (left→right), right 11-15 (top→bottom), bottom 16-20 (right→left)
 function osbSpots(g) {
   const d = g.disp, sp = PIT.cfg.spread / 100, out = [];
   const along = (len, i) => len * (0.5 + (i - 2) * sp / 4.6);
   const mid = (a, b) => (a + b) / 2;
   const L = mid(g.bezel.x, d.x), R = mid(d.x + d.w, g.bezel.x + g.bezel.w), T = mid(g.bezel.y, d.y), B = mid(d.y + d.h, g.bezel.y + g.bezel.h);
-  for (let i = 0; i < 5; i++) out.push({n: 1 + i, x: L, y: d.y + along(d.h, i), side: 'l'});
+  for (let i = 0; i < 5; i++) out.push({n: 1 + i, x: L, y: d.y + along(d.h, 4 - i), side: 'l'});  // 1 is bottom-left, counting up
   for (let i = 0; i < 5; i++) out.push({n: 6 + i, x: d.x + along(d.w, i), y: T, side: 't'});
   for (let i = 0; i < 5; i++) out.push({n: 11 + i, x: R, y: d.y + along(d.h, i), side: 'r'});
   for (let i = 0; i < 5; i++) out.push({n: 16 + i, x: d.x + along(d.w, 4 - i), y: B, side: 'b'});
@@ -81,6 +83,7 @@ function pitPointer(root) {
     const el = e.target.closest('[data-p]'); if (!el) return;
     e.preventDefault(); el.setPointerCapture && el.setPointerCapture(e.pointerId); el.classList.add('down');
     const press = JSON.parse(el.dataset.p), rel = el.dataset.r ? JSON.parse(el.dataset.r) : null;
+    if (el.dataset.tog) { const [n] = el.dataset.tog.split(':'); PIT.tog[n] = +press[0][1]; setTimeout(pitLayout, 60); }
     bios(press, false);
     let rep = 0;
     if (el.dataset.rep) rep = setInterval(() => bios(press, false), 130);
@@ -104,6 +107,104 @@ function pitSwitchHtml(cls, style) {
     <span class="${up ? 'on' : ''}">UFC</span><i><b></b></i><span class="${up ? '' : 'on'}">AMPCD</span></button>`;
 }
 function pitFlip() { PIT.cfg.center = PIT.cfg.center === 'ufc' ? 'ampcd' : 'ufc'; pitSave(); pitLayout(); pitSettingsSync(); }
+
+
+/* ======================================================================
+   HELIOS LOOK — the Helios Virtual Cockpit Hornet artwork (GPLv3, github.com/HeliosVirtualCockpit/Helios).
+   ARIA doesn't ship the images: your PC downloads them from the Helios project the first time and keeps them
+   in ARIA's cache. Layouts below are Helios's own (same pixel positions), so buttons sit exactly on the art.
+   ====================================================================== */
+const himg = n => '/api/helios/' + encodeURIComponent(n);
+const HEL_OSB_AMPCD = [[39, 567, 'H'], [39, 487, 'H'], [39, 409, 'H'], [39, 329, 'H'], [39, 247, 'H'], [186, 112, 'V'], [266, 112, 'V'], [346, 112, 'V'], [424, 112, 'V'], [506, 112, 'V'],
+  [645, 247, 'H'], [645, 329, 'H'], [645, 409, 'H'], [645, 487, 'H'], [645, 567, 'H'], [506, 696, 'V'], [424, 696, 'V'], [346, 696, 'V'], [266, 696, 'V'], [186, 696, 'V']];
+const HEL_OSB_DDI = [[14, 540, 'H'], [14, 455, 'H'], [14, 370, 'H'], [14, 285, 'H'], [14, 200, 'H'], [150, 74, 'V'], [230, 74, 'V'], [310, 74, 'V'], [390, 74, 'V'], [470, 74, 'V'],
+  [604, 200, 'H'], [604, 285, 'H'], [604, 370, 'H'], [604, 455, 'H'], [604, 540, 'H'], [470, 652, 'V'], [390, 652, 'V'], [310, 652, 'V'], [230, 652, 'V'], [150, 652, 'V']];
+const HEL = {
+  AMPCD: {img: 'fa/AMPCD Frame', W: 727, H: 746, scr: {x: 113, y: 168, w: 503, h: 503}},  // scr = the frame's see-through window (measured), so DCS draws exactly inside it
+  DDI: {img: 'fa/MPCD Frame', W: 656, H: 706, scr: {x: 79, y: 136, w: 489, h: 485}},
+  UFC: {img: 'fa/UFC Faceplate', W: 602, H: 470}
+};
+const hb = (x, y, w, h) => `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+const dp = v => `data-p='${JSON.stringify(v)}'`, dr = v => `data-r='${JSON.stringify(v)}'`;
+// a pushbutton drawn with its up / pushed images
+function hBtn(x, y, w, h, up, dn, name, title, extra) {
+  return `<button class="hbtn" style="${hb(x, y, w, h)}" ${pbtn(name)} title="${title || name}"><img class="u" src="${himg(up)}" alt=""><img class="d" src="${himg(dn)}" alt="">${extra || ''}</button>`;
+}
+// three-image rocker / toggle: top half sends up, bottom half sends down; spring = back to the middle on release
+function hRock(x, y, w, h, pre, name, title, spring) {
+  const up = [[name, '2']], dn = [[name, '0']], mid = [[name, '1']];
+  return `<div class="hrock" style="${hb(x, y, w, h)}" title="${title}"><img class="m" src="${himg(pre + 'Mid')}" alt=""><img class="u" src="${himg(pre + 'Up')}" alt=""><img class="d" src="${himg(pre + 'Dn')}" alt="">
+    <button class="hu" ${dp(up)} ${spring ? dr(mid) : ''}></button><button class="hd" ${dp(dn)} ${spring ? dr(mid) : ''}></button></div>`;
+}
+function hTog(x, y, w, h, name, title, state, vals) {  // maintained 3-position toggle (ADF): shows where it was left
+  const st = PIT.tog[name] ?? 1, img = ['core/Toggles/orange-round-down', 'core/Toggles/orange-round-norm', 'core/Toggles/orange-round-up'][st];
+  return `<div class="htog" style="${hb(x, y, w, h)}" title="${title}"><img src="${himg(img)}" alt="">
+    <button class="hu" data-tog="${name}:up" ${dp([[name, String(Math.min(2, st + 1))]])}></button><button class="hd" data-tog="${name}:dn" ${dp([[name, String(Math.max(0, st - 1))]])}></button></div>`;
+}
+// knob: left half turns down, right half up, scroll wheel turns; kind 'step' (pots) or 'sel' (selectors / encoders)
+function hKnob(x, y, w, h, img, name, kind, title, inner) {
+  const a = kind === 'step' ? ['-3200', '+3200'] : ['DEC', 'INC'];
+  return `<div class="hknob" style="${hb(x, y, w, h)}" title="${title} — click left/right side or scroll" data-wheel="${name}:${kind}"><img src="${himg(img)}" alt="">
+    <button class="kl" data-rep="${kind === 'step' ? 1 : ''}" ${dp([[name, a[0]]])}></button><button class="kr" data-rep="${kind === 'step' ? 1 : ''}" ${dp([[name, a[1]]])}></button>${inner || ''}</div>`;
+}
+function helDisplayPanel(id, kind, prefix, rect) {
+  const S = kind === 'AMPCD' ? HEL.AMPCD : HEL.DDI, sx = rect.w / S.W, sy = rect.h / S.H, amp = kind === 'AMPCD';
+  const osb = (amp ? HEL_OSB_AMPCD : HEL_OSB_DDI).map(([x, y, o], i) => { const z = amp ? 42 : 40, b = amp ? 'fa/MFD Button 1 ' : 'fa/MFD Button ';
+    return hBtn(x, y, z, z, b + 'Up' + o, b + 'Dn' + o, `${prefix}_PB_${pad2(i + 1)}`, `${kind === 'AMPCD' ? 'AMPCD' : prefix.replace('_', ' ')} PB ${i + 1}`); }).join('');
+  let extra;
+  if (amp) extra = hRock(90, 75, 86, 71, 'fa/MFD Rocker L ', 'AMPCD_NIGHT_DAY', 'DAY / NIGHT', true) + hRock(550, 75, 86, 71, 'fa/MFD Rocker R ', 'AMPCD_SYM_SW', 'SYM', true)
+    + hRock(39, 650, 40, 84, 'fa/MFD Rocker V ', 'AMPCD_GAIN_SW', 'GAIN', true) + hRock(645, 650, 40, 84, 'fa/MFD Rocker V ', 'AMPCD_CONT_SW', 'CONT', true)
+    + hSpring(15, 30, 60, 96, 'LEFT_DDI_HDG_SW', 'HDG set — top half / bottom half') + hSpring(642, 30, 60, 96, 'LEFT_DDI_CRS_SW', 'CRS set — top half / bottom half')
+    + hKnob(336, 37, 60, 60, 'fa/MPCD Knob', 'AMPCD_BRT_CTL', 'step', 'AMPCD OFF / BRT');
+  else extra = hKnob(298, 14, 50, 50, 'fa/Common Knob', prefix + '_BRT_SELECT', 'sel', 'OFF / NIGHT / DAY')
+    + hKnob(14, 632, 50, 50, 'fa/MPCD Knob', prefix + '_BRT_CTL', 'step', 'Brightness') + hKnob(592, 632, 50, 50, 'fa/MPCD Knob', prefix + '_CONT_CTL', 'step', 'Contrast');
+  const h = S.scr;
+  return `<div class="hpanel" id="${id}" data-hole="${h.x},${h.y},${h.w},${h.h}" data-nw="${S.W}" data-nh="${S.H}" style="left:${rect.x}px;top:${rect.y}px;width:${S.W}px;height:${S.H}px;transform:scale(${sx},${sy})">
+    <img class="hframe" src="${himg(S.img)}" alt="" onerror="pitNoHelios()">${osb}${extra}</div>`;
+}
+function hSpring(x, y, w, h, name, title) {  // HDG / CRS: spring-loaded, clicked right on the knob printed in the frame
+  return `<div class="hrock hspring" style="${hb(x, y, w, h)}" title="${title}">
+    <button class="hu" ${dp([[name, '2']])} ${dr([[name, '1']])}></button><button class="hd" ${dp([[name, '0']])} ${dr([[name, '1']])}></button></div>`;
+}
+const HEL_KEYS = [['1', 105, 116], ['2', 167, 116], ['3', 229, 116], ['4', 105, 179], ['5', 167, 179], ['6', 229, 179], ['7', 105, 240], ['8', 167, 240], ['9', 229, 240], ['CLR', 105, 303], ['0', 167, 303], ['ENT', 229, 303]];
+const HEL_FN = [['AP', 125], ['IFF', 176], ['TCN', 229], ['ILS', 284], ['DL', 337], ['BCN', 393], ['ONOFF', 447]];
+function helUfcPanel(rect) {
+  const S = HEL.UFC, sx = rect.w / S.W, sy = rect.h / S.H, rnd = 'core/Buttons/tactile-dark-round', rin = 'core/Buttons/tactile-dark-round-in';
+  let h = HEL_KEYS.map(([k, x, y]) => hBtn(x, y, 48, 48, 'fa/UFC Button Up ' + k, 'fa/UFC Button Dn ' + k, 'UFC_' + k)).join('');
+  h += HEL_FN.map(([k, x]) => hBtn(x, 400, 40, 40, 'fa/UFC Button Up ' + k, 'fa/UFC Button Dn ' + k, 'UFC_' + k)).join('');
+  h += hBtn(527, 129, 48, 48, 'fa/UFC Button Up EMCON', 'fa/UFC Button Dn EMCON', 'UFC_EMCON');
+  h += hBtn(28, 60, 40, 40, rnd, rin, 'UFC_IP', 'I/P');
+  [42, 107, 175, 241, 310].forEach((y, i) => { h += hBtn(302, y, 40, 40, rnd, rin, 'UFC_OS' + (i + 1), 'Option ' + (i + 1)); });
+  h += hTog(33, 122, 30, 60, 'UFC_ADF', 'ADF 1 / OFF / 2');
+  h += hKnob(528, 66, 48, 48, 'fa/Common Knob', 'UFC_BRT', 'step', 'UFC brightness') + hKnob(25, 213, 48, 48, 'fa/Common Knob', 'UFC_COMM1_VOL', 'step', 'COMM 1 volume') + hKnob(528, 213, 48, 48, 'fa/Common Knob', 'UFC_COMM2_VOL', 'step', 'COMM 2 volume');
+  h += hKnob(29, 383, 75, 75, 'fa/UFC Rotator_U', 'UFC_COMM1_CHANNEL_SELECT', 'sel', 'COMM 1 channel', hBtn(23, 25, 28, 28, rnd, rin, 'UFC_COMM1_PULL', 'COMM 1 pull'));
+  h += hKnob(500, 383, 75, 75, 'fa/UFC Rotator_U', 'UFC_COMM2_CHANNEL_SELECT', 'sel', 'COMM 2 channel', hBtn(23, 25, 28, 28, rnd, rin, 'UFC_COMM2_PULL', 'COMM 2 pull'));
+  // the jet's text, in Helios's display windows
+  const T = (key, x, y, w, ht, cls) => `<div class="htxt ${cls || ''}" style="${hb(x, y, w, ht)}" data-u="${key}"></div>`;
+  [45, 111, 177, 244, 310].forEach((y, i) => { h += T('UFC_OptionCueing' + (i + 1), 364, y, 17, 42, 'cue') + T('UFC_OptionDisplay' + (i + 1), 381, y, 129, 42); });
+  h += T('UFC_ScratchPadString1Display', 92, 35, 30, 48, 'sp') + T('UFC_ScratchPadString2Display', 122, 35, 30, 48, 'sp') + T('UFC_ScratchPadNumberDisplay', 152, 35, 135, 48, 'sp r');
+  h += T('UFC_Comm1Display', 26, 314, 41, 42, 'c') + T('UFC_Comm2Display', 538, 309, 40, 42, 'c');
+  return `<div class="hpanel hufc" id="pitUfc" data-nw="${S.W}" data-nh="${S.H}" style="left:${rect.x}px;top:${rect.y}px;width:${S.W}px;height:${S.H}px;transform:scale(${sx},${sy})">
+    <img class="hframe" src="${himg(S.img)}" alt="" onerror="pitNoHelios()">${h}</div>`;
+}
+// fit a W×H panel into a box (keeping its shape), leaving a column on the right for the UFC/AMPCD lever
+const LEVER_COL = 76;
+function helFit(box, S) {
+  const bw = box.w - LEVER_COL, s = Math.min(bw / S.W, box.h / S.H), w = S.W * s, h = S.H * s;
+  return {x: box.x + (bw - w) / 2, y: box.y + (box.h - h) / 2, w, h};
+}
+function helAmpGeo(r, W, H) {
+  const box = pct(r, W, H), f = helFit(box, HEL.AMPCD), k = f.w / HEL.AMPCD.W, sc = HEL.AMPCD.scr;
+  return {outer: box, bezel: f, disp: {x: f.x + sc.x * k, y: f.y + sc.y * k, w: sc.w * k, h: sc.h * k}};
+}
+function helDdiGeo(r, W, H) {  // the DDI box is the display; the frame grows out from it the way Helios draws it
+  const d = pct(r, W, H), S = HEL.DDI, sx = d.w / S.scr.w, sy = d.h / S.scr.h;
+  return {disp: d, bezel: {x: d.x - S.scr.x * sx, y: d.y - S.scr.y * sy, w: S.W * sx, h: S.H * sy}};
+}
+function pitNoHelios() {
+  if (PIT.cfg.look !== 'helios' || PIT.noHel) return;
+  PIT.noHel = true; toast('Couldn’t download the Helios artwork (offline?) — using ARIA’s drawn panels for now.', 7000); pitLayout();
+}
 
 /* ---------------- drawing (panels) ---------------- */
 function ringHtml(id, kind, g) {
@@ -162,18 +263,26 @@ function pitLayout() {
   const root = $('#dcsPit'); if (!root || !PIT.on) return;
   const W = innerWidth, H = innerHeight, R = dcsRects(), c = PIT.cfg, panels = [];
   let html = '';
-  if (c.osbL && DCS.layout.use.LEFT_MFCD) { const g = ddiGeo(R.LEFT_MFCD, W, H); html += ringHtml('pitL', 'LEFT_DDI', g); panels.push(g); }
-  if (c.osbR && DCS.layout.use.RIGHT_MFCD) { const g = ddiGeo(R.RIGHT_MFCD, W, H); html += ringHtml('pitR', 'RIGHT_DDI', g); panels.push(g); }
-  let ufcBox = null;
-  if (c.center === 'ufc') { ufcBox = pct(R.CENTER_MFCD, W, H); html += ufcHtml(ufcBox); }
+  const hel = pitHel(), box = pct(R.CENTER_MFCD, W, H);
+  const ddi = (key, id, kind) => { if (hel) { const g = helDdiGeo(R[key], W, H); html += helDisplayPanel(id, 'DDI', kind, g.bezel); panels.push(g); }
+    else { const g = ddiGeo(R[key], W, H); html += ringHtml(id, kind, g); panels.push(g); } };
+  if (c.osbL && DCS.layout.use.LEFT_MFCD) ddi('LEFT_MFCD', 'pitL', 'LEFT_DDI');
+  if (c.osbR && DCS.layout.use.RIGHT_MFCD) ddi('RIGHT_MFCD', 'pitR', 'RIGHT_DDI');
+  let ufcBox = null, lever;
+  if (hel) {
+    if (c.center === 'ufc') { ufcBox = helFit(box, HEL.UFC); html += helUfcPanel(ufcBox); }
+    else { const g = helAmpGeo(R.CENTER_MFCD, W, H); html += helDisplayPanel('pitC', 'AMPCD', 'AMPCD', g.bezel); panels.push(g); }
+    lever = {x: box.x + box.w - LEVER_COL + 6, y: box.y + box.h - 98};
+  } else if (c.center === 'ufc') { ufcBox = box; html += ufcHtml(ufcBox); }
   else {  // AMPCD: always a clickable bezel — inside the box when the viewport is inset, around it otherwise
     const g = c.amp ? ampGeo(R.CENTER_MFCD, W, H) : ddiGeo(R.CENTER_MFCD, W, H); html += ringHtml('pitC', 'AMPCD', g); panels.push(g);
-    const o = pct(R.CENTER_MFCD, W, H), spare = o.x + o.w - (g.bezel.x + g.bezel.w), sw = 64, sh = 92;
-    const x = spare >= sw + 8 ? g.bezel.x + g.bezel.w + (spare - sw) / 2 : g.bezel.x + g.bezel.w + 6;
-    html += pitSwitchHtml('', `position:absolute;left:${x}px;top:${g.bezel.y + g.bezel.h - sh}px`); }
+    const spare = box.x + box.w - (g.bezel.x + g.bezel.w), sw = 64;
+    lever = {x: spare >= sw + 8 ? g.bezel.x + g.bezel.w + (spare - sw) / 2 : g.bezel.x + g.bezel.w + 6, y: g.bezel.y + g.bezel.h - 92};
+  }
+  if (lever) html += pitSwitchHtml('', `position:absolute;left:${lever.x}px;top:${lever.y}px`);
   // the band: indented under whatever panels reach into it, overlapped, or hidden
   let band = pct(R.BAND, W, H);
-  const blockers = panels.map(g => g.bezel).concat(ufcBox ? [ufcBox] : []);
+  const blockers = panels.map(g => g.bezel).concat(ufcBox ? [ufcBox] : []).concat(lever ? [{x: lever.x, y: lever.y, w: 64, h: 92}] : []);
   if (c.band === 'indent') {
     let top = band.y;
     for (const b of blockers) if (b.x < band.x + band.w && b.x + b.w > band.x && b.y < band.y + band.h && b.y + b.h > top) top = b.y + b.h + 4;
@@ -204,7 +313,15 @@ function pitShape() {
     if (PIT.band) add(PIT.band);
     el('#pitDock'); el('#pitUfc'); el('#pitSwapC');
     for (const id of ['#pitL', '#pitR', '#pitC']) {  // rings as four strips, so the display stays a hole
-      const r = $(id); if (!r) continue; const b = r.getBoundingClientRect(), cs = getComputedStyle(r);
+      const r = $(id); if (!r) continue; const b = r.getBoundingClientRect();
+      if (r.dataset.hole) {  // Helios frame: the screen rectangle inside it is the hole
+        const [hx, hy, hw, hh] = r.dataset.hole.split(',').map(Number), kx = b.width / +r.dataset.nw, ky = b.height / +r.dataset.nh;
+        const L = b.left + hx * kx, T = b.top + hy * ky, Rr = L + hw * kx, B = T + hh * ky;
+        add({x: b.left, y: b.top, w: b.width, h: T - b.top}); add({x: b.left, y: B, w: b.width, h: b.bottom - B});
+        add({x: b.left, y: T, w: L - b.left, h: B - T}); add({x: Rr, y: T, w: b.right - Rr, h: B - T});
+        continue;
+      }
+      const cs = getComputedStyle(r);
       const t = parseFloat(cs.borderTopWidth), l = parseFloat(cs.borderLeftWidth), rt = parseFloat(cs.borderRightWidth), bt = parseFloat(cs.borderBottomWidth);
       add({x: b.left, y: b.top, w: b.width, h: t}); add({x: b.left, y: b.bottom - bt, w: b.width, h: bt});
       add({x: b.left, y: b.top + t, w: l, h: b.height - t - bt}); add({x: b.right - rt, y: b.top + t, w: rt, h: b.height - t - bt});
@@ -270,7 +387,7 @@ addEventListener('DOMContentLoaded', () => { const m = $('#modal'); if (m) new M
 function pitSettingsSync() {
   const c = PIT.cfg, f = id => $('#' + id);
   if (!f('pitCenter')) return;
-  f('pitCenter').value = c.center; f('pitAmp').checked = c.amp; f('pitOsbL').checked = c.osbL; f('pitOsbR').checked = c.osbR;
+  f('pitLook').value = c.look; f('pitCenter').value = c.center; f('pitAmp').checked = c.amp; f('pitOsbL').checked = c.osbL; f('pitOsbR').checked = c.osbR;
   f('pitRing').value = c.ring; f('pitDdiRing').value = c.ddiRing; f('pitSpread').value = c.spread; f('pitBand').value = c.band; f('pitDim').value = c.dim;
   f('pitRingV').textContent = c.ring + '%'; f('pitDdiRingV').textContent = c.ddiRing + '%'; f('pitSpreadV').textContent = c.spread + '%'; f('pitDimV').textContent = c.dim + '%';
   const b = DCS.st && DCS.st.bios, el = f('pitBios');
@@ -288,6 +405,7 @@ function pitSettingsInit() {
   const c = PIT.cfg, f = id => $('#' + id); if (!f('pitCenter') || f('pitCenter')._w) return; f('pitCenter')._w = 1;
   const upd = (rewrite) => { pitSave(); pitSettingsSync(); if (PIT.on) pitLayout(); if (rewrite) { dcsRenderLayout(); toast('The AMPCD viewport moved — hit <b>Write to DCS</b> and restart DCS to match.', 6000); } };
   f('pitCenter').onchange = () => { c.center = f('pitCenter').value; upd(); };
+  f('pitLook').onchange = () => { c.look = f('pitLook').value; PIT.noHel = false; upd(true); };
   f('pitAmp').onchange = () => { c.amp = f('pitAmp').checked; upd(true); };
   f('pitOsbL').onchange = () => { c.osbL = f('pitOsbL').checked; upd(); };
   f('pitOsbR').onchange = () => { c.osbR = f('pitOsbR').checked; upd(); };

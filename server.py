@@ -393,6 +393,31 @@ class Handler(SimpleHTTPRequestHandler):
                     png = f.read()
                 self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Content-Length", str(len(png)))
                 self.send_header("Cache-Control", "max-age=604800"); self.end_headers(); self.wfile.write(png); return
+            elif kind == "helios":  # Helios Virtual Cockpit Hornet artwork (GPLv3): fetched from the Helios project once, cached here
+                import re as _re
+                from urllib.parse import unquote, quote
+                name = unquote(rest.strip("/"))
+                roots = {"fa": "Aircraft FA-18C Plugin/Images/", "core": "Helios/Images/"}
+                pre, _, sub = name.partition("/")
+                if pre not in roots or not _re.fullmatch(r"[A-Za-z0-9 _\-]+(/[A-Za-z0-9 _\-]+)?", sub or "") or ".." in sub:
+                    return self.send_json(404, {"error": "unknown image"})
+                folder = os.path.join(CACHE, "helios")
+                os.makedirs(folder, exist_ok=True)
+                path = os.path.join(folder, (pre + "_" + sub).replace("/", "_").replace(" ", "_") + ".png")
+                if not os.path.exists(path):
+                    url = "https://raw.githubusercontent.com/HeliosVirtualCockpit/Helios/master/" + quote(roots[pre] + sub + ".png")
+                    try:
+                        data = http_get(url, {"Accept": "image/png,*/*"}, timeout=20)
+                        if not data.startswith(b"\x89PNG"):
+                            raise ValueError("not a png")
+                        with open(path, "wb") as f:
+                            f.write(data)
+                    except Exception as e:
+                        return self.send_json(502, {"error": f"couldn't download Helios image: {e}"})
+                with open(path, "rb") as f:
+                    png = f.read()
+                self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Content-Length", str(len(png)))
+                self.send_header("Cache-Control", "max-age=2592000"); self.end_headers(); self.wfile.write(png); return
             elif kind in ("launcher_icon", "gameicon"):  # the icon of YOUR installed RSI Launcher / DCS, pulled from the exe itself
                 cfg_ = load_config()
                 png = exe_icon(dcs.find_exe(cfg_.get("dcs_path"))) if (kind == "gameicon" and rest.strip("/") == "dcs") else launcher_icon(cfg_.get("launcher_path"))

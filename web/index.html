@@ -155,6 +155,24 @@ body.pitbandhide #appShell,body.pitbandhide #dcsTT{display:none!important}
 .pupull{border-radius:50%!important;background:radial-gradient(#4a525c,#1e2228)!important}
 .pufc .pswitch{align-self:end;height:calc(var(--u)*22);width:calc(var(--u)*15);background:linear-gradient(#22262c,#15181c)!important;font-size:calc(var(--u)*2.4)!important}
 .pufc.nodata .puscratch::before{content:'UFC — waiting for the jet';color:#3f6e4c;font-size:.6em;letter-spacing:.1em}
+/* Helios look */
+.hpanel{position:absolute;transform-origin:0 0}
+.hpanel .hframe{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;user-select:none}
+.hpanel button{position:absolute;padding:0;border:0;background:transparent;cursor:pointer}
+.hbtn img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.hbtn img.d{display:none}
+.hbtn.down img.u{display:none}.hbtn.down img.d{display:block}
+.hbtn:hover{filter:brightness(1.25)}
+.hrock,.htog,.hknob{position:absolute}
+.hrock img,.htog img,.hknob>img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hrock img.u,.hrock img.d{display:none}
+.hrock:has(.hu.down) img.m,.hrock:has(.hd.down) img.m{display:none}.hrock:has(.hu.down) img.u,.hrock:has(.hd.down) img.d{display:block}
+.hrock .hu,.htog .hu{left:0;top:0;width:100%;height:50%}.hrock .hd,.htog .hd{left:0;top:50%;width:100%;height:50%}
+.hknob .kl{left:0;top:0;width:50%;height:100%}.hknob .kr{left:50%;top:0;width:50%;height:100%}
+.hknob>img{transition:transform .1s}.hknob:has(.kl.down)>img{transform:rotate(-18deg)}.hknob:has(.kr.down)>img{transform:rotate(18deg)}
+.hknob .hbtn{z-index:2}
+.hspring button.down{background:rgba(124,245,154,.18);border-radius:8px}.hspring button:hover{background:rgba(255,255,255,.06);border-radius:8px}
+.htxt{position:absolute;font:500 30px/42px var(--mono);color:#7ede72;text-shadow:0 0 6px rgba(126,222,114,.55);white-space:pre;overflow:hidden;pointer-events:none}
+.htxt.sp{line-height:48px;font-size:32px}.htxt.r{text-align:right}.htxt.c{text-align:center}.htxt.cue{font-size:30px}
 .dcsinner{position:absolute;border:1px dashed #5fd3f0;pointer-events:none;text-decoration:none}
 
 body.dcsmode main{padding-bottom:110px}
@@ -846,7 +864,8 @@ body.cockpit .cocktop #brief{display:none}
     <p class="sub" style="margin:6px 0 10px">ARIA fills the MFD screen, then Windows cuts its window down to just the panels — the DDI and AMPCD viewports are holes, so DCS's real displays show through. Clicks go to the jet through DCS-BIOS, and focus goes straight back to DCS.</p>
     <div class="grid2">
       <div>
-        <label class="f">Center display<select id="pitCenter"><option value="ufc">UFC face (ARIA draws it, text from the jet)</option><option value="ampcd">AMPCD (DCS draws it, ARIA's bezel around it)</option></select></label>
+        <label class="f">Panel art<select id="pitLook"><option value="helios">Helios Hornet artwork (downloaded once from the Helios project)</option><option value="classic">ARIA drawn panels</option></select></label>
+        <label class="f" style="margin-top:8px">Center display<select id="pitCenter"><option value="ufc">UFC face (ARIA draws it, text from the jet)</option><option value="ampcd">AMPCD (DCS draws it, ARIA's bezel around it)</option></select></label>
         <label class="chk" style="margin-top:8px"><input type="checkbox" id="pitAmp"> AMPCD bezel with clickable buttons — the AMPCD viewport sits square inside it (re-write to DCS after changing)</label>
         <label class="f" style="margin-top:8px">AMPCD bezel width <span class="sub" id="pitRingV"></span><input type="range" id="pitRing" min="7" max="22" step="1"></label>
         <label class="f">Button spread <span class="sub" id="pitSpreadV"></span><input type="range" id="pitSpread" min="50" max="90" step="1"></label>
@@ -862,6 +881,7 @@ body.cockpit .cocktop #brief{display:none}
           <span class="sub">Works while DCS has focus. The lever beside the center display does the same.</span></div>
       </div>
     </div>
+    <p class="sub" style="margin-top:8px">Panel art and layouts: <a href="https://github.com/HeliosVirtualCockpit/Helios" target="_blank" rel="noopener">Helios Virtual Cockpit</a> (GPLv3) — fetched from their project to your PC, not bundled with ARIA. With Helios art the AMPCD viewport is the screen inside the Helios AMPCD frame; re-write to DCS after switching.</p>
     <p class="sub" style="margin-top:8px"><b>Dimming the DCS displays:</b> the BRT / CONT / MODE corners on each bezel turn the jet's own knobs (click ▲▼ or scroll). <b>DCS-BIOS:</b> <span id="pitBios"></span></p>
   </div>
 </section>
