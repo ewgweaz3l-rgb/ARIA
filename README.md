@@ -134,11 +134,9 @@ Every game has a top-10 leaderboard under your pilot name (Settings → Pilot na
 - **FLEET** — battleship vs ARIA or a squad mate. SHUF reshuffles your ships, READY locks in, d-pad aims, A fires.
 More games land one or two per version.
 
-**Squad leaderboards.** One of you hosts: Settings ⚙ → Squad → "Host the squad board on this PC",
-restart ARIA once, and give friends the address and key it shows. Friends paste both into their
-Settings → Squad → Test. From then on every score posts to the host and every game's TOP10 is the
-whole squad, your own entries marked ◀. Same LAN or a VPN (Tailscale, Hamachi) works as is; over
-the open internet the host forwards port 8777. The board lives in the host's `scores.json`.
+**Squad leaderboards.** Built in: ARIA posts scores, versus moves and pilot reports to the shared squad
+server on Railway, so friends are linked the moment they install. A private squad can run its own server
+(below) and set `squad_url` / `squad_key` in `config.json` (or `squad_host: true` to host from an ARIA PC).
 
 **Squad server on its own box.** A machine that just hosts (a home server, a Pi, a spare PC) doesn't
 need the whole app: copy `squad_server.py`, `squad.py` and `VERSION` anywhere Python 3.9+ lives and run
@@ -146,12 +144,11 @@ need the whole app: copy `squad_server.py`, `squad.py` and `VERSION` anywhere Py
 first run and keeps it in `squad_config.json`; the board and open lobbies are visible at
 `http://<that box>:8777` in any browser. `--systemd` prints a Linux service unit; on Windows, Task
 Scheduler → "At startup" → `pythonw squad_server.py`. Everyone, including you, then joins it from
-Settings → Squad as usual.
+`config.json` (`squad_url`, `squad_key`).
 
 **Squad server on Railway (cloud).** The repo's `Dockerfile` + `railway.json` build only the squad
 server. New Railway project → deploy this repo → variables `SQUAD_KEY` and `SQUAD_NAME` → attach a volume
-at `/data` → generate a domain. Everyone pastes the `https://….up.railway.app` address and key into
-Settings → Squad. Railway redeploys when squad-server files change on `main`; app-only pushes don't touch it.
+at `/data` → generate a domain. ARIA's built-in default points at it. Railway redeploys when squad-server files change on `main`; app-only pushes don't touch it.
 
 **Versus — GAME → SQUAD.** Play a squad mate on the same host: **CHESS**, **TANKS** (turn-based
 artillery: angle, power, wind, craters, one nuke each) and **FLEET** (battleship on a 10×10 grid).

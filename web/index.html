@@ -210,7 +210,7 @@ body.dcsmode #pill-uex,body.dcsmode #pill-wiki{display:none}
 .mhead h2{margin:0;flex:1}
 .mx{width:30px;height:30px;border-radius:8px;border:1px solid var(--line2);background:transparent;color:var(--dim);font-size:18px;line-height:1;cursor:pointer}
 .mx:hover{color:var(--text);border-color:var(--dim)}
-.mnav{display:flex;gap:4px;flex-wrap:wrap;width:100%}
+.mnav{display:flex;gap:4px;flex-wrap:wrap;flex:0 0 100%;order:3}
 .mnav a{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--dim);text-decoration:none;cursor:pointer}
 .mnav a:hover{color:var(--text);border-color:var(--dim)}
 .modal p{color:var(--dim);font-size:13px}
@@ -752,6 +752,7 @@ body.cockpit .cocktop #brief{display:none}
         <select id="voiceMode"><option value="mixed">Voice pack, browser voice for the rest</option><option value="clips">Voice pack only</option><option value="tts">Browser voice only</option><option value="off">Silent</option></select></label>
     </div>
     <div id="keysNote" class="sub" style="margin-top:8px"></div>
+    <div id="micHome"><div id="micBlock">
     <div class="row" style="margin-top:14px;gap:14px;align-items:center;padding-top:12px;border-top:1px solid var(--line)">
       <span class="chip" id="micPerm" title="Browser microphone permission">Mic: checking…</span>
       <button class="btn small" id="micAllow">Allow microphone</button>
@@ -766,7 +767,8 @@ body.cockpit .cocktop #brief{display:none}
         <input id="aiVol" type="range" min="0" max="100" step="1" style="width:160px"><span id="aiVolV" class="mono">100%</span></label>
       <button class="btn ghost small" id="aiVolTest">Say something</button>
       <span class="sub" id="micNote">Speech recognition in Chrome/Edge listens on the Windows default mic; the picker here checks levels and tells you which one that is.</span>
-    </div>
+    </div></div>
+</div>
   </div>
 
   <div class="panel" style="margin-top:14px">
@@ -4090,10 +4092,12 @@ function chessPage(side, common) {
    ===================================================================== */
 const PILOT = () => store.get('pilot', 'CMDR');
 /* squad leaderboards: one ARIA hosts (Settings → Squad), the others post to it */
+// the shared squad server (leaderboards, versus lobby, pilot reports) — built in; config.json squad_url/squad_key override it
+const SQUAD_DEFAULT = {url: 'https://squad-server-production.up.railway.app', key: 'aria-6d78d6d6'};
 const SQUAD = {
-  url() { const u = (STAT.squad_url || '').replace(/\/+$/, ''); return STAT.squad_host ? location.origin : u; },
-  key() { return STAT.squad_key || ''; },
-  on() { return !!(STAT.squad_host || STAT.squad_url); },
+  url() { if (STAT.squad_host) return location.origin; return (STAT.squad_url || SQUAD_DEFAULT.url).replace(/\/+$/, ''); },
+  key() { return STAT.squad_host || STAT.squad_url ? STAT.squad_key || '' : SQUAD_DEFAULT.key; },
+  on() { return true; },
   cache: {}, err: '', lastPull: 0,
   async pull(game) {
     if (!this.on()) return null;
@@ -4345,11 +4349,16 @@ async function openSettings() {
   let st = {}; try { st = await (await fetch('/api/status')).json(); } catch {}
   $('#modalBox').className = 'box wide';
   $('#modalBox').innerHTML = `<div class="mhead"><h2>Settings</h2><button class="mx" id="modalX" title="Close (Esc)">×</button>
-    <nav class="mnav">${['Data','Screen & updates','Squad','VR','Cockpit skin','Assistant','Your stuff'].map(n => `<a data-go="s-${n.replace(/[^a-z]/gi, '').toLowerCase()}">${n}</a>`).join('')}</nav></div>
-    <label class="f" id="s-data">UEX API token (optional)<input id="tokIn" type="text" placeholder="${st.uex_token ? 'Saved — paste a new one to replace' : 'Paste token from uexcorp.space → API → My Apps'}"></label>
-    <p>UEX's public endpoints work without a token today. A free token raises your quota and keeps working if they tighten access. It's stored in <span class="mono">config.json</span> next to server.py, never in the page.</p>
-    <div class="row" style="margin-top:6px"><button class="btn small" id="tokSave">Save token</button><button class="btn ghost small" id="cacheClr">Clear data cache (${st.cache_files ?? '?'} files)</button></div>
-    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-screenupdates">Screen & updates</h2>
+    <nav class="mnav">${[["s-update", "Update"], ["s-screen", "Screen"], ["s-mic", "Microphone"], ["s-assistant", "Assistant"], ["s-home", "Home base"], ["s-theme", "Theme"], ["s-vr", "VR"], ["s-data", "Data"]].map(([id, n]) => `<a data-go="${id}">${n}</a>`).join('')}</nav></div>
+    <h2 style="margin:4px 0 6px;scroll-margin-top:70px" id="s-update">Update</h2>
+    <div class="row" style="margin-top:8px;align-items:center">
+      <label class="f" style="flex:1;min-width:220px">Update from GitHub repo<input id="repoIn" type="text" placeholder="yourname/aria"></label>
+      <span id="updState" class="sub" style="margin-top:14px"></span>
+      <button class="btn ghost small" id="updCheck" style="margin-top:12px">Check</button>
+      <button class="btn small" id="updApply" style="margin-top:12px;display:none">Update & restart</button>
+    </div>
+    <p>ARIA <b id="verNow"></b>. The desktop app checks the repo every launch and updates itself; this is the manual way.</p>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-screen">Screen</h2>
     <div class="row">
       <label class="f" style="flex:1;min-width:220px">Open ARIA on<select id="dispSel"><option value="">Where it opened last time</option></select></label>
       <label class="chk" style="margin-top:14px"><input type="checkbox" id="dispFull"> Full screen</label>
@@ -4360,34 +4369,24 @@ async function openSettings() {
       <button class="btn ghost small" id="ckCal">Calibrate MFD windows</button>
       <button class="btn ghost small" id="mfdSetL">Set left MFD</button><button class="btn ghost small" id="mfdSetR">Set right MFD</button>
     </div>
-    <div class="row" style="margin-top:8px;align-items:center">
-      <label class="f" style="flex:1;min-width:220px">Update from GitHub repo<input id="repoIn" type="text" placeholder="yourname/aria"></label>
-      <span id="updState" class="sub" style="margin-top:14px"></span>
-      <button class="btn ghost small" id="updCheck" style="margin-top:12px">Check</button>
-      <button class="btn small" id="updApply" style="margin-top:12px;display:none">Update & restart</button>
-    </div>
-    <p>ARIA <b id="verNow"></b>. The desktop app checks the repo every launch and updates itself; this is the manual way.</p>
-    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-squad">Squad leaderboards</h2>
-    <div class="row" style="align-items:center"><label class="chk"><input type="checkbox" id="sqHost"> Host the squad board on this PC</label><span class="sub" id="sqHostInfo"></span></div>
-    <div class="row" style="margin-top:8px">
-      <label class="f" style="flex:1;min-width:220px">Join a friend's board — address<input id="sqUrl" type="text" placeholder="http://100.80.1.5:8777"></label>
-      <label class="f" style="width:140px">Squad key<input id="sqKey" type="text" placeholder="from the host"></label>
-      <button class="btn ghost small" id="sqTest" style="margin-top:12px">Test</button><span class="sub" id="sqState" style="margin-top:14px"></span>
-    </div>
-    <p>One of you hosts; the rest join. Scores post to the host, every game's TOP10 shows the whole squad, and GAME → SQUAD on the MFD hosts or joins a versus match (chess, tanks, fleet) through the same host. Same network or VPN (Tailscale, Hamachi) just works; over the open internet the host forwards the port. Hosting needs ARIA restarted once to open the port. A box that only hosts can run <span class="mono">squad_server.py</span> instead of the whole app.</p>
-    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-vr">VR (WebXR)</h2>
-    <div class="row" style="align-items:center">
-      <button class="btn small" id="vrEnter">Enter VR</button><span class="sub" id="vrState">Checking headset…</span>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <label class="f" style="flex:1;min-width:150px">Distance <span id="vrDistV" class="mono"></span><input id="vrDist" type="range" min="50" max="200" step="5"></label>
-      <label class="f" style="flex:1;min-width:150px">Height <span id="vrHV" class="mono"></span><input id="vrH" type="range" min="60" max="180" step="2"></label>
-      <label class="f" style="flex:1;min-width:150px">Spread <span id="vrSpV" class="mono"></span><input id="vrSp" type="range" min="15" max="70" step="1"></label>
-      <label class="f" style="flex:1;min-width:150px">Panel size <span id="vrScV" class="mono"></span><input id="vrSc" type="range" min="50" max="200" step="5"></label>
-      <label class="f" style="flex:1;min-width:150px">Tilt <span id="vrPiV" class="mono"></span><input id="vrPi" type="range" min="-30" max="20" step="1"></label>
-    </div>
-    <p>Needs Chrome or Edge and a running OpenXR runtime (SteamVR, Pimax Play, Oculus). The MFDs, the deck and the app band float in an arc in front of you. Point a controller and pull the trigger to click; squeeze the grip to recenter. Cougar buttons and voice keep working. Sliders apply live while you're in.</p>
-    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-cockpitskin">Cockpit skin</h2>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-mic">Microphone</h2>
+    <div id="micSlot"></div>
+    <div class="row" style="margin-top:8px"><button class="btn ghost small" id="setVoiceTest">Test voice (6 s)</button><button class="btn ghost small" id="setPtt">Push-to-talk button…</button></div>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-assistant">Assistant</h2>
+    <div class="row"><label class="f" style="width:160px">Name<input id="aiNameIn" type="text" value="${esc(AI())}"></label>
+      <label class="f" style="width:140px" title="Shown on game leaderboards">Pilot name<input id="pilotIn" type="text" value="${esc(PILOT())}" maxlength="10"></label>
+      <label class="f" style="flex:1;min-width:200px">Star Citizen folder (optional)<input id="scPathIn" type="text" placeholder="Auto-detect — or e.g. D:\\Games\\StarCitizen\\LIVE"></label></div>
+    <div class="row" style="margin-top:8px"><label class="f" style="flex:1;min-width:200px">RSI Launcher (for the 🚀 button)<input id="launchIn" type="text" placeholder="${st.launcher ? 'Found: ' + esc(st.launcher) : 'Not found — paste the path to RSI Launcher.exe'}" value="${esc(st.launcher_path || '')}"></label></div>
+    <div class="row" style="margin-top:8px"><label class="f" style="width:240px" title="Leave blank to detect. In game: Options → Keybindings lists vJoy as Joystick N.">vJoy joystick number in game<input id="vjInstIn" type="text" placeholder="Auto-detect"></label></div>
+    <div class="row" style="margin-top:8px"><label class="f" style="width:220px" title="Key that opens text chat in Star Citizen">Locate: open chat key<input id="locOpenIn" type="text" placeholder="enter"></label>
+      <label class="f" style="width:220px" title="Key that sends the chat line">Locate: send key<input id="locSendIn" type="text" placeholder="enter"></label></div>
+    <div class="row" style="margin-top:8px"><label class="chk"><input type="checkbox" id="dbOn"> Ask for a quick debrief when I finish a job</label></div>
+    <p>The name shows in the header and becomes the wake word. The game folder and vJoy number are only needed if ARIA can't detect them.</p>
+    <div class="row"><button class="btn small" id="nameSave">Save</button></div>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-home">Home base</h2>
+    <div class="row" style="margin-top:8px"><label class="f" style="flex:1;min-width:200px">Home base (spawn point)<input id="homeSetIn" type="text" list="placeList" value="${esc(HOME.get())}" placeholder="e.g. Port Tressler"></label></div>
+    <p>Where you spawn. Jobs can start here, RTB brings you back, and the MAP page uses it until you set your position.</p>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-theme">Theme</h2>
     <div class="row">
       <label class="f" style="width:220px">Manufacturer<select id="thSel">${Object.entries(THEMES).map(([k, v]) => `<option value="${k}">${esc(v.name)}</option>`).join('')}</select></label>
       <label class="f" style="width:90px">Glyphs<input id="thMg" type="color"></label>
@@ -4405,36 +4404,38 @@ async function openSettings() {
       <label class="f" style="flex:1;min-width:180px">Effect strength<input id="thFxAmt" type="range" min="0" max="200" step="5"></label>
     </div>
     <p>Pick a maker's look, or change any colour to make it yours (the Custom entry keeps your mix). Brightness is also on the UFC's DIM key and the MFD rockers. True HDR isn't possible in a browser; bloom gives the glow.</p>
-    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-assistant">Assistant</h2>
-    <div class="row"><label class="f" style="width:160px">Name<input id="aiNameIn" type="text" value="${esc(AI())}"></label>
-      <label class="f" style="width:140px" title="Shown on game leaderboards">Pilot name<input id="pilotIn" type="text" value="${esc(PILOT())}" maxlength="10"></label>
-      <label class="f" style="flex:1;min-width:200px">Star Citizen folder (optional)<input id="scPathIn" type="text" placeholder="Auto-detect — or e.g. D:\\Games\\StarCitizen\\LIVE"></label></div>
-    <div class="row" style="margin-top:8px"><label class="f" style="flex:1;min-width:200px">RSI Launcher (for the 🚀 button)<input id="launchIn" type="text" placeholder="${st.launcher ? 'Found: ' + esc(st.launcher) : 'Not found — paste the path to RSI Launcher.exe'}" value="${esc(st.launcher_path || '')}"></label></div>
-    <div class="row" style="margin-top:8px"><label class="f" style="flex:1;min-width:200px">Home base (spawn point)<input id="homeSetIn" type="text" list="placeList" value="${esc(HOME.get())}" placeholder="e.g. Port Tressler"></label></div>
-    <div class="row" style="margin-top:8px"><label class="f" style="width:240px" title="Leave blank to detect. In game: Options → Keybindings lists vJoy as Joystick N.">vJoy joystick number in game<input id="vjInstIn" type="text" placeholder="Auto-detect"></label></div>
-    <div class="row" style="margin-top:8px"><label class="f" style="width:220px" title="Key that opens text chat in Star Citizen">Locate: open chat key<input id="locOpenIn" type="text" placeholder="enter"></label>
-      <label class="f" style="width:220px" title="Key that sends the chat line">Locate: send key<input id="locSendIn" type="text" placeholder="enter"></label></div>
-    <div class="row" style="margin-top:8px"><label class="chk"><input type="checkbox" id="dbOn"> Ask for a quick debrief when I finish a job</label></div>
-    <p>The name shows in the header and becomes the wake word. The game folder and vJoy number are only needed if ARIA can't detect them.</p>
-    <div class="row"><button class="btn small" id="nameSave">Save</button></div>
-    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-yourstuff">Your stuff</h2>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-vr">VR</h2>
+    <div class="row" style="align-items:center">
+      <button class="btn small" id="vrEnter">Enter VR</button><span class="sub" id="vrState">Checking headset…</span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label class="f" style="flex:1;min-width:150px">Distance <span id="vrDistV" class="mono"></span><input id="vrDist" type="range" min="50" max="200" step="5"></label>
+      <label class="f" style="flex:1;min-width:150px">Height <span id="vrHV" class="mono"></span><input id="vrH" type="range" min="60" max="180" step="2"></label>
+      <label class="f" style="flex:1;min-width:150px">Spread <span id="vrSpV" class="mono"></span><input id="vrSp" type="range" min="15" max="70" step="1"></label>
+      <label class="f" style="flex:1;min-width:150px">Panel size <span id="vrScV" class="mono"></span><input id="vrSc" type="range" min="50" max="200" step="5"></label>
+      <label class="f" style="flex:1;min-width:150px">Tilt <span id="vrPiV" class="mono"></span><input id="vrPi" type="range" min="-30" max="20" step="1"></label>
+    </div>
+    <p>Needs Chrome or Edge and a running OpenXR runtime (SteamVR, Pimax Play, Oculus). The MFDs, the deck and the app band float in an arc in front of you. Point a controller and pull the trigger to click; squeeze the grip to recenter. Cougar buttons and voice keep working. Sliders apply live while you're in.</p>
+    <h2 style="margin-top:22px;scroll-margin-top:70px" id="s-data">Data</h2>
+    <label class="f">UEX API token (optional)<input id="tokIn" type="text" placeholder="${st.uex_token ? 'Saved — paste a new one to replace' : 'Paste token from uexcorp.space → API → My Apps'}"></label>
+    <p>UEX's public endpoints work without a token today. A free token raises your quota and keeps working if they tighten access. It's stored in <span class="mono">config.json</span> next to server.py, never in the page.</p>
+    <div class="row" style="margin-top:6px"><button class="btn small" id="tokSave">Save token</button><button class="btn ghost small" id="cacheClr">Clear data cache (${st.cache_files ?? '?'} files)</button></div>
+    <h3 style="margin:14px 0 4px">Your stuff</h3>
     <p>Hangar (${hangar.list().length} ships), owned blueprints (${owned.set.size}) and the fabrication queue live in this browser. Back them up or move them to another PC:</p>
     <div class="row"><button class="btn ghost small" id="expBtn">Export backup</button><label class="btn ghost small" style="cursor:pointer">Import backup<input type="file" id="impIn" accept=".json" hidden></label></div>
     <div class="row" style="justify-content:space-between;margin-top:18px"><button class="btn ghost small" id="manualBtn">📖 Open the manual</button><button class="btn ghost small" id="modalClose">Close</button></div>`;
   $('#modal').classList.add('on'); $('#modalBox').scrollTop = 0;
   $('#modalClose').onclick = $('#modalX').onclick = () => $('#modal').classList.remove('on');
   $('#manualBtn').onclick = openManual;
+  // the microphone controls live in the Voice tab; while Settings is open they're shown here
+  $('#micSlot').appendChild($('#micBlock')); micRefresh();
+  $('#setVoiceTest').onclick = () => voiceTest();
+  $('#setPtt').onclick = () => { $('#modal').classList.remove('on'); show('voice'); $('#pttLearn').scrollIntoView({block: 'center'}); };
+  $('#homeSetIn').onchange = () => { const v = $('#homeSetIn').value.split(' · ')[0].trim(); if (v !== HOME.get()) { HOME.set(v); toast(v ? `Home set: ${esc(v)}.` : 'Home cleared.'); } };
   $('#locOpenIn').value = st.locate_open || ''; $('#locSendIn').value = st.locate_send || '';
   $('#dbOn').checked = !store.get('debriefOff', false); $('#dbOn').onchange = () => store.set('debriefOff', !$('#dbOn').checked);
   $$('#modalBox .mnav a').forEach(a => a.onclick = () => { const t = $('#' + a.dataset.go); t && t.scrollIntoView({behavior: 'smooth', block: 'start'}); });
   $('#ckOn').checked = CK.on; $('#ckOn').onchange = () => setCockpit($('#ckOn').checked);
-  $('#sqHost').checked = !!st.squad_host; $('#sqUrl').value = st.squad_url || ''; $('#sqKey').value = st.squad_key || '';
-  const sqInfo = () => { $('#sqHostInfo').innerHTML = st.squad_host ? `Friends join with <span class="mono">${(st.ips || []).map(ip => 'http://' + ip + ':' + st.port).join('</span> or <span class="mono">') || 'your IP:' + st.port}</span> · key <span class="mono">${esc(st.squad_key || '')}</span>` : ''; };
-  sqInfo();
-  const sqSave = async () => { const r = await fetch('/api/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({squad_host: $('#sqHost').checked, squad_url: $('#sqUrl').value.trim(), squad_key: $('#sqKey').value.trim()})}); await r.json(); const s2 = await (await fetch('/api/status')).json(); Object.assign(st, s2); Object.assign(STAT, s2); $('#sqKey').value = st.squad_key || ''; sqInfo(); SQUAD.cache = {}; };
-  $('#sqHost').onchange = async () => { await sqSave(); if ($('#sqHost').checked) toast('Hosting on. Restart ARIA once so friends can reach it.', 6000); };
-  $('#sqUrl').onchange = sqSave; $('#sqKey').onchange = sqSave;
-  $('#sqTest').onclick = async () => { await sqSave(); $('#sqState').textContent = 'Testing…'; const r = await SQUAD.pull(); $('#sqState').textContent = r ? `Linked — ${Object.keys(r).length} game board${Object.keys(r).length === 1 ? '' : 's'} on the host.` : 'No answer: ' + SQUAD.err; };
   vrCheck().then(() => { $('#vrState').textContent = VR.status; $('#vrEnter').textContent = VR.session ? 'Leave VR' : 'Enter VR'; });
   $('#vrEnter').onclick = () => enterVR();
   const vf = () => { const c = VR.cfg(); $('#vrDist').value = c.dist * 100; $('#vrDistV').textContent = c.dist.toFixed(2) + ' m'; $('#vrH').value = c.height * 100; $('#vrHV').textContent = c.height.toFixed(2) + ' m'; $('#vrSp').value = c.spread; $('#vrSpV').textContent = c.spread + '°'; $('#vrSc').value = c.scale * 100; $('#vrScV').textContent = Math.round(c.scale * 100) + '%'; $('#vrPi').value = c.pitch; $('#vrPiV').textContent = c.pitch + '°'; };
@@ -4761,6 +4762,9 @@ let bpT; $('#bpQ').oninput = () => { clearTimeout(bpT); bpT = setTimeout(() => r
 ['#bpType', '#bpMat', '#bpOwned', '#bpMissing', '#bpDefault'].forEach(s => $(s).onchange = () => renderBlueprints(true));
 $('#scrim').onclick = closeDrawer;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); $('#modal').classList.remove('on'); } });
+// put the microphone controls back in the Voice tab when Settings closes
+new MutationObserver(() => { if (!$('#modal').classList.contains('on') && $('#micBlock') && !$('#micHome').contains($('#micBlock'))) $('#micHome').appendChild($('#micBlock')); })
+  .observe($('#modal'), {attributes: true, attributeFilter: ['class']});
 $('#modal').addEventListener('mousedown', e => { if (e.target === $('#modal')) $('#modal').classList.remove('on'); });
 $('#btnSettings').onclick = openSettings;
 const openManual = () => window.open('manual.html?v=' + encodeURIComponent(STAT.version || ''), 'ariaManual', 'width=1100,height=820');
