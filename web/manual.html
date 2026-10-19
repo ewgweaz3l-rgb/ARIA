@@ -43,6 +43,7 @@ table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}td,th{bord
   <a href="#skins" class="sub">Skins & dimmer</a>
   <a href="#games">Arcade & squad</a>
   <a href="#vr">VR</a>
+  <a href="#dcs">DCS World</a>
   <a href="#share">Installing & sharing</a>
   <a href="#fix">Troubleshooting</a>
   <a href="#glossary">Glossary</a>
@@ -177,6 +178,19 @@ table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}td,th{bord
 <p>VR on the center MFD, the dock, or Settings → Enter VR puts the three MFDs and the bottom band in a floating arc in your headset. Point a controller, pull the trigger to click; squeeze the grip to recenter. Cougar buttons, voice and PTT keep working. Settings → VR has distance, height, spread, size and tilt, live.</p>
 <div class="warn"><b>It takes over the headset — it is not an overlay.</b> Only enter when no game is running in VR (Star Citizen on your monitor + ARIA in the headset is the intended use). If a game is in the headset, it loses it (grey void) and can crash. To see ARIA <i>inside</i> a VR game, pin the ARIA window with an overlay tool — Desktop+ (free, SteamVR), XSOverlay or OVR Toolkit.</div>
 <p>Needs an OpenXR runtime running (SteamVR, Pimax Play, Meta). Windows Mixed Reality headsets only work on Windows builds before 24H2.</p>
+</section>
+
+<section id="dcs"><h2>DCS World</h2>
+<p>After the loading bar ARIA asks your <b>callsign</b> once (kept until you hit “change”), then which game: <b>Star Citizen</b> or <b>DCS World</b>. Enter picks the one you used last. <b>⇄</b> in the header switches any time; LAUNCH starts whichever game you're in. The game cards show the icons of the copies installed on your PC.</p>
+<h3>Viewports (Helios-style)</h3>
+<p>DCS can draw the real cockpit displays onto any rectangle of your screens. ARIA uses your cockpit alignment for it: the <b>left</b>, <b>right</b> and <b>center</b> boxes become the Hornet's <b>left DDI</b>, <b>right DDI</b> and <b>AMPCD</b>.</p>
+<ol><li>DCS tab → pick your <b>main</b> monitor and your <b>MFD</b> monitor.</li>
+<li><b>⌗ Align the boxes</b> over the Cougar bezels (8 handles, Ctrl = one side, Ctrl+Z undo).</li>
+<li><b>Write to DCS</b>. ARIA saves the layout in <code>Saved Games\DCS\Config\MonitorSetup</code> — nothing in the game install changes.</li>
+<li>In DCS → Options → System: <b>Monitors</b> = the ARIA layout, <b>Resolution</b> = the size ARIA shows (it spans both screens), full screen off.</li>
+<li>Flying: <b>FLY</b> shrinks ARIA to the bottom band so the DCS displays show behind the Cougars; <b>Restore</b> puts ARIA back.</li></ol>
+<h3>Flight data</h3>
+<p><b>Install flight data add-on</b> adds one line to <code>Saved Games\DCS\Scripts\Export.lua</code> (your old file is backed up; Tacview / SRS / DCS-BIOS lines are left alone) and a small script that sends your own jet's position, altitude, speeds, heading, AoA, G and fuel to ARIA five times a second. It reads only your aircraft, so it works on any server and in single player. <b>Remove add-on</b> takes the line back out.</p>
 </section>
 
 <section id="share"><h2>Installing & sharing</h2>

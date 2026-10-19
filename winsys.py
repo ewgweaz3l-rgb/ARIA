@@ -92,6 +92,17 @@ def move_aria(m):
     return bool(wins)
 
 
+def place_aria(x, y, w, h):
+    """Put ARIA's window at an exact desktop rectangle (used to leave room for DCS viewports)."""
+    if not IS_WINDOWS:
+        return False
+    wins = _windows(lambda t: "Quartermaster" in t)
+    for hwnd in wins:
+        user32.ShowWindow(hwnd, 9)
+        user32.SetWindowPos(hwnd, 0, int(x), int(y), int(w), int(h), 0x0004 | 0x0040)
+    return bool(wins)
+
+
 def focus_game():
     """Bring Star Citizen to the front so the next key presses land in the game.
     Windows only lets a background process change focus right after input, so a

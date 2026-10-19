@@ -28,6 +28,14 @@ A local Star Citizen assistant that runs on your own PC. Six rooms:
 **Manual:** the **?** in the header (or Settings → Open the manual, or HELP on the center MFD) opens
 the built-in manual — every room, every key, what to type, troubleshooting — searchable, printable.
 
+## DCS World
+
+After the loading bar ARIA asks your callsign (once) and which game: Star Citizen or DCS World (⇄ in the header
+switches). The DCS tab turns your cockpit alignment into a DCS **MonitorSetup** file so DCS draws the real Hornet
+DDIs and AMPCD behind your Cougar bezels (Helios-style viewports), installs a small **Export.lua add-on** that streams
+your own jet's flight data to ARIA (UDP 127.0.0.1:7778), and has a **FLY** button that shrinks ARIA to the bottom band
+so the DCS displays show. Files go to `Saved Games\DCS` only; the game install is never touched.
+
 ## Install it (once)
 
 Double-click **install.bat**. If there's no Python 3.9+ on the PC it installs Python 3.12 for

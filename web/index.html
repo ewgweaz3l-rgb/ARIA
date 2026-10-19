@@ -97,6 +97,17 @@ tr:first-child .rank{color:var(--amber)}
 .tag{display:inline-block;font:600 10px var(--head);letter-spacing:.1em;border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 .tag.cy{background:var(--cyan-d);color:var(--cyan)} .tag.am{background:var(--amber-d);color:var(--amber)} .tag.rd{background:#3a1715;color:var(--red)}
 .tablewrap{overflow-x:auto}
+body:not(.dcsmode) #tabs [data-view=dcs]{display:none}
+body.dcsmode #tabs button:not([data-view=dcs]){display:none}
+body.dcsmode #pill-uex,body.dcsmode #pill-wiki{display:none}
+.gamepick{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.gp{display:flex;flex-direction:column;align-items:center;gap:6px;width:170px;padding:16px 10px;border:1px solid var(--line2);border-radius:12px;background:var(--panel);color:var(--text);cursor:pointer;transition:border-color .2s,transform .15s}
+.gp:hover,.gp:focus{border-color:var(--amber);transform:translateY(-2px);outline:none}.gp.last{border-color:var(--amber-d)}
+.gp b{font:700 14px var(--head);letter-spacing:.12em}.gp small{color:var(--dim);font-size:11px}
+.gpico{width:64px;height:64px;display:grid;place-items:center;border-radius:14px;background:var(--bg2);border:1px solid var(--line)}
+.gpico img{width:52px;height:52px}.gpico i{font:800 20px var(--head);font-style:normal;color:var(--amber);letter-spacing:.06em}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.ftile{border:1px solid var(--line);border-radius:8px;padding:6px 8px}.ftile span{display:block;font:600 10px var(--head);letter-spacing:.14em;color:var(--faint)}.ftile b{font:600 16px var(--mono)}
 .refgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:10px}
 .refgrid figure{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;cursor:zoom-in}
 .refgrid img{display:block;width:100%;height:220px;object-fit:cover;object-position:top;background:var(--bg2)}
@@ -440,6 +451,7 @@ body.cockpit .cocktop #brief{display:none}
     <button data-view="starmap">Starmap</button>
     <button data-view="voice">Voice Macros</button>
     <button data-view="mining">Mining</button>
+    <button data-view="dcs">DCS World</button>
   </nav>
   <div class="pills">
     <button class="pill" id="pill-voice" title="Always-on voice commands (click to toggle)" style="cursor:pointer;background:none"><i class="dot"></i>VOICE off</button>
@@ -447,6 +459,7 @@ body.cockpit .cocktop #brief{display:none}
     <div class="pill" id="pill-wiki" title="Star Citizen Wiki game data"><i class="dot"></i>WIKI</div>
     <button class="pill" id="btnCockpit" title="Cockpit mode: MFD screens on the Cougars (F9)" style="cursor:pointer;background:none"><i class="dot"></i>COCKPIT off</button>
     <button class="iconbtn" id="btnRefresh" title="Pull fresh data now">⟳</button>
+    <button class="iconbtn" id="btnGame" title="Switch between Star Citizen and DCS World">⇄</button>
     <button class="iconbtn launchbtn" id="btnLaunch" title="Start the RSI Launcher"><img id="launchIco" alt="" hidden><svg id="launchSvg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2.5 4.5 6 4.5 10.5L15 17H9l-1.5-4.5C7.5 8 9 4.5 12 2z"/><circle cx="12" cy="9" r="1.8"/><path d="M9 17l-2.5 3.5 3-1M15 17l2.5 3.5-3-1M10.5 19.5L12 22l1.5-2.5"/></svg><span>LAUNCH</span></button>
     <button class="iconbtn" id="btnManual" title="Manual (how everything works)">?</button>
     <button class="iconbtn" id="btnSettings" title="Settings">⚙</button>
@@ -659,6 +672,44 @@ body.cockpit .cocktop #brief{display:none}
       <h3 style="margin:0 0 6px">Selected ore</h3>
       <div id="mnDetail" class="sub">Click an ore on the board.</div>
     </div>
+  </div>
+</section>
+
+<!-- ============ DCS WORLD ============ -->
+<section class="view" id="view-dcs">
+  <div class="grid2">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:baseline"><h2 style="margin:0">DCS World</h2><button class="btn ghost small" id="dcsPaths">Set DCS folder…</button></div>
+      <table id="dcsStat" style="margin-top:8px"></table>
+      <div class="row" style="margin-top:10px;gap:8px"><button class="btn small" id="dcsInstall">Install flight data add-on</button><button class="btn ghost small" id="dcsUninstall">Remove add-on</button></div>
+      <p class="sub" style="margin-top:8px">The add-on is one line in <span class="mono">Saved Games\DCS\Scripts\Export.lua</span> (your old file is backed up) plus a small script that sends <b>your own jet's</b> data to ARIA on this PC — the same way Tacview, SRS and DCS-BIOS hook in. It works on any server and in single player.</p>
+    </div>
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:baseline"><h3 style="margin:0">Flight</h3><span class="sub mono" id="dcsLive"></span></div>
+      <div id="dcsFlight" class="fgrid" style="margin-top:8px"></div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Viewports — real DCS displays on your MFD screen</h3>
+      <span class="sub">Like Helios: DCS itself draws the Hornet's DDIs and AMPCD into the boxes you line up with your Cougar bezels.</span></div>
+    <div class="row" style="margin-top:10px;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <label class="f" style="width:200px">Layout name<input id="dcsName" type="text" maxlength="30"></label>
+      <label class="f" style="flex:1;min-width:220px">Main view (out the window)<select id="dcsMain"></select></label>
+      <label class="f" style="flex:1;min-width:220px">MFD screen (behind the Cougars)<select id="dcsMfd"></select></label>
+    </div>
+    <div class="sub" id="dcsMonNote" style="margin-top:4px"></div>
+    <div class="grid2" style="margin-top:10px">
+      <div><table id="dcsViews"></table>
+        <ol class="sub" style="margin:10px 0 0 18px;padding:0">
+          <li><button class="btn ghost small" id="dcsAlign">⌗ Align the boxes</button> — the same 8-handle tool as cockpit mode; the left, right and center boxes become the DDIs and AMPCD.</li>
+          <li><button class="btn small" id="dcsWrite">Write to DCS</button> <button class="btn ghost small" id="dcsPreview">Preview file</button></li>
+          <li id="dcsRes"></li>
+          <li>When flying: <button class="btn ghost small" id="dcsFly">FLY — move ARIA to the bottom band</button> <button class="btn ghost small" id="dcsUnfly">Restore</button></li>
+        </ol></div>
+      <div><canvas id="dcsPic" width="560" height="200" style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px"></canvas>
+        <details id="dcsLuaBox" style="margin-top:8px"><summary class="sub" style="cursor:pointer">The file ARIA writes</summary><pre id="dcsLua" class="mono" style="font-size:11.5px;white-space:pre-wrap;color:var(--dim)"></pre></details></div>
+    </div>
+    <p class="sub" style="margin-top:8px">The file goes in <span class="mono">Saved Games\DCS\Config\MonitorSetup</span>, which doesn't touch the game install. Your alignment is saved with ARIA's cockpit layout; re-run “Write to DCS” after you change it.</p>
   </div>
 </section>
 
@@ -4666,6 +4717,7 @@ function show(view) {
   if (view === 'starmap') initMap();
   if (view === 'voice') initVoice();
   if (view === 'mining') { renderMining(); loadRefCharts(); }
+  if (view === 'dcs' && typeof dcsInit === 'function') dcsInit();
   renderTray();
 }
 
@@ -4707,7 +4759,8 @@ async function startLauncher() {
     else { toast(esc(j.error || 'Could not start the launcher'), 7000); openSettings(); }
   } catch { toast('ARIA could not reach its launcher helper.'); }
 }
-$('#btnLaunch').onclick = startLauncher;
+$('#btnLaunch').onclick = () => GAMEMODE.get() === 'dcs' ? dcsPost('launch').then(j => j.ok && toast(j.simulated ? 'Would start DCS (Windows only).' : 'DCS starting…')) : startLauncher();
+$('#btnGame').onclick = () => { GAMEMODE.set(GAMEMODE.get() === 'dcs' ? 'sc' : 'dcs'); toast(GAMEMODE.get() === 'dcs' ? 'DCS World mode.' : 'Star Citizen mode.'); };
 // show the icon of the launcher you actually have installed, if ARIA can read it
 (() => { const im = $('#launchIco'); im.onload = () => { im.hidden = false; $('#launchSvg').style.display = 'none'; }; im.onerror = () => {}; im.src = '/api/launcher_icon'; })();
 $('#btnRefresh').onclick = refreshAll;
@@ -4747,7 +4800,8 @@ $('#bindQ').onkeydown = e => { if (e.key === 'Enter') runBind($('#bindQ').value)
 const BOOT = {steps: 0, done: 0, dismissed: false};
 function bootSet(msg, frac) { const f = $('#bootFill'), m = $('#bootMsg'); if (f) f.style.width = Math.round(Math.min(1, frac) * 100) + '%'; if (m && msg) m.textContent = msg; }
 function bootTrack(label, p) { BOOT.steps++; const tick = () => { BOOT.done++; bootSet(label, BOOT.done / BOOT.steps); }; p.then(tick, tick); return p; }
-function bootDismiss() { if (BOOT.dismissed) return; BOOT.dismissed = true; const b = $('#boot'); b.classList.add('off'); setTimeout(() => b.remove(), 600); }
+function bootDismiss() { if (typeof bootStep === 'function' && !BOOT.picked) { BOOT.picked = true; bootStep(); return; } bootClose(); }
+function bootClose() { if (BOOT.dismissed) return; BOOT.dismissed = true; const b = $('#boot'); b.classList.add('off'); setTimeout(() => b.remove(), 600); }
 async function bootFinish() {
   const btns = $('#bootBtns'); let upd = null;
   try { bootSet('Checking for updates…', .96); const r = await fetch('/api/update/check', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}); upd = await r.json(); } catch {}
@@ -4793,5 +4847,6 @@ async function bootFinish() {
 </script>
 <script src="vr.js"></script>
 <script src="squad.js"></script>
+<script src="dcs.js"></script>
 </body>
 </html>

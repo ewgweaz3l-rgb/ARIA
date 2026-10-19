@@ -34,6 +34,7 @@ import ptt as ptt_mod
 import mfd as mfd_mod
 import scbinds
 import updater
+import dcs
 import vjoy as vjoy_mod
 import winsys
 
@@ -259,7 +260,11 @@ REF_IMAGES = {"rmg-minerals": _RMG + "0005_MineralPropertiesLight.png", "rmg-roc
 
 def launcher_icon(custom=None):
     """PNG of the launcher's own icon (Windows: extracted from the exe with .NET, cached in cache/)."""
-    exe = find_launcher(custom)
+    return exe_icon(find_launcher(custom))
+
+
+def exe_icon(exe):
+    """The icon Windows shows for an installed program, as PNG — taken from YOUR copy of it."""
     if not exe or not sys.platform.startswith("win"):
         return None
     out = os.path.join(CACHE, "launcher_icon_%s.png" % hashlib.sha1(exe.encode()).hexdigest()[:10])
@@ -388,12 +393,26 @@ class Handler(SimpleHTTPRequestHandler):
                     png = f.read()
                 self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Content-Length", str(len(png)))
                 self.send_header("Cache-Control", "max-age=604800"); self.end_headers(); self.wfile.write(png); return
-            elif kind == "launcher_icon":  # the icon of YOUR installed RSI Launcher.exe, pulled from the exe itself
-                png = launcher_icon(load_config().get("launcher_path"))
+            elif kind in ("launcher_icon", "gameicon"):  # the icon of YOUR installed RSI Launcher / DCS, pulled from the exe itself
+                cfg_ = load_config()
+                png = exe_icon(dcs.find_exe(cfg_.get("dcs_path"))) if (kind == "gameicon" and rest.strip("/") == "dcs") else launcher_icon(cfg_.get("launcher_path"))
                 if not png:
                     return self.send_json(404, {"error": "no icon"})
                 self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Content-Length", str(len(png)))
                 self.send_header("Cache-Control", "max-age=86400"); self.end_headers(); self.wfile.write(png); return
+            elif kind == "dcs":
+                cfg_ = load_config()
+                if rest == "stream":  # server-sent events: live flight data
+                    self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.send_header("Cache-Control", "no-store"); self.end_headers()
+                    n = -1
+                    try:
+                        for _ in range(100000):
+                            n, snap = dcs.FEED.wait(n, 5)
+                            self.wfile.write(("data: " + json.dumps(snap) + "\n\n").encode()); self.wfile.flush()
+                    except Exception:
+                        pass
+                    return
+                return self.send_json(200, dcs.status(cfg_))
             elif kind == "game":  # is Star Citizen running? (cached a few seconds; tasklist is slow)
                 now = time.time()
                 if now - GAME_STATE["t"] > 8:
@@ -505,7 +524,7 @@ class Handler(SimpleHTTPRequestHandler):
             payload = {}
         if u.path == "/api/config":
             cfg = load_config()
-            for k in ("uex_token", "sc_path", "update_repo", "squad_key", "squad_url", "squad_name", "launcher_path", "locate_open", "locate_send"):
+            for k in ("uex_token", "sc_path", "update_repo", "squad_key", "squad_url", "squad_name", "launcher_path", "locate_open", "locate_send", "dcs_path", "dcs_saved"):
                 if k in payload:
                     cfg[k] = str(payload[k]).strip()
             if "squad_host" in payload:
@@ -538,6 +557,32 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(400, {"ok": False, "error": str(e)})
             sys.stderr.write(f"[aria] keys: {spec}{'' if keys.IS_WINDOWS else '  (simulated: not Windows)'}\n")
             return self.send_json(200, {"ok": True, "steps": len(steps), "simulated": not keys.IS_WINDOWS})
+        if u.path.startswith("/api/dcs/"):
+            cfg_ = load_config(); act = u.path.rsplit("/", 1)[1]
+            try:
+                if act == "install":
+                    return self.send_json(200, dcs.install_export(cfg_))
+                if act == "uninstall":
+                    return self.send_json(200, dcs.uninstall_export(cfg_))
+                if act == "monitorsetup":
+                    layout = payload.get("layout") or {}
+                    if payload.get("preview"):
+                        return self.send_json(200, {"ok": True, "lua": dcs.monitor_setup_lua(layout)})
+                    path = dcs.write_monitor_setup(cfg_, layout)
+                    return self.send_json(200, {"ok": True, "path": path, "lua": dcs.monitor_setup_lua(layout)})
+                if act == "window":  # move ARIA's window to an exact desktop rectangle
+                    r = payload.get("rect") or {}
+                    return self.send_json(200, {"ok": winsys.place_aria(r.get("x", 0), r.get("y", 0), r.get("w", 800), r.get("h", 600))})
+                if act == "launch":
+                    exe = dcs.find_exe(cfg_.get("dcs_path"))
+                    if not exe:
+                        return self.send_json(404, {"ok": False, "error": "DCS not found. Set its folder in ARIA → DCS → Setup."})
+                    if os.name == "nt":
+                        os.startfile(exe)  # noqa
+                    return self.send_json(200, {"ok": True, "path": exe, "simulated": os.name != "nt"})
+            except (OSError, KeyError, ValueError, TypeError) as e:
+                return self.send_json(400, {"ok": False, "error": str(e)})
+            return self.send_json(404, {"ok": False, "error": "unknown"})
         if u.path == "/api/locate":  # /showlocation → clipboard → coordinates
             import locate
             r = locate.locate(load_config())
@@ -753,6 +798,7 @@ def main(argv=None):
         a.host = "0.0.0.0"  # hosting the squad board: reachable from the network
     try:
         srv = ThreadingHTTPServer((a.host, a.port), Handler)
+        dcs.FEED.start()  # DCS flight data arrives here over UDP (127.0.0.1:7778)
     except OSError:  # already running: just bring up a window
         print(f"ARIA is already running on port {a.port}.")
         if not a.no_browser:
