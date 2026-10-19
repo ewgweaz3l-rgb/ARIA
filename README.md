@@ -33,7 +33,7 @@ the built-in manual — every room, every key, what to type, troubleshooting —
 After the loading bar ARIA asks your callsign (once) and which game: Star Citizen or DCS World (⇄ in the header
 switches). The DCS tab turns your cockpit alignment into a DCS **MonitorSetup** file so DCS draws the real Hornet
 DDIs and AMPCD behind your Cougar bezels (Helios-style viewports), installs a small **Export.lua add-on** that streams
-your own jet's flight data to ARIA (UDP 127.0.0.1:7778), and has a **FLY** button that shrinks ARIA to the bottom band
+your own jet's flight data to ARIA (UDP 127.0.0.1:7781), and has a **FLY** button that shrinks ARIA to the bottom band
 so the DCS displays show. Files go to `Saved Games\DCS` only; the game install is never touched.
 
 ## Install it (once)

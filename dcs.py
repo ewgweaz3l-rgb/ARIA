@@ -17,7 +17,7 @@ import threading
 import time
 
 IS_WINDOWS = sys.platform.startswith("win")
-UDP_PORT = 7778
+UDP_PORT = 7781  # 7778 belongs to DCS-BIOS (its command port); stay clear of it
 EXPORT_LINE = "local ariaLfs = require('lfs'); dofile(ariaLfs.writedir() .. 'Scripts/ARIA/ARIAExport.lua') -- ARIA flight data"
 
 
@@ -38,8 +38,28 @@ def saved_games(custom=None):
     return max(found, key=lambda p: os.path.getmtime(p))
 
 
+def _registry_dirs():
+    out = []
+    if not IS_WINDOWS:
+        return out
+    try:
+        import winreg
+        for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+            for sub in (r"Software\Eagle Dynamics\DCS World", r"Software\Eagle Dynamics\DCS World OpenBeta"):
+                try:
+                    with winreg.OpenKey(hive, sub) as k:
+                        out.append(winreg.QueryValueEx(k, "Path")[0])
+                except OSError:
+                    pass
+    except Exception:
+        pass
+    return out
+
+
 def find_exe(custom=None):
     cands = []
+    for d in _registry_dirs():
+        cands += [os.path.join(d, "bin-mt", "DCS.exe"), os.path.join(d, "bin", "DCS.exe")]
     if custom:
         c = custom.strip().strip('"')
         cands += [c, os.path.join(c, "bin", "DCS.exe"), os.path.join(c, "bin-mt", "DCS.exe")]
@@ -252,3 +272,28 @@ class Feed:
 
 
 FEED = Feed()
+
+
+def write_kneeboard(cfg, aircraft, pages):
+    """pages = [{name, png (base64)}] → Saved Games\\DCS\\Kneeboard\\<aircraft>\\ARIA_<n>_<name>.png"""
+    import base64, re
+    sg = saved_games(cfg.get("dcs_saved"))
+    if not sg:
+        raise FileNotFoundError("Couldn't find Saved Games\\DCS. Start DCS once first.")
+    ac = re.sub(r"[^A-Za-z0-9_\-]", "", str(aircraft or ""))[:40] or "FA-18C_hornet"
+    folder = os.path.join(sg, "Kneeboard", ac)
+    os.makedirs(folder, exist_ok=True)
+    for f in os.listdir(folder):
+        if f.startswith("ARIA_") and f.endswith(".png"):
+            os.remove(os.path.join(folder, f))
+    written = []
+    for i, p in enumerate(pages[:20]):
+        data = base64.b64decode(str(p.get("png", "")).split(",")[-1])
+        if not data.startswith(b"\x89PNG"):
+            continue
+        name = re.sub(r"[^A-Za-z0-9_\-]", "", str(p.get("name") or "page"))[:30]
+        path = os.path.join(folder, f"ARIA_{i + 1:02d}_{name}.png")
+        with open(path, "wb") as fh:
+            fh.write(data)
+        written.append(path)
+    return {"ok": True, "folder": folder, "pages": len(written)}

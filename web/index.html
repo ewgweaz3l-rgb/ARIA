@@ -97,9 +97,25 @@ tr:first-child .rank{color:var(--amber)}
 .tag{display:inline-block;font:600 10px var(--head);letter-spacing:.1em;border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 .tag.cy{background:var(--cyan-d);color:var(--cyan)} .tag.am{background:var(--amber-d);color:var(--amber)} .tag.rd{background:#3a1715;color:var(--red)}
 .tablewrap{overflow-x:auto}
-body:not(.dcsmode) #tabs [data-view=dcs]{display:none}
-body.dcsmode #tabs button:not([data-view=dcs]){display:none}
-body.dcsmode #pill-uex,body.dcsmode #pill-wiki{display:none}
+body:not(.dcsmode) #tabs [data-view^=dcs]{display:none}
+body.dcsmode #tabs button:not([data-view^=dcs]){display:none}
+body:not(.dcsmode) #dcsTT{display:none}
+body.dcsmode main{padding-bottom:110px}
+#dcsTT{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#020604;border-top:1px solid #1d3a26;padding:6px 14px 8px;font:500 13px/1.45 var(--mono);color:#7cf59a;text-shadow:0 0 6px rgba(124,245,154,.35);height:96px;overflow:hidden;display:flex;gap:14px}
+#dcsTT .tthd{flex:0 0 auto;display:flex;flex-direction:column;gap:2px;border-right:1px solid #1d3a26;padding-right:12px;font-size:10px;letter-spacing:.16em;color:#4c9c63;min-width:110px}
+#dcsTT .tthd b{color:#7cf59a;font-size:12px}
+#dcsTT .ttlines{flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
+#dcsTT .ttl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dcsTT .ttl i{color:#4c9c63;font-style:normal;margin-right:10px}#dcsTT .ttl.warn{color:#f2c14e}#dcsTT .ttl.alert{color:#ff6b5b}#dcsTT .ttl.dl{color:#5fd3f0}
+.logrow{display:grid;grid-template-columns:90px 80px 70px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px}.logrow i{font-style:normal;color:var(--dim);font-family:var(--mono);font-size:12px}
+.logrow .k{font:600 10px var(--head);letter-spacing:.14em;align-self:center}.logrow.warn .k{color:var(--amber)}.logrow.alert .k{color:var(--red)}.logrow.dl .k{color:var(--cyan)}
+#dcsMapBox{height:calc(100vh - 230px);min-height:420px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0b1118}
+.kbpage{width:600px;max-width:100%;background:#f4f1e8;color:#14181f;border-radius:6px;padding:22px 26px;font:14px/1.45 'Segoe UI',system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+.kbpage h3{font:800 20px 'Segoe UI',sans-serif;margin:0 0 2px;color:#0b2a4a;letter-spacing:.02em}.kbpage .kbsub{color:#5a6372;font-size:12px;margin-bottom:10px}
+.kbpage table{width:100%;border-collapse:collapse;margin:6px 0}.kbpage td{border-bottom:1px solid #d6d0c2;padding:4px 6px;vertical-align:top;color:#14181f}.kbpage td:first-child{font-weight:700;width:30%;color:#0b2a4a}
+.kbpage .kbnote{background:#fff7d6;border-left:3px solid #e0b100;padding:5px 8px;font-size:12px;margin-top:8px}
+.kbpage svg{display:block;margin:6px auto}
+.kbgrid{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px}
+body.dcsmode #pill-uex,body.dcsmode #pill-wiki,body.dcsmode #btnCockpit,body.dcsmode #ckDock,body.dcsmode #ufc,body.dcsmode .tray{display:none!important}
 #dcsEd{position:fixed;inset:0;z-index:600;background:#05080d;user-select:none}
 #dcsEd .dcsgrid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:5vw 5vh;pointer-events:none}
 .dcsbox{position:absolute;border:2px solid #5ad08a;background:rgba(90,208,138,.08);cursor:move;box-sizing:border-box}
@@ -463,7 +479,11 @@ body.cockpit .cocktop #brief{display:none}
     <button data-view="starmap">Starmap</button>
     <button data-view="voice">Voice Macros</button>
     <button data-view="mining">Mining</button>
-    <button data-view="dcs">DCS World</button>
+    <button data-view="dcslog">Log</button>
+    <button data-view="dcsdl">DL99</button>
+    <button data-view="dcsmap">Map</button>
+    <button data-view="dcskb">Kneeboard</button>
+    <button data-view="dcsset">Settings</button>
   </nav>
   <div class="pills">
     <button class="pill" id="pill-voice" title="Always-on voice commands (click to toggle)" style="cursor:pointer;background:none"><i class="dot"></i>VOICE off</button>
@@ -688,17 +708,57 @@ body.cockpit .cocktop #brief{display:none}
 </section>
 
 <!-- ============ DCS WORLD ============ -->
-<section class="view" id="view-dcs">
+<!-- DCS: LOG -->
+<section class="view" id="view-dcslog">
+    <div class="panel" style="margin-bottom:14px">
+      <div class="row" style="justify-content:space-between;align-items:baseline"><h3 style="margin:0">Flight</h3><span class="sub mono" id="dcsLive"></span></div>
+      <div id="dcsFlight" class="fgrid" style="margin-top:8px"></div>
+    </div>
+  <div class="panel"><div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div><h2 style="margin:0">Report log</h2><div class="sub">Call-outs from your jet and the datalink, newest first. The strip at the bottom shows the latest, teletype-style.</div></div>
+    <div class="row" style="gap:8px;align-items:center"><label class="chk"><input type="checkbox" id="logSpeak"> ARIA speaks call-outs</label>
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px">Bingo<input id="logBingo" type="number" min="5" max="80" step="1" style="width:64px;padding:4px 6px">%</label>
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px">Joker<input id="logJoker" type="number" min="5" max="90" step="1" style="width:64px;padding:4px 6px">%</label>
+      <button class="btn ghost small" id="logCopy">Copy</button><button class="btn ghost small" id="logClear">Clear</button></div></div>
+    <div id="logList" style="margin-top:10px"></div></div>
+</section>
+<!-- DCS: DL99 -->
+<section class="view" id="view-dcsdl">
   <div class="grid2">
+    <div class="panel"><div class="row" style="justify-content:space-between;align-items:baseline"><h2 style="margin:0">DL99 — squad datalink</h2><span class="sub mono" id="dlState"></span></div>
+      <div class="sub" style="margin:4px 0 8px">Everyone flying with ARIA on the same net sees each other here and on the map: callsign, jet, altitude, speed, and bearing / range from you. Runs through the squad server, so it works on any DCS server.</div>
+      <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap"><label class="chk"><input type="checkbox" id="dlShare"> Share my position</label>
+        <label class="f" style="flex-direction:row;align-items:center;gap:6px">Net<input id="dlNet" type="text" maxlength="16" style="width:110px;padding:4px 8px;text-transform:uppercase"></label></div>
+      <table id="dlPeers" style="margin-top:10px"></table></div>
+    <div class="panel"><h3 style="margin:0 0 6px">Net chat</h3>
+      <div id="dlMsgs" class="mono" style="height:260px;overflow:auto;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px"></div>
+      <div class="row" style="margin-top:8px;gap:8px"><input id="dlSay" type="text" maxlength="200" placeholder="Type to the net — e.g. “2 bandits bullseye 090/30, angels 20”" style="flex:1;padding:7px 10px"><button class="btn small" id="dlSend">Send</button></div></div>
+  </div>
+</section>
+<!-- DCS: MAP -->
+<section class="view" id="view-dcsmap">
+  <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+    <div class="row" style="gap:8px;align-items:center"><b style="font:700 13px var(--head);letter-spacing:.16em">MAP</b><span class="sub">Click to drop a mark · right-click a mark to delete · marks go to DL99 when sharing is on</span></div>
+    <div class="row" style="gap:8px;align-items:center"><label class="f" style="flex-direction:row;align-items:center;gap:6px">Mark<select id="mapKind"><option value="point">Point</option><option value="target">Target</option><option value="threat">Threat</option><option value="friendly">Friendly</option></select></label>
+      <label class="chk"><input type="checkbox" id="mapFollow" checked> Follow my jet</label><button class="btn ghost small" id="mapMe">⌖ Me</button></div></div>
+  <div id="dcsMapBox"><div id="dcsMap" style="width:100%;height:100%"></div></div>
+</section>
+<!-- DCS: KNEEBOARD -->
+<section class="view" id="view-dcskb">
+  <div class="panel"><div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div><h2 style="margin:0">Kneeboard</h2><div class="sub">Recovery and pattern cards per airframe. <b>Send to DCS</b> drops them into your in-game kneeboard for that jet.</div></div>
+    <div class="row" style="gap:8px;align-items:center"><label class="f" style="flex-direction:row;align-items:center;gap:6px">Airframe<select id="kbAir"></select></label>
+      <button class="btn small" id="kbSend">Send to DCS kneeboard</button><button class="btn ghost small" id="kbPrint">Print</button></div></div>
+    <div class="kbgrid" id="kbPages"></div></div>
+</section>
+<!-- DCS: SETTINGS -->
+<section class="view" id="view-dcsset">
+  <div>
     <div class="panel">
       <div class="row" style="justify-content:space-between;align-items:baseline"><h2 style="margin:0">DCS World</h2><button class="btn ghost small" id="dcsPaths">Set DCS folder…</button></div>
       <table id="dcsStat" style="margin-top:8px"></table>
       <div class="row" style="margin-top:10px;gap:8px"><button class="btn small" id="dcsInstall">Install flight data add-on</button><button class="btn ghost small" id="dcsUninstall">Remove add-on</button></div>
       <p class="sub" style="margin-top:8px">The add-on is one line in <span class="mono">Saved Games\DCS\Scripts\Export.lua</span> (your old file is backed up) plus a small script that sends <b>your own jet's</b> data to ARIA on this PC — the same way Tacview, SRS and DCS-BIOS hook in. It works on any server and in single player.</p>
-    </div>
-    <div class="panel">
-      <div class="row" style="justify-content:space-between;align-items:baseline"><h3 style="margin:0">Flight</h3><span class="sub mono" id="dcsLive"></span></div>
-      <div id="dcsFlight" class="fgrid" style="margin-top:8px"></div>
     </div>
   </div>
   <div class="panel" style="margin-top:14px">
@@ -821,6 +881,7 @@ body.cockpit .cocktop #brief{display:none}
 <div class="tray" id="tray"></div>
 <div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
+<div id="dcsTT"><div class="tthd"><b id="ttName">ARIA</b><span id="ttSub">OVERWATCH</span><span id="ttLink">NO FEED</span></div><div class="ttlines" id="ttLines"></div></div>
 
 <script>
 /* =====================================================================
@@ -4730,7 +4791,7 @@ function show(view) {
   if (view === 'starmap') initMap();
   if (view === 'voice') initVoice();
   if (view === 'mining') { renderMining(); loadRefCharts(); }
-  if (view === 'dcs' && typeof dcsInit === 'function') dcsInit();
+  if (view.startsWith('dcs') && typeof dcsInit === 'function') { dcsInit(); if (typeof dcsView === 'function') dcsView(view); }
   renderTray();
 }
 
@@ -4776,6 +4837,7 @@ async function startLauncher() {
   } catch { toast('ARIA could not reach its launcher helper.'); }
 }
 $('#btnLaunch').onclick = () => GAMEMODE.get() === 'dcs' ? dcsPost('launch').then(j => j.ok && toast(j.simulated ? 'Would start DCS (Windows only).' : 'DCS starting…')) : startLauncher();
+(() => { const im = $('#launchIco'); im.addEventListener('error', () => { im.hidden = true; $('#launchSvg').style.display = ''; }); })();
 $('#btnGame').onclick = () => { GAMEMODE.set(GAMEMODE.get() === 'dcs' ? 'sc' : 'dcs'); toast(GAMEMODE.get() === 'dcs' ? 'DCS World mode.' : 'Star Citizen mode.'); };
 // show the icon of the launcher you actually have installed, if ARIA can read it
 (() => { const im = $('#launchIco'); im.onload = () => { im.hidden = false; $('#launchSvg').style.display = 'none'; }; im.onerror = () => {}; im.src = '/api/launcher_icon'; })();
@@ -4784,7 +4846,7 @@ $('#btnCockpit').onclick = () => setCockpit(!CK.on);
 $('#ckRescue').onclick = () => CK.cal ? calDone() : startCal();
 $('#ckHome').onclick = () => { if (CK.cal) calDone(); setCockpit(false); show('rich'); window.scrollTo(0, 0); };
 $('#ckVr').onclick = () => enterVR();
-document.addEventListener('keydown', e => { if (e.key === 'F9') setCockpit(!CK.on); });
+document.addEventListener('keydown', e => { if (e.key === 'F9' && !document.body.classList.contains('dcsmode')) setCockpit(!CK.on); });
 // starmap / nav
 $('#navGo').onclick = plotNav;
 ['#navFrom', '#navTo'].forEach(s => $(s).onkeydown = e => { if (e.key === 'Enter') plotNav(); });

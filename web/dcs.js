@@ -24,7 +24,7 @@ function bootStep() {
   box.innerHTML = `<div class="gamepick">
     <button class="gp ${last === 'sc' ? 'last' : ''}" data-g="sc"><span class="gpico"><img alt="" hidden><i>SC</i></span><b>STAR CITIZEN</b><small>trade · mining · cockpit</small></button>
     <button class="gp ${last === 'dcs' ? 'last' : ''}" data-g="dcs"><span class="gpico"><img alt="" hidden><i>DCS</i></span><b>DCS WORLD</b><small>viewports · flight data · GCI</small></button></div>`;
-  $$('.gp', box).forEach(b => { const im = $('img', b); im.onload = () => { im.hidden = false; $('i', b).style.display = 'none'; };
+  $$('.gp', box).forEach(b => { const im = $('img', b); im.onload = () => { im.hidden = false; $('i', b).style.display = 'none'; }; im.onerror = () => { im.hidden = true; $('i', b).style.display = ''; };
     im.src = b.dataset.g === 'sc' ? '/api/launcher_icon' : '/api/gameicon/dcs';
     b.onclick = () => { GAMEMODE.set(b.dataset.g); bootClose(); }; });
   $('#csChange').onclick = e => { e.preventDefault(); store.set('callsign', ''); store.set('pilotSet', false); bootStep(); };
@@ -37,10 +37,11 @@ function bootStep() {
 function applyGameMode() {
   const dcs = GAMEMODE.get() === 'dcs';
   document.body.classList.toggle('dcsmode', dcs);
-  $('.brand span').textContent = dcs ? 'DCS WORLD' : 'QUARTERMASTER';
-  const lb = $('#btnLaunch'); if (lb) { lb.title = dcs ? 'Start DCS World' : 'Start the RSI Launcher'; $('#launchIco').src = dcs ? '/api/gameicon/dcs' : '/api/launcher_icon'; }
-  if (dcs) { if (typeof CK !== 'undefined' && CK.on && !CK.cal) setCockpit(false); show('dcs'); dcsInit(); }
-  else if ($('#view-dcs').classList.contains('on')) show('rich');
+  $('.brand span').textContent = dcs ? 'OVERWATCH' : 'QUARTERMASTER';
+  $('#ttName').textContent = AI().toUpperCase();
+  const lb = $('#btnLaunch'); if (lb) { lb.title = dcs ? 'Start DCS World' : 'Start the RSI Launcher'; const im = $('#launchIco'); im.hidden = true; $('#launchSvg').style.display = ''; im.src = (dcs ? '/api/gameicon/dcs' : '/api/launcher_icon') + '?t=' + Date.now(); }
+  if (dcs) { if (typeof CK !== 'undefined' && CK.on && !CK.cal) setCockpit(false); const v = store.get('dcsView', 'dcslog'); show(v.startsWith('dcs') ? v : 'dcslog'); }
+  else if ($$('.view.on').some(v => v.id.startsWith('view-dcs'))) show('rich');
 }
 
 /* ---------------- DCS page ---------------- */
@@ -57,9 +58,8 @@ function dcsInit() {
     ['#dcsMain', '#dcsMfd'].forEach(id => $(id).onchange = () => { DCS.layout[id === '#dcsMain' ? 'main' : 'mfd'] = $(id).value; dcsSave(); dcsRenderLayout(); });
     $('#dcsPaths').onclick = async () => { const p = prompt('DCS install folder (the one with bin\\DCS.exe) — leave blank to auto-detect:', DCS.st && DCS.st.exe || ''); if (p === null) return;
       await fetch('/api/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({dcs_path: p.trim()})}); dcsRefresh(); };
-    connectDcsFeed();
+    connectDcsFeed(); dlStart();
   }
-  dcsRefresh();
 }
 async function dcsPost(act, body) {
   try { const r = await fetch('/api/dcs/' + act, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})}); const j = await r.json(); if (!j.ok && j.error) toast(esc(j.error), 7000); return j; }
@@ -136,7 +136,7 @@ async function dcsUnfly() { await fetch('/api/display', {method: 'POST', headers
 /* ---------------- live flight data ---------------- */
 function connectDcsFeed() {
   if (DCS.es) return;
-  try { DCS.es = new EventSource('/api/dcs/stream'); DCS.es.onmessage = ev => { try { DCS.feed = JSON.parse(ev.data); renderFlight(); } catch {} }; } catch {}
+  try { DCS.es = new EventSource('/api/dcs/stream'); DCS.es.onmessage = ev => { try { DCS.feed = JSON.parse(ev.data); renderFlight(); dlogWatch(DCS.feed); mapSync(); } catch {} }; } catch {}
 }
 const R2D = 180 / Math.PI;
 function dm(v, pos, neg) { if (v == null) return '—'; const a = Math.abs(v), d = Math.floor(a), m = (a - d) * 60; return `${v >= 0 ? pos : neg} ${d}°${m.toFixed(3).padStart(6, '0')}'`; }
@@ -221,3 +221,241 @@ function dcsEditor() {
   addEventListener('keydown', key, true);
   draw();
 }
+
+/* ======================================================================
+   LOG — call-outs (teletype strip at the bottom + full list on the LOG tab)
+   ====================================================================== */
+const DLOG = {list: store.get('dcsLog', []).slice(0, 300), st: {air: null, bingo: false, joker: false, mach: false, gT: 0, live: false, unit: ''}};
+function dlogAdd(kind, text, level) {
+  const s = (DCS.feed && DCS.feed.state) || {};
+  const e = {t: Date.now(), mt: s.t != null ? s.t : null, kind, text, level: level || ''};
+  DLOG.list.unshift(e); DLOG.list = DLOG.list.slice(0, 300); store.set('dcsLog', DLOG.list);
+  renderTT(true); if ($('#view-dcslog').classList.contains('on')) renderLog();
+  if ($('#logSpeak') && $('#logSpeak').checked && level !== 'dl') say(text);
+}
+const hhmmss = t => new Date(t).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+const mtime = s => s == null ? '' : `${String(Math.floor(s / 3600) % 24).padStart(2, '0')}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
+function renderTT(newLine) {
+  const el = $('#ttLines'); if (!el) return;
+  const rows = DLOG.list.slice(0, 4).reverse();
+  el.innerHTML = rows.map((e, i) => `<div class="ttl ${e.level}"><i>${hhmmss(e.t)}${e.mt != null ? ' Z+' + mtime(e.mt) : ''}</i><span>${i === rows.length - 1 && newLine ? '' : esc(e.text)}</span></div>`).join('');
+  if (newLine && rows.length) { const span = $('.ttl:last-child span', el), txt = rows[rows.length - 1].text; let n = 0; clearInterval(DLOG.tw);
+    DLOG.tw = setInterval(() => { n += 2; span.textContent = txt.slice(0, n) + (n < txt.length ? '▮' : ''); if (n >= txt.length) clearInterval(DLOG.tw); }, 18); }
+}
+function renderLog() {
+  const el = $('#logList'); if (!el) return;
+  el.innerHTML = DLOG.list.length ? DLOG.list.map(e => `<div class="logrow ${e.level}"><i>${hhmmss(e.t)}</i><i>${e.mt != null ? 'Z+' + mtime(e.mt) : ''}</i><span class="k">${esc(e.kind)}</span><span>${esc(e.text)}</span></div>`).join('')
+    : '<div class="sub">Nothing yet — call-outs appear here once DCS is sending flight data.</div>';
+}
+// watch the flight data and call out the things a wingman would
+function dlogWatch(f) {
+  const st = DLOG.st, s = f && f.state;
+  if (!!(f && f.live) !== st.live) { st.live = !!(f && f.live); $('#ttLink').textContent = st.live ? 'LINK UP' : 'NO FEED';
+    if (st.live && s) dlogAdd('LINK', `Flight data up — ${(s.unit || 'aircraft').replace(/_/g, ' ')}${s.pilot ? ', ' + s.pilot : ''}.`);
+    else if (!st.live && st.air !== null) dlogAdd('LINK', 'Flight data lost.', 'warn'); }
+  if (!s) return;
+  if (s.unit && s.unit !== st.unit) { if (st.unit) dlogAdd('A/C', `Now in ${s.unit.replace(/_/g, ' ')}.`); st.unit = s.unit; st.bingo = st.joker = false; }
+  const kt = (s.ias || 0) * 1.94384, agl = (s.agl || 0) * 3.28084;
+  const air = st.air === null ? (agl > 30 && kt > 60) : st.air ? !(agl < 8 && kt < 140 && Math.abs(s.vvi || 0) < 4) : (agl > 30 && kt > 60);
+  if (st.air !== null && air !== st.air) dlogAdd(air ? 'AIRBORNE' : 'TOUCHDOWN', air ? `Wheels up — ${Math.round(kt)} kt.` : `Touchdown — ${Math.round(kt)} kt.`);
+  st.air = air;
+  const fuel = s.fuel && s.fuel.internal != null && s.fuel.internal <= 1.5 ? s.fuel.internal * 100 : null;
+  const bingo = +($('#logBingo') && $('#logBingo').value) || store.get('logBingo', 25), joker = +($('#logJoker') && $('#logJoker').value) || store.get('logJoker', 40);
+  if (fuel != null && air) {
+    if (!st.joker && fuel <= joker) { st.joker = true; dlogAdd('JOKER', `Joker fuel — ${Math.round(fuel)} % internal.`, 'warn'); }
+    if (!st.bingo && fuel <= bingo) { st.bingo = true; dlogAdd('BINGO', `Bingo fuel — ${Math.round(fuel)} % internal. Head home.`, 'alert'); }
+  }
+  if (s.g != null && s.g > 7.5 && Date.now() - st.gT > 15000) { st.gT = Date.now(); dlogAdd('OVER-G', `${s.g.toFixed(1)} G.`, 'warn'); }
+  if (s.mach != null) { if (!st.mach && s.mach >= 1.0) { st.mach = true; dlogAdd('MACH', 'Supersonic.'); } else if (st.mach && s.mach < 0.97) st.mach = false; }
+}
+
+/* ======================================================================
+   DL99 — squad datalink through the squad server (Railway)
+   ====================================================================== */
+const DL = {peers: [], marks: [], seq: 0, timer: 0, err: '', net: () => (store.get('dlNet', 'DL99') || 'DL99').toUpperCase(), share: () => store.get('dlShare', true)};
+async function dlPost(body) {
+  try { const r = await fetch(SQUAD.url() + '/api/dl', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({key: SQUAD.key(), net: DL.net(), callsign: store.get('callsign', '') || PILOT(), since: DL.seq, ...body})});
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); DL.err = ''; return j; }
+  catch (e) { DL.err = e.message; return null; }
+}
+function dlTake(j) {
+  if (!j) { $('#dlState') && ($('#dlState').textContent = 'OFFLINE · ' + DL.err.toUpperCase().slice(0, 30)); return; }
+  const me = (store.get('callsign', '') || PILOT()).toUpperCase();
+  DL.peers = j.peers.filter(p => p.callsign !== me); DL.marks = j.marks;
+  for (const m of j.msgs || []) { if (m.n > DL.seq && DL.seq) dlogAdd('DL99', `${m.by}: ${m.text}`, 'dl'); DL.msgLog.push(m); }
+  DL.msgLog = DL.msgLog.slice(-100);
+  DL.seq = Math.max(DL.seq, j.seq || 0);
+  if ($('#dlState')) $('#dlState').textContent = `${DL.net()} · ${DL.peers.length} ON NET`;
+  renderDL(); mapSync();
+}
+DL.msgLog = [];
+async function dlTick() {
+  const s = DCS.feed && DCS.feed.live && DCS.feed.state;
+  const j = s && DL.share() ? await dlPost({op: 'pos', pos: {lat: s.lat, lon: s.lon, alt: s.alt, hdg: s.hdg, ias: s.ias, unit: s.unit}}) : await dlPost({op: 'get'});
+  dlTake(j);
+}
+function dlStart() { if (DL.timer) return; dlTick(); DL.timer = setInterval(() => { if (GAMEMODE.get() === 'dcs') dlTick(); }, 2500); }
+function braa(a, b) {  // bearing (true) and range in nm from a to b
+  const R = 3440.065, toR = Math.PI / 180, la1 = a.lat * toR, la2 = b.lat * toR, dl = (b.lon - a.lon) * toR;
+  const d = 2 * R * Math.asin(Math.sqrt(Math.sin((la2 - la1) / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dl / 2) ** 2));
+  const brg = (Math.atan2(Math.sin(dl) * Math.cos(la2), Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(dl)) / toR + 360) % 360;
+  return {brg, d};
+}
+function renderDL() {
+  const el = $('#dlPeers'); if (!el) return;
+  const s = DCS.feed && DCS.feed.state;
+  el.innerHTML = `<tr><th>Callsign</th><th>Jet</th><th class="r">Angels</th><th class="r">Speed</th><th class="r">${s ? 'BRA from you' : 'Position'}</th></tr>` +
+    (DL.peers.length ? DL.peers.map(p => { const b = s && s.lat != null ? braa(s, p) : null;
+      return `<tr><td><b>${esc(p.callsign)}</b></td><td class="sub">${esc((p.unit || '').replace(/_/g, ' '))}</td><td class="r num">${p.alt != null ? Math.round(p.alt * 3.28084 / 1000) : '—'}</td><td class="r num">${p.ias != null ? Math.round(p.ias * 1.94384) + ' kt' : '—'}</td><td class="r num">${b ? String(Math.round(b.brg)).padStart(3, '0') + '° / ' + Math.round(b.d) + ' nm' : p.lat.toFixed(2) + ', ' + p.lon.toFixed(2)}</td></tr>`; }).join('')
+      : '<tr><td colspan="5" class="sub">Nobody else on this net right now.</td></tr>');
+  const m = $('#dlMsgs'); if (m) { m.innerHTML = DL.msgLog.map(x => `<div><span class="sub">${hhmmss(x.t * 1000)}</span> <b>${esc(x.by)}</b> ${esc(x.text)}</div>`).join(''); m.scrollTop = m.scrollHeight; }
+}
+
+/* ======================================================================
+   MAP — F10-style: your jet, DL99 flight, shared marks (Leaflet + dark tiles)
+   ====================================================================== */
+const MP = {map: null, me: null, peers: {}, marks: {}, local: store.get('mapMarks', [])};
+async function mapInit() {
+  if (MP.map) { setTimeout(() => MP.map.invalidateSize(), 50); return; }
+  if (!window.L) {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'vendor/leaflet/leaflet.css'; document.head.appendChild(css);
+    await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'vendor/leaflet/leaflet.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); }).catch(() => {});
+  }
+  if (!window.L) { $('#dcsMap').innerHTML = '<div class="sub" style="padding:20px">Map library missing — update ARIA.</div>'; return; }
+  MP.map = window.L.map('dcsMap', {zoomControl: true, worldCopyJump: true, attributionControl: true}).setView([42, 42], 6);
+  window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {maxZoom: 18, subdomains: 'abcd',
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'}).addTo(MP.map);
+  MP.map.on('click', e => mapAddMark(e.latlng.lat, e.latlng.lng));
+  MP.map.on('dragstart', () => { $('#mapFollow').checked = false; });
+  $('#mapMe').onclick = () => { const s = DCS.feed && DCS.feed.state; if (s && s.lat != null) MP.map.setView([s.lat, s.lon], Math.max(MP.map.getZoom(), 8)); else toast('No position yet — fly a mission with the add-on installed.'); };
+  mapSync();
+}
+const jetIcon = (hdg, color, label) => window.L.divIcon({className: '', iconSize: [26, 26], iconAnchor: [13, 13],
+  html: `<div style="transform:rotate(${(hdg || 0) * 180 / Math.PI}deg);width:26px;height:26px"><svg viewBox="0 0 26 26" width="26" height="26"><path d="M13 2 L17 20 L13 16 L9 20 Z" fill="${color}" stroke="#000" stroke-width="1"/></svg></div>${label ? `<div style="position:absolute;left:26px;top:4px;color:${color};font:700 11px IBM Plex Mono,monospace;white-space:nowrap;text-shadow:0 0 3px #000">${label}</div>` : ''}`});
+const MARK_COL = {point: '#f2a83b', target: '#ff6b5b', threat: '#ff3b6b', friendly: '#5fd3f0'};
+const markIcon = m => window.L.divIcon({className: '', iconSize: [18, 18], iconAnchor: [9, 9],
+  html: `<div style="width:14px;height:14px;border:2px solid ${MARK_COL[m.kind] || '#f2a83b'};${m.kind === 'threat' ? 'border-radius:50%' : m.kind === 'target' ? 'transform:rotate(45deg)' : ''};background:rgba(0,0,0,.4)"></div><div style="position:absolute;left:18px;top:-2px;color:${MARK_COL[m.kind] || '#f2a83b'};font:700 11px IBM Plex Mono,monospace;white-space:nowrap;text-shadow:0 0 3px #000">${esc(m.label || '')}${m.by ? ' · ' + esc(m.by) : ''}</div>`});
+async function mapAddMark(lat, lon) {
+  const label = prompt('Mark label (e.g. SA-6, TGT 1, TANKER):', ''); if (label === null) return;
+  const m = {id: Date.now().toString(36), lat, lon, label: label.trim().slice(0, 40), kind: $('#mapKind').value};
+  if (DL.share()) { const j = await dlPost({op: 'mark', mark: m}); if (j) { dlTake(j); dlogAdd('MARK', `Mark ${m.label || m.kind} shared on ${DL.net()}.`, 'dl'); return; } }
+  MP.local.push(m); store.set('mapMarks', MP.local); mapSync();
+}
+async function mapDelMark(m) {
+  if (m.local) { MP.local = MP.local.filter(x => x.id !== m.id); store.set('mapMarks', MP.local); mapSync(); return; }
+  const j = await dlPost({op: 'unmark', id: m.id}); dlTake(j);
+}
+function mapSync() {
+  if (!MP.map || !window.L) return;
+  const s = DCS.feed && DCS.feed.live && DCS.feed.state;
+  if (s && s.lat != null) {
+    if (!MP.me) MP.me = window.L.marker([s.lat, s.lon], {icon: jetIcon(s.hdg, '#7cf59a', 'YOU'), zIndexOffset: 1000}).addTo(MP.map);
+    else { MP.me.setLatLng([s.lat, s.lon]); MP.me.setIcon(jetIcon(s.hdg, '#7cf59a', 'YOU')); }
+    if ($('#mapFollow').checked) MP.map.panTo([s.lat, s.lon], {animate: false});
+  }
+  const seen = new Set();
+  for (const p of DL.peers) { seen.add(p.callsign); const ic = jetIcon(p.hdg, '#5fd3f0', `${p.callsign} ${p.alt != null ? Math.round(p.alt * 3.28084 / 1000) : ''}`);
+    if (MP.peers[p.callsign]) { MP.peers[p.callsign].setLatLng([p.lat, p.lon]); MP.peers[p.callsign].setIcon(ic); } else MP.peers[p.callsign] = window.L.marker([p.lat, p.lon], {icon: ic}).addTo(MP.map); }
+  for (const k of Object.keys(MP.peers)) if (!seen.has(k)) { MP.peers[k].remove(); delete MP.peers[k]; }
+  const all = [...DL.marks, ...MP.local.map(m => ({...m, local: true}))], ids = new Set(all.map(m => m.id));
+  for (const m of all) if (!MP.marks[m.id]) { const mk = window.L.marker([m.lat, m.lon], {icon: markIcon(m)}).addTo(MP.map); mk.on('contextmenu', () => mapDelMark(m)); mk.bindTooltip(`${m.kind.toUpperCase()}${m.local ? ' (local)' : ''} · right-click to delete`); MP.marks[m.id] = mk; }
+  for (const k of Object.keys(MP.marks)) if (!ids.has(k)) { MP.marks[k].remove(); delete MP.marks[k]; }
+}
+
+/* ======================================================================
+   KNEEBOARD — recovery / pattern cards per airframe (more airframes as we build them)
+   Numbers are the common DCS-community values; your squadron SOP wins.
+   ====================================================================== */
+const KB = {
+  'FA-18C_hornet': {name: 'F/A-18C Hornet', pages: [
+    {id: 'case1', title: 'CASE I RECOVERY', sub: 'Day VMC · ceiling ≥ 3000 ft · vis ≥ 5 nm', rows: [
+      ['Initial', '3 nm astern on BRC, 800 ft, 350 KIAS, right of the wake'],
+      ['Break', 'At or past the bow, left break · idle + speedbrake · level at 800 ft'],
+      ['Dirty up', 'Below 250 KIAS: gear down, flaps FULL, hook down · trim to on-speed'],
+      ['Downwind', '600 ft · 1.1–1.3 nm abeam · on-speed AoA (8.1°) · landing checklist'],
+      ['180 / Abeam', 'Start the turn abeam the LSO platform · ~27° bank'],
+      ['45° position', '~450 ft'],
+      ['Groove', 'Roll out ~350–375 ft, 15–18 s groove · call "Hornet ball, x.x" (fuel)'],
+      ['Fly', 'Meatball · lineup · AoA — power for the ball, nose for AoA'],
+      ['Touchdown', 'Full power on touchdown · bolter = fly away, climb to 600 ft upwind']],
+      note: 'Hook down before the break. Hornet on-speed AoA 8.1° (indexer donut).', pic: 'case1'},
+    {id: 'case3', title: 'CASE III RECOVERY', sub: 'Night or ceiling < 1000 ft / vis < 5 nm', rows: [
+      ['Marshal', 'Radial = BRC reciprocal (or assigned) · distance = angels + 15 nm (e.g. angels 6 → 21 nm)'],
+      ['Push', 'At your EAT · 250 KIAS · 4000 fpm descent'],
+      ['Platform', '5000 ft → slow to 2000 fpm descent'],
+      ['10 DME', '1200 ft · dirty up: gear, flaps FULL, hook · slow to on-speed'],
+      ['6 DME', 'Level 1200 ft until glideslope intercept (ICLS / ACLS)'],
+      ['3/4 nm', '"Hornet ball, x.x" when you see the ball · paddles takes the call'],
+      ['Bolter / waveoff', 'Climb straight ahead to 1200 ft, follow the CATCC / tower instructions']],
+      note: 'Tune ICLS channel and TACAN before you push. Fly the needles until the ball.', pic: 'case3'},
+    {id: 'case2', title: 'CASE II RECOVERY', sub: 'Day · ceiling 1000–3000 ft · vis ≥ 5 nm', rows: [
+      ['Descent', 'Case III marshal and push procedures until visual'],
+      ['Visual', 'Below the layer: proceed VFR to the initial'],
+      ['Pattern', 'Join and fly as Case I from the initial / break']],
+      note: 'If you never get visual by 10 nm, continue as Case III.'},
+    {id: 'field', title: 'FIELD OVERHEAD BREAK', sub: 'Land-based VFR pattern (check field / SOP)', rows: [
+      ['Initial', '3–5 nm on runway heading · 1500 ft AGL (or field pattern) · 300–350 KIAS'],
+      ['Break', 'Over the approach end / numbers · idle + speedbrake · level turn to downwind'],
+      ['Dirty up', 'Below 250 KIAS: gear down, flaps HALF or FULL, on-speed AoA'],
+      ['Downwind', 'Pattern altitude · ~1–1.5 nm abeam the runway'],
+      ['Base turn', 'Abeam touchdown point · descending 180° turn'],
+      ['Final', 'Roll out ~300–400 ft AGL · 3° glidepath · fly on-speed AoA'],
+      ['Touchdown', 'First 1000 ft · idle · brakes below 100 kt'],
+      ['Go-around', 'MIL/AB · positive climb · gear up, flaps auto']],
+      note: 'Hook up for field landings unless arresting gear is briefed.', pic: 'field'}]}
+};
+function kbSvg(kind) {
+  if (kind === 'case1') return `<svg viewBox="0 0 300 120" width="300" height="120"><rect x="125" y="52" width="70" height="16" fill="#9aa7b4"/><text x="160" y="64" font-size="9" text-anchor="middle" fill="#14181f">SHIP →</text>
+    <path d="M10 60 H180 A35 35 0 0 0 180 -10 M180 -10" fill="none"/><path d="M20 60 L190 60 Q235 60 235 30 Q235 8 190 8 L80 8 Q40 8 40 40 Q40 60 120 60" fill="none" stroke="#0b2a4a" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="22" y="76" font-size="9" fill="#0b2a4a">INITIAL 800'</text><text x="200" y="76" font-size="9" fill="#0b2a4a">BREAK</text><text x="110" y="20" font-size="9" fill="#0b2a4a">DOWNWIND 600'</text><text x="30" y="40" font-size="9" fill="#0b2a4a">180 · 45° 450'</text></svg>`;
+  if (kind === 'case3') return `<svg viewBox="0 0 300 110" width="300" height="110"><path d="M10 15 L120 15 L170 55 L270 85" fill="none" stroke="#0b2a4a" stroke-width="2"/><rect x="270" y="80" width="22" height="9" fill="#9aa7b4"/>
+    <text x="10" y="10" font-size="9" fill="#0b2a4a">MARSHAL ang+15 nm</text><text x="110" y="34" font-size="9" fill="#0b2a4a">PLATFORM 5000'</text><text x="160" y="72" font-size="9" fill="#0b2a4a">10 DME 1200' DIRTY</text><text x="230" y="104" font-size="9" fill="#0b2a4a">¾ nm BALL</text></svg>`;
+  if (kind === 'field') return `<svg viewBox="0 0 300 120" width="300" height="120"><rect x="40" y="56" width="200" height="10" fill="#9aa7b4"/><path d="M20 61 H150 Q190 61 190 32 Q190 14 150 14 H60 Q25 14 25 40 Q25 61 60 61" fill="none" stroke="#0b2a4a" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="20" y="84" font-size="9" fill="#0b2a4a">INITIAL → BREAK OVER THE NUMBERS</text><text x="70" y="10" font-size="9" fill="#0b2a4a">DOWNWIND</text><text x="0" y="40" font-size="9" fill="#0b2a4a">BASE</text></svg>`;
+  return '';
+}
+function renderKB() {
+  const sel = $('#kbAir'); if (!sel.options.length) sel.innerHTML = Object.entries(KB).map(([k, v]) => `<option value="${k}">${esc(v.name)}</option>`).join('');
+  const ac = KB[sel.value] || Object.values(KB)[0];
+  $('#kbPages').innerHTML = ac.pages.map(p => `<div class="kbpage" data-kb="${p.id}"><h3>${esc(p.title)}</h3><div class="kbsub">${esc(ac.name)} · ${esc(p.sub)}</div>
+    ${p.pic ? kbSvg(p.pic) : ''}<table>${p.rows.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table>
+    ${p.note ? `<div class="kbnote">${esc(p.note)}</div>` : ''}<div class="kbsub" style="margin-top:8px;font-size:10.5px">ARIA reference · common DCS values — your squadron SOP and the boat/field brief win.</div></div>`).join('');
+}
+async function kbSend() {
+  if (!window.html2canvas) await new Promise(res => { const sc = document.createElement('script'); sc.src = 'vendor/html2canvas.min.js'; sc.onload = res; sc.onerror = res; document.head.appendChild(sc); });
+  if (!window.html2canvas) { toast('Missing vendor/html2canvas.min.js — update ARIA.'); return; }
+  const pages = [];
+  for (const el of $$('#kbPages .kbpage')) { const c = await html2canvas(el, {backgroundColor: '#f4f1e8', scale: 2}); pages.push({name: el.dataset.kb, png: c.toDataURL('image/png')}); }
+  const j = await dcsPost('kneeboard', {aircraft: $('#kbAir').value, pages});
+  if (j.ok) toast(`${j.pages} pages in your ${esc(KB[$('#kbAir').value].name)} kneeboard (${esc(j.folder)}). Restart the mission to see them.`, 9000);
+}
+
+/* ---------------- tab routing + wiring ---------------- */
+function dcsView(v) {
+  store.set('dcsView', v);
+  if (v === 'dcslog') renderLog();
+  if (v === 'dcsdl') renderDL();
+  if (v === 'dcsmap') mapInit();
+  if (v === 'dcskb') renderKB();
+  if (v === 'dcsset') dcsRefresh();
+}
+(function dcsWire() {
+  const on = (id, ev, fn) => { const e = $(id); if (e) e[ev] = fn; };
+  on('#logSpeak', 'onchange', () => store.set('logSpeak', $('#logSpeak').checked));
+  on('#logBingo', 'onchange', () => store.set('logBingo', +$('#logBingo').value));
+  on('#logJoker', 'onchange', () => store.set('logJoker', +$('#logJoker').value));
+  on('#logClear', 'onclick', () => { DLOG.list = []; store.set('dcsLog', []); renderLog(); renderTT(); });
+  on('#logCopy', 'onclick', () => { navigator.clipboard.writeText(DLOG.list.slice().reverse().map(e => `${hhmmss(e.t)} ${e.mt != null ? 'Z+' + mtime(e.mt) : ''} ${e.kind} ${e.text}`).join('\n')).then(() => toast('Log copied.')); });
+  on('#dlShare', 'onchange', () => { store.set('dlShare', $('#dlShare').checked); dlTick(); });
+  on('#dlNet', 'onchange', () => { store.set('dlNet', $('#dlNet').value.trim().toUpperCase() || 'DL99'); DL.seq = 0; DL.msgLog = []; dlTick(); });
+  const send = async () => { const t = $('#dlSay').value.trim(); if (!t) return; $('#dlSay').value = ''; dlTake(await dlPost({op: 'msg', text: t})); };
+  on('#dlSend', 'onclick', send); on('#dlSay', 'onkeydown', e => { if (e.key === 'Enter') send(); });
+  on('#kbAir', 'onchange', renderKB); on('#kbSend', 'onclick', kbSend);
+  on('#kbPrint', 'onclick', () => { const w = window.open('', '_blank'); w.document.write(`<html><head><title>Kneeboard</title><style>${[...document.styleSheets].map(ss => { try { return [...ss.cssRules].map(r => r.cssText).join('\n'); } catch { return ''; } }).join('\n')} body{background:#fff} .kbpage{box-shadow:none;page-break-after:always;margin:0 auto 20px}</style></head><body>${$('#kbPages').innerHTML}</body></html>`); w.document.close(); setTimeout(() => w.print(), 400); });
+  if ($('#logSpeak')) $('#logSpeak').checked = store.get('logSpeak', false);
+  if ($('#logBingo')) $('#logBingo').value = store.get('logBingo', 25);
+  if ($('#logJoker')) $('#logJoker').value = store.get('logJoker', 40);
+  if ($('#dlShare')) $('#dlShare').checked = DL.share();
+  if ($('#dlNet')) $('#dlNet').value = DL.net();
+  renderTT();
+})();

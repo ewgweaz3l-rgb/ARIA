@@ -104,6 +104,59 @@ class Squad:
                 json.dump(all_, f)
         return r
 
+    # ---------------- DL99: squad datalink (positions, map marks, text) ----------------
+    # Kept in memory: positions expire in 30 s, marks in 12 h, the last 100 messages per net.
+    def _net(self, name):
+        if not hasattr(self, "_dl"):
+            self._dl = {}
+        name = (str(name or "DL99").upper().strip() or "DL99")[:16]
+        n = self._dl.setdefault(name, {"peers": {}, "marks": {}, "msgs": [], "seq": 0})
+        now = time.time()
+        n["peers"] = {k: v for k, v in n["peers"].items() if now - v["t"] < 30}
+        n["marks"] = {k: v for k, v in n["marks"].items() if now - v["t"] < 12 * 3600}
+        return n
+
+    @staticmethod
+    def _f(v, lo, hi):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return None
+        return v if lo <= v <= hi else None
+
+    def dl(self, payload):
+        with self.lock:
+            n = self._net(payload.get("net"))
+            cs = str(payload.get("callsign") or "CMDR").upper()[:12]
+            op = payload.get("op")
+            now = time.time()
+            if op == "pos":
+                p = payload.get("pos") or {}
+                lat, lon = self._f(p.get("lat"), -90, 90), self._f(p.get("lon"), -180, 180)
+                if lat is not None and lon is not None:
+                    n["peers"][cs] = {"callsign": cs, "lat": lat, "lon": lon, "alt": self._f(p.get("alt"), -500, 40000),
+                                      "hdg": self._f(p.get("hdg"), -10, 10), "ias": self._f(p.get("ias"), 0, 2000),
+                                      "unit": str(p.get("unit") or "")[:32], "t": now}
+            elif op == "mark":
+                m = payload.get("mark") or {}
+                lat, lon = self._f(m.get("lat"), -90, 90), self._f(m.get("lon"), -180, 180)
+                if lat is not None and lon is not None and len(n["marks"]) < 300:
+                    mid = str(m.get("id") or secrets.token_hex(4))[:16]
+                    n["marks"][mid] = {"id": mid, "lat": lat, "lon": lon, "label": str(m.get("label") or "")[:40],
+                                       "kind": m.get("kind") if m.get("kind") in ("point", "threat", "target", "friendly") else "point",
+                                       "by": cs, "t": now}
+            elif op == "unmark":
+                n["marks"].pop(str(payload.get("id") or ""), None)
+            elif op == "msg":
+                text = str(payload.get("text") or "").strip()[:200]
+                if text:
+                    n["seq"] += 1
+                    n["msgs"].append({"n": n["seq"], "by": cs, "text": text, "t": now})
+                    n["msgs"] = n["msgs"][-100:]
+            since = int(self._f(payload.get("since"), 0, 10**12) or 0)
+            return {"peers": [v for k, v in n["peers"].items()], "marks": list(n["marks"].values()),
+                    "msgs": [m for m in n["msgs"] if m["n"] > since], "seq": n["seq"], "now": now}
+
     # ---------------- lobbies ----------------
     def _load_lobbies(self):
         try:
@@ -271,6 +324,11 @@ class Squad:
                 return 200, {"reports": [r for r in self.load_reports() if r.get("t", 0) > since], "host": self.name_fn()}
             r = self.add_report(payload.get("report"))
             return (200, {"ok": True, "id": r["id"]}) if r else (400, {"error": "empty report"})
+        if path == "/api/dl":
+            src = query if method == "GET" else payload
+            if key != str(src.get("key") or ""):
+                return 403, {"error": "Wrong squad key."}
+            return 200, self.dl(src if method == "POST" else dict(query))
         if path.startswith("/api/lobby"):
             k = query.get("key") if method == "GET" else str(payload.get("key") or "")
             if key != (k or ""):

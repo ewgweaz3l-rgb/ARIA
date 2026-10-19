@@ -420,7 +420,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(200, {"running": GAME_STATE["running"], "windows": sys.platform.startswith("win")})
             elif kind == "report":  # this PC's own job reports
                 return self.send_json(200, {"reports": SQUAD.load_reports()})
-            elif kind in ("scores", "lobby", "reports"):
+            elif kind in ("scores", "lobby", "reports", "dl"):
                 cfg = load_config()
                 if not cfg.get("squad_host"):
                     return self.send_json(404, {"error": "This ARIA isn't hosting a squad board."}, CORS)
@@ -504,7 +504,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         u = urllib.parse.urlsplit(self.path)
-        if u.path == "/api/scores" or u.path == "/api/reports" or u.path.startswith("/api/lobby"):  # squad: friends post here from their own ARIA
+        if u.path in ("/api/scores", "/api/reports", "/api/dl") or u.path.startswith("/api/lobby"):  # squad: friends post here from their own ARIA
             n = int(self.headers.get("Content-Length") or 0)
             try:
                 payload = json.loads(self.rfile.read(n) if n else b"{}")
@@ -573,6 +573,8 @@ class Handler(SimpleHTTPRequestHandler):
                 if act == "window":  # move ARIA's window to an exact desktop rectangle
                     r = payload.get("rect") or {}
                     return self.send_json(200, {"ok": winsys.place_aria(r.get("x", 0), r.get("y", 0), r.get("w", 800), r.get("h", 600))})
+                if act == "kneeboard":  # PNG pages → Saved Games\DCS\Kneeboard\<aircraft>\
+                    return self.send_json(200, dcs.write_kneeboard(cfg_, payload.get("aircraft"), payload.get("pages") or []))
                 if act == "launch":
                     exe = dcs.find_exe(cfg_.get("dcs_path"))
                     if not exe:
@@ -798,7 +800,7 @@ def main(argv=None):
         a.host = "0.0.0.0"  # hosting the squad board: reachable from the network
     try:
         srv = ThreadingHTTPServer((a.host, a.port), Handler)
-        dcs.FEED.start()  # DCS flight data arrives here over UDP (127.0.0.1:7778)
+        dcs.FEED.start()  # DCS flight data arrives here over UDP (127.0.0.1:7781)
     except OSError:  # already running: just bring up a window
         print(f"ARIA is already running on port {a.port}.")
         if not a.no_browser:
