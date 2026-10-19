@@ -101,11 +101,6 @@ body:not(.dcsmode) #tabs [data-view^=dcs]{display:none}
 body.dcsmode #tabs button:not([data-view^=dcs]){display:none}
 body:not(.dcsmode) #dcsTT{display:none}
 /* OVERWATCH cockpit panels (pit.js) */
-body.dcsck{overflow:hidden;background:#000}
-body.dcsck #appShell{position:fixed;overflow:auto;border:1px solid #1d3a26;border-radius:6px;background:var(--bg);z-index:30}
-body.dcsck #appShell header{position:static}
-body.dcsck #dcsTT{position:fixed;border:1px solid #1d3a26;border-top-width:1px}
-body.pitbandhide #appShell,body.pitbandhide #dcsTT{display:none!important}
 #dcsPit{position:fixed;inset:0;z-index:45;pointer-events:none;filter:brightness(var(--pitDim,1))}
 #dcsPit>*{pointer-events:auto}
 #dcsPit button{font-family:var(--head);cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none}
@@ -124,7 +119,7 @@ body.pitbandhide #appShell,body.pitbandhide #dcsTT{display:none!important}
 .pswitch b{position:absolute;left:7px;width:8px;height:20px;border-radius:4px;background:linear-gradient(90deg,#9aa4b0,#e4e8ec 45%,#7b8591);box-shadow:0 1px 2px #000;transition:top .12s}
 .pswitch.up b{top:-6px}.pswitch.dn b{top:20px}
 .pswitch:hover{border-color:#6d7a89}
-#pitDock{position:absolute;display:flex;gap:4px;z-index:3}
+#pitDock{position:fixed;right:12px;bottom:104px;display:flex;gap:4px;z-index:3;opacity:.75}#pitDock:hover{opacity:1}
 #pitDock button{background:#0d1014;border:1px solid #2c333c;color:#aeb7c2;border-radius:5px;font:700 10px var(--head);letter-spacing:.12em;padding:4px 8px}
 #pitDock button.on,#pitDock button:hover{border-color:#7cf59a;color:#7cf59a}
 /* UFC face */
@@ -173,6 +168,7 @@ body.pitbandhide #appShell,body.pitbandhide #dcsTT{display:none!important}
 .hspring button.down{background:rgba(124,245,154,.18);border-radius:8px}.hspring button:hover{background:rgba(255,255,255,.06);border-radius:8px}
 .htxt{position:absolute;font:500 30px/42px var(--mono);color:#7ede72;text-shadow:0 0 6px rgba(126,222,114,.55);white-space:pre;overflow:hidden;pointer-events:none}
 .htxt.sp{line-height:48px;font-size:32px}.htxt.r{text-align:right}.htxt.c{text-align:center}.htxt.cue{font-size:30px}
+.dcsdel{position:absolute;right:4px;top:4px;width:22px;height:22px;border-radius:5px;border:1px solid #5ad08a;background:#06100a;color:#5ad08a;cursor:pointer;z-index:3}
 .dcsinner{position:absolute;border:1px dashed #5fd3f0;pointer-events:none;text-decoration:none}
 
 body.dcsmode main{padding-bottom:110px}
@@ -848,10 +844,9 @@ body.cockpit .cocktop #brief{display:none}
     <div class="grid2" style="margin-top:10px">
       <div><table id="dcsViews"></table>
         <ol class="sub" style="margin:10px 0 0 18px;padding:0">
-          <li><button class="btn ghost small" id="dcsAlign">⌗ Align the boxes</button> — outlines for the left DDI, right DDI, AMPCD and ARIA's band, full screen: drag, resize from edges and corners, arrow keys to nudge.</li>
+          <li><button class="btn ghost small" id="dcsAlign">⌗ Add / align displays</button> — <b>+ Add display</b> drops a 400 × 400 box on this screen; drag it onto the bezel, resize from the edges and corners, then add the next one. Arrow keys nudge, Enter saves.</li>
           <li><button class="btn small" id="dcsWrite">Write to DCS</button> <button class="btn ghost small" id="dcsPreview">Preview file</button></li>
           <li id="dcsRes"></li>
-          <li>When flying: <button class="btn ghost small" id="dcsFly">FLY — move ARIA to the bottom band</button> <button class="btn ghost small" id="dcsUnfly">Restore</button></li>
         </ol></div>
       <div><canvas id="dcsPic" width="560" height="200" style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px"></canvas>
         <details id="dcsLuaBox" style="margin-top:8px"><summary class="sub" style="cursor:pointer">The file ARIA writes</summary><pre id="dcsLua" class="mono" style="font-size:11.5px;white-space:pre-wrap;color:var(--dim)"></pre></details></div>
@@ -859,9 +854,9 @@ body.cockpit .cocktop #brief{display:none}
     <p class="sub" style="margin-top:8px">The file goes in <span class="mono">Saved Games\DCS\Config\MonitorSetup</span>, which doesn't touch the game install. Your alignment is saved with ARIA's cockpit layout; re-run “Write to DCS” after you change it.</p>
   </div>
   <div class="panel" style="margin-top:14px" id="pitPanel">
-    <div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Cockpit panels — Hornet UFC, AMPCD bezel, OSB rings</h3>
-      <button class="btn" id="pitGo">▶ COCKPIT — fly with panels</button></div>
-    <p class="sub" style="margin:6px 0 10px">ARIA fills the MFD screen, then Windows cuts its window down to just the panels — the DDI and AMPCD viewports are holes, so DCS's real displays show through. Clicks go to the jet through DCS-BIOS, and focus goes straight back to DCS.</p>
+    <div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Overlay — Hornet UFC ⇄ AMPCD, OSB frames</h3>
+      <button class="btn" id="pitGo">▶ OVERLAY ON — DCS displays through ARIA</button></div>
+    <p class="sub" style="margin:6px 0 10px">ARIA stays whole on the MFD screen, full screen and on top of DCS. Only the displays you added are cut out of its window, so DCS's real displays show through exactly there. On the Hornet, the center display flips between ARIA's clickable UFC and the AMPCD in its clickable bezel. Clicks go to the jet through DCS-BIOS, and focus goes straight back to DCS.</p>
     <div class="grid2">
       <div>
         <label class="f">Panel art<select id="pitLook"><option value="helios">Helios Hornet artwork (downloaded once from the Helios project)</option><option value="classic">ARIA drawn panels</option></select></label>
@@ -875,7 +870,6 @@ body.cockpit .cocktop #brief{display:none}
         <label class="chk"><input type="checkbox" id="pitOsbR"> OSB ring on the right DDI</label>
         <span class="sub">Off if your Cougars are the bezels — they bind in DCS directly.</span>
         <label class="f" style="margin-top:8px">DDI ring width <span class="sub" id="pitDdiRingV"></span><input type="range" id="pitDdiRing" min="5" max="18" step="1"></label>
-        <label class="f">Bottom band<select id="pitBand"><option value="indent">Indent — start below any panel that reaches into it</option><option value="over">Overlap — panels sit on top of the band</option><option value="hide">Hidden — a small ▴ ARIA tab opens it</option></select></label>
         <label class="f">Panel brightness <span class="sub" id="pitDimV"></span><input type="range" id="pitDim" min="15" max="100" step="5"></label>
         <div class="f" style="margin-top:6px">UFC ⇄ AMPCD key or HOTAS button <span class="row" style="gap:6px;align-items:center"><b class="mono" id="pitKeyLbl">none</b><button class="btn ghost small" id="pitKeyLearn">Learn</button><button class="btn ghost small" id="pitKeyClear">Clear</button></span>
           <span class="sub">Works while DCS has focus. The lever beside the center display does the same.</span></div>

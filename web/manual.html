@@ -198,8 +198,11 @@ table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}td,th{bord
 <li><b>Write to DCS</b>. ARIA saves the layout in <code>Saved Games\DCS\Config\MonitorSetup</code> — nothing in the game install changes.</li>
 <li>In DCS → Options → System: <b>Monitors</b> = the ARIA layout, <b>Resolution</b> = the size ARIA shows (it spans both screens), full screen off.</li>
 <li>Flying: <b>FLY</b> shrinks ARIA to the bottom band so the DCS displays show behind the Cougars; <b>Restore</b> puts ARIA back.</li></ol>
-<h3>Cockpit panels — UFC, AMPCD bezel, OSB rings</h3>
-<p><b>Settings → Cockpit panels → ▶ COCKPIT</b> puts ARIA full screen on the MFD monitor, then Windows trims ARIA's window to just its panels. The DDI and AMPCD viewports are holes, so DCS's live displays show through. Line the boxes up first (⌗ Align); the center box is now the <b>whole AMPCD/UFC unit</b>.</p>
+<h3>Overlay — DCS displays through ARIA</h3>
+<p>ARIA stays whole on your MFD screen. Only the displays you add are cut out of its window, so DCS draws its real screens exactly there.</p>
+<ol><li>Settings → <b>⌗ Add / align displays</b> → <b>+ Left DDI</b>. A 400 × 400 box appears; drag it onto the bezel and resize it from the edges and corners (arrow keys nudge). Then <b>+ Right DDI</b>, <b>+ AMPCD ⇄ UFC</b>, or <b>+ Other…</b> for another aircraft's viewport name. ✕ on a box removes it. Enter saves.</li>
+<li><b>Write to DCS</b>, then restart DCS (Options → System: the ARIA monitor layout, full screen off).</li>
+<li><b>▶ OVERLAY ON</b>. ARIA goes full screen on the MFD monitor and stays above DCS, with the holes cut. The small dock bottom-right has UFC ⇄ AMPCD, OSB L/R, ⌗ (move displays), ☼ and ✕ (back to a normal window).</li></ol>
 <ul>
 <li><b>Center: UFC ⇄ AMPCD.</b> The UFC face is ARIA's: keypad, CLR/ENT, A/P, IFF, TCN, ILS, D/L, BCN, ON/OFF, I/P, EMCON, ADF, the five option windows with their cueing colons, the scratchpad, and both COMM channel knobs (◀ ▶, scroll to turn, middle to pull). Its text comes from the jet. The AMPCD is DCS's own display in a 20-button bezel (Hornet numbering: 1–5 up the left side from the bottom, 6–10 across the top, 11–15 down the right, 16–20 back along the bottom) with BRT, SYM, GAIN and CONT in the corners. Flip between them with the <b>UFC / AMPCD lever</b> next to the center display, the dock, or a key or HOTAS button you teach it (Settings → Cockpit panels → Learn). The key works while DCS has focus.</li>
 <li><b>ARIA stays on top of DCS</b> in cockpit mode. DCS has to run with <b>Full screen off</b> (Options → System), because an exclusive full-screen game covers every other window.</li>

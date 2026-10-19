@@ -1,10 +1,7 @@
-/* pit.js — OVERWATCH cockpit panels for the Hornet, on the MFD screen around DCS's own viewports.
-
-   ARIA goes full screen on the MFD monitor, then Windows cuts its window down to just ARIA's panels
-   (SetWindowRgn): the DDI / AMPCD viewports are holes, so DCS shows through and its displays stay live.
-     • center: UFC face (drawn by ARIA, text from the jet) ⇄ AMPCD (DCS's display inside a clickable bezel)
-     • left / right DDI: optional OSB rings (off by default — the Cougars are the real bezels)
-     • the bottom band (ARIA + teletype) indents under the panels, overlaps, or hides
+/* pit.js — OVERWATCH overlay: ARIA stays whole on the MFD screen, and the displays you added are cut out of
+   its window (SetWindowRgn holes), so DCS's own viewports show through exactly there.
+     • Hornet center display: UFC face (ARIA draws it, clickable, text from the jet) ⇄ AMPCD (DCS's display in a clickable bezel)
+     • left / right DDI: just holes for the Cougars, or optional clickable frames around them
    Clicks go to DCS through DCS-BIOS ("UFC_1 1" / "UFC_1 0"), then focus goes back to DCS. */
 
 const PIT = {
@@ -28,7 +25,8 @@ function ddiGeo(r, W, H) {
   return {disp, t, bezel: {x: x0, y: y0, w: x1 - x0, h: y1 - y0}};
 }
 // the viewport DCS should draw into (dcsCompute uses this, so the written file matches the bezel)
-const pitHel = () => PIT.cfg.look === 'helios' && !PIT.noHel;
+const pitHelLook = () => PIT.cfg.look === 'helios';
+const pitHel = () => pitHelLook() && !PIT.noHel;
 function pitViewRect(key, r, W, H) {
   if (key === 'CENTER_MFCD' && PIT.cfg.look === 'helios') return helAmpGeo(r, W, H).disp;  // the Helios AMPCD frame's screen
   if (key === 'CENTER_MFCD' && PIT.cfg.amp) return ampGeo(r, W, H).disp;
@@ -261,72 +259,46 @@ function pitUfcText() {
 
 function pitLayout() {
   const root = $('#dcsPit'); if (!root || !PIT.on) return;
-  const W = innerWidth, H = innerHeight, R = dcsRects(), c = PIT.cfg, panels = [];
-  let html = '';
-  const hel = pitHel(), box = pct(R.CENTER_MFCD, W, H);
-  const ddi = (key, id, kind) => { if (hel) { const g = helDdiGeo(R[key], W, H); html += helDisplayPanel(id, 'DDI', kind, g.bezel); panels.push(g); }
-    else { const g = ddiGeo(R[key], W, H); html += ringHtml(id, kind, g); panels.push(g); } };
-  if (c.osbL && DCS.layout.use.LEFT_MFCD) ddi('LEFT_MFCD', 'pitL', 'LEFT_DDI');
-  if (c.osbR && DCS.layout.use.RIGHT_MFCD) ddi('RIGHT_MFCD', 'pitR', 'RIGHT_DDI');
-  let ufcBox = null, lever;
-  if (hel) {
-    if (c.center === 'ufc') { ufcBox = helFit(box, HEL.UFC); html += helUfcPanel(ufcBox); }
-    else { const g = helAmpGeo(R.CENTER_MFCD, W, H); html += helDisplayPanel('pitC', 'AMPCD', 'AMPCD', g.bezel); panels.push(g); }
-    lever = {x: box.x + box.w - LEVER_COL + 6, y: box.y + box.h - 98};
-  } else if (c.center === 'ufc') { ufcBox = box; html += ufcHtml(ufcBox); }
-  else {  // AMPCD: always a clickable bezel — inside the box when the viewport is inset, around it otherwise
-    const g = c.amp ? ampGeo(R.CENTER_MFCD, W, H) : ddiGeo(R.CENTER_MFCD, W, H); html += ringHtml('pitC', 'AMPCD', g); panels.push(g);
-    const spare = box.x + box.w - (g.bezel.x + g.bezel.w), sw = 64;
-    lever = {x: spare >= sw + 8 ? g.bezel.x + g.bezel.w + (spare - sw) / 2 : g.bezel.x + g.bezel.w + 6, y: g.bezel.y + g.bezel.h - 92};
+  const W = innerWidth, H = innerHeight, c = PIT.cfg, hel = pitHel(), holes = [];
+  let html = '', lever = null;
+  for (const v of dcsVps()) {
+    if (v.k === 'CENTER_MFCD') {  // the Hornet swap: UFC face (no hole) or the AMPCD (hole inside a clickable bezel)
+      const box = pct(v, W, H);
+      if (hel) {
+        if (c.center === 'ufc') html += helUfcPanel(helFit(box, HEL.UFC));
+        else { const g = helAmpGeo(v, W, H); html += helDisplayPanel('pitC', 'AMPCD', 'AMPCD', g.bezel); holes.push(g.disp); }
+        lever = {x: box.x + box.w - LEVER_COL + 6, y: box.y + box.h - 98};
+      } else if (c.center === 'ufc') { html += ufcHtml({...box, w: box.w - LEVER_COL}); lever = {x: box.x + box.w - LEVER_COL + 6, y: box.y + box.h - 98}; }
+      else { const g = c.amp ? ampGeo(v, W, H) : ddiGeo(v, W, H); html += ringHtml('pitC', 'AMPCD', g); holes.push(g.disp);
+        const spare = box.x + box.w - (g.bezel.x + g.bezel.w);
+        lever = {x: spare >= 72 ? g.bezel.x + g.bezel.w + (spare - 64) / 2 : g.bezel.x + g.bezel.w + 6, y: g.bezel.y + g.bezel.h - 92}; }
+      continue;
+    }
+    const side = v.k === 'LEFT_MFCD' ? 'L' : v.k === 'RIGHT_MFCD' ? 'R' : null;
+    if (side && c['osb' + side]) {  // optional clickable frame around a DDI
+      const kind = side === 'L' ? 'LEFT_DDI' : 'RIGHT_DDI';
+      if (hel) { const g = helDdiGeo(v, W, H); html += helDisplayPanel('pit' + side, 'DDI', kind, g.bezel); }
+      else html += ringHtml('pit' + side, kind, ddiGeo(v, W, H));
+    }
+    holes.push(pct(v, W, H));
   }
   if (lever) html += pitSwitchHtml('', `position:absolute;left:${lever.x}px;top:${lever.y}px`);
-  // the band: indented under whatever panels reach into it, overlapped, or hidden
-  let band = pct(R.BAND, W, H);
-  const blockers = panels.map(g => g.bezel).concat(ufcBox ? [ufcBox] : []).concat(lever ? [{x: lever.x, y: lever.y, w: 64, h: 92}] : []);
-  if (c.band === 'indent') {
-    let top = band.y;
-    for (const b of blockers) if (b.x < band.x + band.w && b.x + b.w > band.x && b.y < band.y + band.h && b.y + b.h > top) top = b.y + b.h + 4;
-    band = {...band, y: top, h: Math.max(120, band.y + band.h - top)};
-  }
-  const hidden = c.band === 'hide' && !PIT.bandOpen;
-  root.innerHTML = html + `<div id="pitDock" style="right:${W - band.x - band.w + 8}px;top:${band.y + band.h - 32}px">
-      <button data-a="center">${c.center === 'ufc' ? 'UFC' : 'AMPCD'} ⇄</button><button data-a="osbL" class="${c.osbL ? 'on' : ''}">OSB L</button><button data-a="osbR" class="${c.osbR ? 'on' : ''}">OSB R</button>
-      <button data-a="dim" title="Brightness of ARIA's panels (the DCS displays have their own BRT on the bezels)">☼ ${c.dim}%</button>${c.band === 'hide' ? `<button data-a="band">${PIT.bandOpen ? '▾ ARIA' : '▴ ARIA'}</button>` : ''}<button data-a="exit" title="Leave cockpit mode">✕</button></div>`;
+  root.innerHTML = html + `<div id="pitDock">
+      ${vpGet('CENTER_MFCD') ? `<button data-a="center">${c.center === 'ufc' ? 'UFC' : 'AMPCD'} ⇄</button>` : ''}${vpGet('LEFT_MFCD') ? `<button data-a="osbL" class="${c.osbL ? 'on' : ''}" title="Clickable frame around the left DDI">OSB L</button>` : ''}${vpGet('RIGHT_MFCD') ? `<button data-a="osbR" class="${c.osbR ? 'on' : ''}" title="Clickable frame around the right DDI">OSB R</button>` : ''}
+      <button data-a="align" title="Add / move displays">⌗</button><button data-a="dim" title="Brightness of ARIA's panels (the DCS displays have their own BRT on the bezels)">☼ ${c.dim}%</button><button data-a="exit" title="Leave the overlay (ARIA back to a normal window)">✕</button></div>`;
   root.style.setProperty('--pitDim', c.dim / 100);
-  // ARIA itself (header, tabs, ask bar) + the teletype live in the band
-  const shell = $('#appShell'), tt = $('#dcsTT'), ttH = Math.min(96, band.h * .3);
-  document.body.classList.toggle('pitbandhide', hidden);
-  Object.assign(shell.style, {left: band.x + 'px', top: band.y + 'px', width: band.w + 'px', height: Math.max(40, band.h - ttH) + 'px'});
-  Object.assign(tt.style, {left: band.x + 'px', right: 'auto', width: band.w + 'px', top: band.y + band.h - ttH + 'px', bottom: 'auto', height: ttH + 'px'});
-  PIT.band = hidden ? null : band;
+  PIT.holes = holes;
   pitUfcText(); pitShape();
 }
-// tell Windows which parts of the window are ARIA's — everything else (the viewports) shows DCS
+// tell Windows where the holes are: ARIA keeps the whole window except the displays DCS draws
 let pitShapeT = 0;
 function pitShape() {
   clearTimeout(pitShapeT);
   pitShapeT = setTimeout(() => {
     if (!PIT.on) return;
-    const k = devicePixelRatio || 1, rects = [];
-    const add = r => rects.push({x: r.x * k, y: r.y * k, w: r.w * k, h: r.h * k});
-    const el = id => { const e = $(id); if (e) { const b = e.getBoundingClientRect(); add({x: b.left, y: b.top, w: b.width, h: b.height}); } };
-    if (PIT.band) add(PIT.band);
-    el('#pitDock'); el('#pitUfc'); el('#pitSwapC');
-    for (const id of ['#pitL', '#pitR', '#pitC']) {  // rings as four strips, so the display stays a hole
-      const r = $(id); if (!r) continue; const b = r.getBoundingClientRect();
-      if (r.dataset.hole) {  // Helios frame: the screen rectangle inside it is the hole
-        const [hx, hy, hw, hh] = r.dataset.hole.split(',').map(Number), kx = b.width / +r.dataset.nw, ky = b.height / +r.dataset.nh;
-        const L = b.left + hx * kx, T = b.top + hy * ky, Rr = L + hw * kx, B = T + hh * ky;
-        add({x: b.left, y: b.top, w: b.width, h: T - b.top}); add({x: b.left, y: B, w: b.width, h: b.bottom - B});
-        add({x: b.left, y: T, w: L - b.left, h: B - T}); add({x: Rr, y: T, w: b.right - Rr, h: B - T});
-        continue;
-      }
-      const cs = getComputedStyle(r);
-      const t = parseFloat(cs.borderTopWidth), l = parseFloat(cs.borderLeftWidth), rt = parseFloat(cs.borderRightWidth), bt = parseFloat(cs.borderBottomWidth);
-      add({x: b.left, y: b.top, w: b.width, h: t}); add({x: b.left, y: b.bottom - bt, w: b.width, h: bt});
-      add({x: b.left, y: b.top + t, w: l, h: b.height - t - bt}); add({x: b.right - rt, y: b.top + t, w: rt, h: b.height - t - bt});
-    }
-    const body = $('.modal.on, #dcsEd') ? {off: true} : {rects: rects.map(r => ({x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h)})), topmost: true};
+    const k = devicePixelRatio || 1;
+    const holes = (PIT.holes || []).map(r => ({x: Math.round(r.x * k), y: Math.round(r.y * k), w: Math.round(r.w * k), h: Math.round(r.h * k)}));
+    const body = $('.modal.on, #dcsEd') ? {holes: [], topmost: true} : {holes, topmost: true};  // pop-ups and the editor get the whole window
     const sig = JSON.stringify(body); if (sig === PIT.lastShape) return; PIT.lastShape = sig;  // only tell Windows when it changes
     fetch('/api/dcs/shape', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: sig}).catch(() => {});
   }, 120);
@@ -340,19 +312,19 @@ async function pitEnter() {
   if (m && DCS.mons.length) await dcsPost('window', {rect: {x: m.x, y: m.y, w: m.w, h: m.h}});
   try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); }
   catch { toast('Press F11 so ARIA fills the MFD screen — the panels line up with the viewports only in full screen.', 8000); }
+  if (!dcsVps().length) { toast('Add a display first — <b>⌗ Add / align displays</b>.', 6000); }
   PIT.on = true; document.body.classList.add('dcsck');
   if (!$('#dcsPit')) { const d = document.createElement('div'); d.id = 'dcsPit'; document.body.appendChild(d); pitPointer(d); d.addEventListener('click', pitDockClick); }
   setTimeout(pitLayout, 350); setTimeout(pitLayout, 1200);
   // DCS takes the foreground whenever you fly; keep ARIA's panels above it
   clearInterval(PIT.keep); PIT.keep = setInterval(() => { if (PIT.on && !$('.modal.on, #dcsEd')) fetch('/api/dcs/shape', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ping: true})}).catch(() => {}); }, 2000);
   pitKeyStream();
-  dlogAdd('PIT', 'Cockpit panels on the MFD screen.');
+  dlogAdd('PIT', 'Overlay on — DCS displays showing through ARIA.');
 }
 async function pitExit() {
   if (!PIT.on) return;
-  PIT.on = false; PIT.lastShape = ''; clearInterval(PIT.keep); document.body.classList.remove('dcsck', 'pitbandhide');
+  PIT.on = false; PIT.lastShape = ''; clearInterval(PIT.keep); document.body.classList.remove('dcsck');
   $('#dcsPit') && ($('#dcsPit').innerHTML = '');
-  ['#appShell', '#dcsTT'].forEach(id => $(id).removeAttribute('style'));
   await fetch('/api/dcs/shape', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({off: true})}).catch(() => {});
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   if (typeof dcsUnfly === 'function') dcsUnfly();
@@ -364,7 +336,7 @@ function pitDockClick(e) {
   if (a === 'center') { pitFlip(); return; }
   else if (a === 'osbL' || a === 'osbR') c[a] = !c[a];
   else if (a === 'dim') { const steps = [100, 75, 55, 35, 20]; c.dim = steps[(steps.indexOf(c.dim) + 1) % steps.length] || 100; }
-  else if (a === 'band') PIT.bandOpen = !PIT.bandOpen;
+  else if (a === 'align') { vpEditor(); return; }
   else if (a === 'exit') { pitExit(); return; }
   pitSave(); pitLayout(); pitSettingsSync();
 }
@@ -388,7 +360,7 @@ function pitSettingsSync() {
   const c = PIT.cfg, f = id => $('#' + id);
   if (!f('pitCenter')) return;
   f('pitLook').value = c.look; f('pitCenter').value = c.center; f('pitAmp').checked = c.amp; f('pitOsbL').checked = c.osbL; f('pitOsbR').checked = c.osbR;
-  f('pitRing').value = c.ring; f('pitDdiRing').value = c.ddiRing; f('pitSpread').value = c.spread; f('pitBand').value = c.band; f('pitDim').value = c.dim;
+  f('pitRing').value = c.ring; f('pitDdiRing').value = c.ddiRing; f('pitSpread').value = c.spread; f('pitDim').value = c.dim;
   f('pitRingV').textContent = c.ring + '%'; f('pitDdiRingV').textContent = c.ddiRing + '%'; f('pitSpreadV').textContent = c.spread + '%'; f('pitDimV').textContent = c.dim + '%';
   const b = DCS.st && DCS.st.bios, el = f('pitBios');
   if (el) {
@@ -412,7 +384,6 @@ function pitSettingsInit() {
   f('pitRing').oninput = () => { c.ring = +f('pitRing').value; upd(); }; f('pitRing').onchange = () => upd(true);
   f('pitDdiRing').oninput = () => { c.ddiRing = +f('pitDdiRing').value; upd(); };
   f('pitSpread').oninput = () => { c.spread = +f('pitSpread').value; upd(); };
-  f('pitBand').onchange = () => { c.band = f('pitBand').value; PIT.bandOpen = false; upd(); };
   f('pitDim').oninput = () => { c.dim = +f('pitDim').value; upd(); };
   f('pitGo').onclick = pitEnter;
   f('pitKeyLearn').onclick = () => { fetch('/api/pitkey/learn', {method: 'POST'}); $('#pitKeyLbl').textContent = 'press it now…'; };

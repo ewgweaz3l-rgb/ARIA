@@ -97,7 +97,7 @@ def aria_windows():
     return [h for h in _windows(lambda t: "Quartermaster" in t) if _class(h).startswith("Chrome_WidgetWin")]
 
 
-def shape_aria(rects, topmost=True):
+def shape_aria(rects, topmost=True, holes=None):
     """Cut ARIA's window down to just the given rectangles (client pixels) so DCS shows through
     everywhere else — the DDI/AMPCD viewports become holes. rects=None restores a normal window."""
     if not IS_WINDOWS:
@@ -110,7 +110,7 @@ def shape_aria(rects, topmost=True):
     user32.SetWindowRgn.argtypes = (wintypes.HWND, wintypes.HRGN, wintypes.BOOL)
     wins = aria_windows()
     for hwnd in wins:
-        if rects is None:
+        if rects is None and holes is None:
             user32.SetWindowRgn(hwnd, None, True)
             user32.SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)  # NOTOPMOST, NOSIZE|NOMOVE|NOACTIVATE
             continue
@@ -118,6 +118,17 @@ def shape_aria(rects, topmost=True):
         user32.GetWindowRect(hwnd, ctypes.byref(wr))
         user32.ClientToScreen(hwnd, ctypes.byref(pt))
         ox, oy = pt.x - wr.left, pt.y - wr.top  # client area offset inside the window (frame / title bar)
+        if holes is not None:  # ARIA keeps its whole window except these (the DCS displays show through)
+            rgn = gdi32.CreateRectRgn(0, 0, wr.right - wr.left, wr.bottom - wr.top)
+            for r in holes[:32]:
+                x, y, w, h = (int(round(float(r[k]))) for k in ("x", "y", "w", "h"))
+                if w > 0 and h > 0:
+                    part = gdi32.CreateRectRgn(ox + x, oy + y, ox + x + w, oy + y + h)
+                    gdi32.CombineRgn(rgn, rgn, part, 4)  # RGN_DIFF
+                    gdi32.DeleteObject(part)
+            user32.SetWindowRgn(hwnd, rgn, True)
+            user32.SetWindowPos(hwnd, HWND_TOPMOST if topmost else HWND_NOTOPMOST, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)
+            continue
         rgn = gdi32.CreateRectRgn(0, 0, 0, 0)
         for r in rects[:64]:
             x, y, w, h = (int(round(float(r[k]))) for k in ("x", "y", "w", "h"))

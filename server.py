@@ -621,8 +621,11 @@ class Handler(SimpleHTTPRequestHandler):
                 if act == "shape" and payload.get("ping"):  # keep ARIA's panels above DCS
                     return self.send_json(200, {"ok": winsys.raise_aria()})
                 if act == "shape":  # cockpit mode: ARIA's window becomes only its panels; viewports are holes
-                    rects = None if payload.get("off") else list(payload.get("rects") or [])
-                    return self.send_json(200, {"ok": winsys.shape_aria(rects, bool(payload.get("topmost", True)))})
+                    if payload.get("off"):
+                        return self.send_json(200, {"ok": winsys.shape_aria(None, False)})
+                    if "holes" in payload:
+                        return self.send_json(200, {"ok": winsys.shape_aria(None, bool(payload.get("topmost", True)), holes=list(payload.get("holes") or []))})
+                    return self.send_json(200, {"ok": winsys.shape_aria(list(payload.get("rects") or []), bool(payload.get("topmost", True)))})
                 if act == "kneeboard":  # PNG pages → Saved Games\DCS\Kneeboard\<aircraft>\
                     return self.send_json(200, dcs.write_kneeboard(cfg_, payload.get("aircraft"), payload.get("pages") or []))
                 if act == "launch":
