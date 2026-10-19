@@ -100,6 +100,18 @@ tr:first-child .rank{color:var(--amber)}
 body:not(.dcsmode) #tabs [data-view=dcs]{display:none}
 body.dcsmode #tabs button:not([data-view=dcs]){display:none}
 body.dcsmode #pill-uex,body.dcsmode #pill-wiki{display:none}
+#dcsEd{position:fixed;inset:0;z-index:600;background:#05080d;user-select:none}
+#dcsEd .dcsgrid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:5vw 5vh;pointer-events:none}
+.dcsbox{position:absolute;border:2px solid #5ad08a;background:rgba(90,208,138,.08);cursor:move;box-sizing:border-box}
+.dcsbox.band{border-color:#5fd3f0;background:rgba(95,211,240,.05)}.dcsbox.sel{border-color:#f2a83b;background:rgba(242,168,59,.12);z-index:2}
+.dcsbox b{position:absolute;left:6px;top:4px;font:700 12px var(--head);letter-spacing:.14em;color:#e6ebf5;pointer-events:none}
+.dcssz{position:absolute;right:6px;bottom:4px;font:11px var(--mono);color:#8d99b3;pointer-events:none}
+.dh{position:absolute;width:12px;height:12px;background:#f2a83b;border:1px solid #000;border-radius:2px;display:none}.dcsbox.sel .dh{display:block}
+.dh-n{top:-7px;left:calc(50% - 6px);cursor:ns-resize}.dh-s{bottom:-7px;left:calc(50% - 6px);cursor:ns-resize}.dh-e{right:-7px;top:calc(50% - 6px);cursor:ew-resize}.dh-w{left:-7px;top:calc(50% - 6px);cursor:ew-resize}
+.dh-nw{left:-7px;top:-7px;cursor:nwse-resize}.dh-se{right:-7px;bottom:-7px;cursor:nwse-resize}.dh-ne{right:-7px;top:-7px;cursor:nesw-resize}.dh-sw{left:-7px;bottom:-7px;cursor:nesw-resize}
+.dcspanel{position:absolute;right:16px;bottom:16px;width:min(440px,92vw);background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;z-index:5;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.dcsph{display:flex;justify-content:space-between;align-items:center;cursor:grab;padding-bottom:4px;border-bottom:1px solid var(--line)}.dcsph b{font:700 12px var(--head);letter-spacing:.18em;color:var(--amber)}
+.dcspanel button.on{border-color:var(--amber);color:var(--amber)}
 .gamepick{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .gp{display:flex;flex-direction:column;align-items:center;gap:6px;width:170px;padding:16px 10px;border:1px solid var(--line2);border-radius:12px;background:var(--panel);color:var(--text);cursor:pointer;transition:border-color .2s,transform .15s}
 .gp:hover,.gp:focus{border-color:var(--amber);transform:translateY(-2px);outline:none}.gp.last{border-color:var(--amber-d)}
@@ -701,7 +713,7 @@ body.cockpit .cocktop #brief{display:none}
     <div class="grid2" style="margin-top:10px">
       <div><table id="dcsViews"></table>
         <ol class="sub" style="margin:10px 0 0 18px;padding:0">
-          <li><button class="btn ghost small" id="dcsAlign">⌗ Align the boxes</button> — the same 8-handle tool as cockpit mode; the left, right and center boxes become the DDIs and AMPCD.</li>
+          <li><button class="btn ghost small" id="dcsAlign">⌗ Align the boxes</button> — outlines for the left DDI, right DDI, AMPCD and ARIA's band, full screen: drag, resize from edges and corners, arrow keys to nudge.</li>
           <li><button class="btn small" id="dcsWrite">Write to DCS</button> <button class="btn ghost small" id="dcsPreview">Preview file</button></li>
           <li id="dcsRes"></li>
           <li>When flying: <button class="btn ghost small" id="dcsFly">FLY — move ARIA to the bottom band</button> <button class="btn ghost small" id="dcsUnfly">Restore</button></li>

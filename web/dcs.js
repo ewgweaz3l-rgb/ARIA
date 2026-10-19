@@ -49,7 +49,7 @@ function dcsInit() {
     DCS.inited = true;
     $('#dcsInstall').onclick = async () => { const j = await dcsPost('install'); if (j.ok) toast(j.already ? 'Already installed.' : `Installed. Restart DCS (or the mission) to start the feed.${j.backup ? ' Your old Export.lua was backed up.' : ''}`, 7000); dcsRefresh(); };
     $('#dcsUninstall').onclick = async () => { await dcsPost('uninstall'); toast('Removed ARIA from Export.lua.'); dcsRefresh(); };
-    $('#dcsAlign').onclick = () => { setCockpit(true); startCal(); toast('Line the left, right and center boxes up with your Cougar bezels. Those boxes become the DCS displays. Done → back here.', 8000); };
+    $('#dcsAlign').onclick = () => dcsEditor();
     $('#dcsWrite').onclick = () => dcsWriteSetup(false);
     $('#dcsPreview').onclick = () => dcsWriteSetup(true);
     $('#dcsFly').onclick = dcsFly; $('#dcsUnfly').onclick = dcsUnfly;
@@ -95,8 +95,8 @@ function dcsCompute() {
   if (!main || !mfd) return null;
   const ox = Math.min(main.x, mfd.x), oy = Math.min(main.y, mfd.y);
   const W = Math.max(main.x + main.w, mfd.x + mfd.w) - ox, H = Math.max(main.y + main.h, mfd.y + mfd.h) - oy;
-  const R = ckRects(), views = {};
-  for (const [key, , ck] of DCSV) { if (!(DCS.layout.use || {})[key]) continue; const r = R[ck];
+  const R = dcsRects(), views = {};
+  for (const [key, , ck] of DCSV) { if (!(DCS.layout.use || {})[key]) continue; const r = R[key];
     views[key] = {x: mfd.x - ox + r.x / 100 * mfd.w, y: mfd.y - oy + r.y / 100 * mfd.h, w: r.w / 100 * mfd.w, h: r.h / 100 * mfd.h}; }
   return {name: 'ARIA ' + (DCS.layout.name || 'Cockpit'), W, H, center: {x: main.x - ox, y: main.y - oy, w: main.w, h: main.h}, views, main, mfd, ox, oy};
 }
@@ -126,7 +126,7 @@ async function dcsWriteSetup(preview) {
 }
 // FLY: shrink ARIA to the bottom band so DCS's displays show through the MFD screen; RESTORE puts it back
 async function dcsFly() {
-  const L = dcsCompute(); if (!L) return; const r = ckRects().APP, m = L.mfd;
+  const L = dcsCompute(); if (!L) return; const r = dcsRects().BAND, m = L.mfd;
   const rect = {x: m.x + r.x / 100 * m.w, y: m.y + r.y / 100 * m.h, w: r.w / 100 * m.w, h: r.h / 100 * m.h};
   const j = await dcsPost('window', {rect});
   toast(j.ok ? 'ARIA moved to the bottom band — the DCS displays have the MFD screen.' : 'Couldn’t move the window (Windows only).');
@@ -153,4 +153,71 @@ function renderFlight() {
     ['AOA', s.aoa != null ? s.aoa.toFixed(1) + '°' : '—'], ['G', s.g != null ? s.g.toFixed(1) : '—'],
     ['FUEL INT', fuel == null ? '—' : fuel <= 1.5 ? Math.round(fuel * 100) + ' %' : fmt(fuel * 2.20462) + ' lb']];
   el.innerHTML = tiles.map(([k, v]) => `<div class="ftile"><span>${k}</span><b>${esc(String(v))}</b></div>`).join('');
+}
+
+/* ---------------- viewport editor: outlines on the MFD screen, drag / resize / nudge ----------------
+   Boxes are kept in % of the screen ARIA is on (the MFD screen), so they survive resolution changes. */
+const DCS_BOX = {LEFT_MFCD: 'LEFT DDI', RIGHT_MFCD: 'RIGHT DDI', CENTER_MFCD: 'AMPCD', BAND: 'ARIA BAND (FLY)'};
+function dcsRects() {
+  if (!DCS.layout.rects) {  // first time: start from the cockpit alignment, if there is one
+    const R = typeof ckRects === 'function' ? ckRects() : {};
+    DCS.layout.rects = {LEFT_MFCD: {...(R.L || {x: 2, y: 5, w: 23, h: 42})}, RIGHT_MFCD: {...(R.R || {x: 75, y: 5, w: 23, h: 42})},
+      CENTER_MFCD: {...(R.TOP || {x: 30, y: 2, w: 40, h: 50})}, BAND: {...(R.APP || {x: 0, y: 56, w: 100, h: 44})}};
+    dcsSave();
+  }
+  return DCS.layout.rects;
+}
+function dcsEditor() {
+  const R = JSON.parse(JSON.stringify(dcsRects())), undo = [];
+  let sel = 'LEFT_MFCD';
+  const ed = document.createElement('div'); ed.id = 'dcsEd';
+  ed.innerHTML = `<div class="dcsgrid"></div>${Object.entries(DCS_BOX).map(([k, l]) => `<div class="dcsbox ${k === 'BAND' ? 'band' : ''}" data-k="${k}"><b>${l}</b><span class="dcssz"></span>${['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'].map(h => `<i class="dh dh-${h}" data-h="${h}"></i>`).join('')}</div>`).join('')}
+    <div class="dcspanel" id="dcsEdPanel"><div class="dcsph" id="dcsEdDrag"><b>VIEWPORTS</b><span class="sub">drag the panel by this bar</span></div>
+      <div class="sub" style="margin:6px 0">Drag a box over each bezel. Edges and corners resize. Arrow keys nudge 1 px (Shift = 10, Ctrl+arrow = resize). Ctrl+Z undo.</div>
+      <div class="row" style="gap:6px;flex-wrap:wrap">${Object.entries(DCS_BOX).map(([k, l]) => `<button class="btn ghost small" data-pick="${k}">${l}</button>`).join('')}</div>
+      <div class="mono sub" id="dcsEdInfo" style="margin:8px 0"></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn ghost small" id="dcsEdUndo">↶ Undo</button><button class="btn ghost small" id="dcsEdCopy" title="Use the boxes from ARIA's Star Citizen cockpit alignment">From cockpit layout</button>
+        <button class="btn ghost small" id="dcsEdCancel">Cancel</button><button class="btn small" id="dcsEdSave">Save</button></div></div>`;
+  document.body.appendChild(ed);
+  const W = () => innerWidth, H = () => innerHeight, px = v => Math.round(v * (devicePixelRatio || 1));
+  const draw = () => {
+    for (const el of $$('.dcsbox', ed)) { const r = R[el.dataset.k]; Object.assign(el.style, {left: r.x + 'vw', top: r.y + 'vh', width: r.w + 'vw', height: r.h + 'vh'});
+      el.classList.toggle('sel', el.dataset.k === sel); $('.dcssz', el).textContent = `${px(r.w / 100 * W())} × ${px(r.h / 100 * H())}`; }
+    $$('[data-pick]', ed).forEach(b => b.classList.toggle('on', b.dataset.pick === sel));
+    const r = R[sel]; $('#dcsEdInfo').textContent = `${DCS_BOX[sel]} · x ${px(r.x / 100 * W())} y ${px(r.y / 100 * H())} · ${px(r.w / 100 * W())} × ${px(r.h / 100 * H())} px on this screen`;
+  };
+  const snap = () => { undo.push(JSON.stringify(R)); if (undo.length > 60) undo.shift(); };
+  const close = save => { removeEventListener('keydown', key, true); ed.remove(); if (save) { DCS.layout.rects = R; dcsSave(); dcsRenderLayout(); toast('Viewports saved. Hit “Write to DCS” to update the file.'); } };
+  // drag / resize
+  ed.addEventListener('pointerdown', e => {
+    const box = e.target.closest('.dcsbox'); if (!box) return;
+    sel = box.dataset.k; draw(); snap(); e.preventDefault();
+    const h = e.target.dataset.h || 'move', r = R[sel], o = {...r}, sx = e.clientX, sy = e.clientY;
+    const mv = ev => { const dx = (ev.clientX - sx) / W() * 100, dy = (ev.clientY - sy) / H() * 100;
+      if (h === 'move') { r.x = o.x + dx; r.y = o.y + dy; }
+      else { if (h.includes('w')) { r.x = o.x + dx; r.w = Math.max(2, o.w - dx); } if (h.includes('e')) r.w = Math.max(2, o.w + dx);
+        if (h.includes('n')) { r.y = o.y + dy; r.h = Math.max(2, o.h - dy); } if (h.includes('s')) r.h = Math.max(2, o.h + dy); }
+      draw(); };
+    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up);
+  });
+  // the panel can be dragged out of the way
+  $('#dcsEdDrag').onpointerdown = e => { const p = $('#dcsEdPanel'), b = p.getBoundingClientRect(), ox = e.clientX - b.left, oy = e.clientY - b.top;
+    const mv = ev => Object.assign(p.style, {left: ev.clientX - ox + 'px', top: ev.clientY - oy + 'px', right: 'auto', bottom: 'auto'});
+    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); };
+  $$('[data-pick]', ed).forEach(b => b.onclick = () => { sel = b.dataset.pick; draw(); });
+  $('#dcsEdUndo').onclick = () => { const u = undo.pop(); if (u) { Object.assign(R, JSON.parse(u)); draw(); } };
+  $('#dcsEdCopy').onclick = () => { if (typeof ckRects !== 'function') return; snap(); const C = ckRects(); Object.assign(R, {LEFT_MFCD: {...C.L}, RIGHT_MFCD: {...C.R}, CENTER_MFCD: {...C.TOP}, BAND: {...C.APP}}); draw(); };
+  $('#dcsEdCancel').onclick = () => close(false); $('#dcsEdSave').onclick = () => close(true);
+  const key = e => {
+    if (e.key === 'Escape') { e.preventDefault(); close(false); return; }
+    if (e.key === 'Enter') { e.preventDefault(); close(true); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); $('#dcsEdUndo').click(); return; }
+    const d = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]}[e.key]; if (!d) return;
+    e.preventDefault(); snap(); const r = R[sel], step = e.shiftKey ? 10 : 1, fx = step / W() * 100 / (devicePixelRatio || 1), fy = step / H() * 100 / (devicePixelRatio || 1);
+    if (e.ctrlKey) { r.w = Math.max(2, r.w + d[0] * fx); r.h = Math.max(2, r.h + d[1] * fy); } else { r.x += d[0] * fx; r.y += d[1] * fy; }
+    draw();
+  };
+  addEventListener('keydown', key, true);
+  draw();
 }
