@@ -90,7 +90,7 @@ def status(cfg):
     mon = os.path.join(sg, "Config", "MonitorSetup") if sg else None
     setups = sorted(f for f in os.listdir(mon) if f.lower().endswith(".lua")) if mon and os.path.isdir(mon) else []
     return {"saved_games": sg, "exe": find_exe(cfg.get("dcs_path")), "export_installed": installed,
-            "monitor_setups": setups, "feed": FEED.snapshot(), "windows": IS_WINDOWS}
+            "monitor_setups": setups, "feed": FEED.snapshot(), "windows": IS_WINDOWS, "bios": bios_status(cfg)}
 
 
 # ---------------- MonitorSetup (viewports) ----------------
@@ -156,6 +156,26 @@ local function enc(v)
 end
 local function get(f, ...) if type(f) ~= "function" then return nil end local ok, r = pcall(f, ...) if ok then return r end return nil end
 
+-- Hornet UFC text (scratchpad, option windows, COMM channels) from the cockpit's own indicator,
+-- parsed like DCS-BIOS does. The indicator number is found once by looking for UFC_ keys.
+local function parseInd(id)
+  local li = get(list_indication, id)
+  if not li or li == "" then return nil end
+  local r, n = {}, 0
+  for name, value in li:gmatch("%%-%%-%%-+\n([^\n]+)\n([^\n]*)\n") do r[name] = value; n = n + 1 end
+  if n == 0 then return nil end
+  return r
+end
+local function ufcText(unit)
+  if not unit or not tostring(unit):find("FA%%-18") then ARIA.ufcId = nil; return nil end
+  if ARIA.ufcId then return parseInd(ARIA.ufcId) end
+  for i = 0, 24 do
+    local r = parseInd(i)
+    if r then for k in pairs(r) do if tostring(k):find("^UFC_") then ARIA.ufcId = i; return r end end end
+  end
+  return nil
+end
+
 local function snapshot()
   local s = get(LoGetSelfData) or {}
   local lla = s.LatLongAlt or {}
@@ -168,7 +188,8 @@ local function snapshot()
     hdg = s.Heading, pitch = s.Pitch, bank = s.Bank, mag_hdg = get(LoGetMagneticYaw),
     ias = get(LoGetIndicatedAirSpeed), tas = get(LoGetTrueAirSpeed), mach = get(LoGetMachNumber),
     vvi = get(LoGetVerticalVelocity), aoa = get(LoGetAngleOfAttack), g = acc.y, fuel = fuel,
-    x = (s.Position or {}).x, z = (s.Position or {}).z
+    x = (s.Position or {}).x, z = (s.Position or {}).z,
+    ufc = ufcText(s.Name)
   }
 end
 
@@ -214,6 +235,24 @@ def install_export(cfg):
     return {"ok": True, "path": exp, "backup": exp + ".aria-backup" if text else None}
 
 
+def refresh_export(cfg):
+    """Keep the add-on script current after an ARIA update (only if it's already installed)."""
+    try:
+        sg = saved_games(cfg.get("dcs_saved"))
+        f = os.path.join(sg, "Scripts", "ARIA", "ARIAExport.lua") if sg else None
+        if f and os.path.exists(f):
+            new = ARIA_EXPORT % {"port": UDP_PORT}
+            with open(f, "r", encoding="utf-8", errors="ignore") as fh:
+                if fh.read() == new:
+                    return False
+            with open(f, "w", encoding="utf-8") as fh:
+                fh.write(new)
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def uninstall_export(cfg):
     sg = saved_games(cfg.get("dcs_saved"))
     exp = os.path.join(sg, "Scripts", "Export.lua") if sg else None
@@ -224,6 +263,71 @@ def uninstall_export(cfg):
     with open(exp, "w", encoding="utf-8") as f:
         f.write("\n".join(l for l in lines if "ARIAExport.lua" not in l) + "\n")
     return {"ok": True}
+
+
+# ---------------- DCS-BIOS (clickable cockpit) ----------------
+# DCS-BIOS takes plain text commands on UDP 7778: "UFC_1 1" (press) / "UFC_1 0" (release),
+# "UFC_COMM1_CHANNEL_SELECT INC", "LEFT_DDI_BRT_CTL +3200" ... ARIA only sends; it never edits DCS-BIOS.
+BIOS_PORT = 7778
+_bios_sock = None
+_bios_ids = {"t": 0, "ids": None, "path": None}
+
+
+def bios_status(cfg):
+    sg = saved_games(cfg.get("dcs_saved"))
+    if not sg:
+        return {"installed": False}
+    folder = os.path.join(sg, "Scripts", "DCS-BIOS")
+    hooked = False
+    exp = os.path.join(sg, "Scripts", "Export.lua")
+    try:
+        with open(exp, "r", encoding="utf-8", errors="ignore") as f:
+            hooked = "dcs-bios" in f.read().lower()
+    except OSError:
+        pass
+    ids = bios_ids(folder) if os.path.isdir(folder) else None
+    return {"installed": os.path.isdir(folder), "hooked": hooked, "folder": folder if os.path.isdir(folder) else None,
+            "hornet_ids": sorted(ids) if ids else None}
+
+
+def bios_ids(folder):
+    """Control names in DCS-BIOS's Hornet reference (doc/json/FA-18C_hornet.json), so ARIA can tell you
+    if a button it draws has no matching DCS-BIOS control in your version."""
+    path = None
+    for sub in (("doc", "json"), ("json",), ("lib", "modules", "aircraft_modules")):
+        c = os.path.join(folder, *sub, "FA-18C_hornet.json")
+        if os.path.isfile(c):
+            path = c
+            break
+    if not path:
+        return None
+    if _bios_ids["path"] == path and time.time() - _bios_ids["t"] < 300:
+        return _bios_ids["ids"]
+    ids = set()
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            data = json.load(f)
+        for cat in data.values():
+            if isinstance(cat, dict):
+                for k, v in cat.items():
+                    if isinstance(v, dict) and v.get("inputs"):
+                        ids.add(k)
+    except Exception:
+        return None
+    _bios_ids.update(t=time.time(), ids=ids, path=path)
+    return ids
+
+
+def bios_send(cmd, val):
+    import re
+    global _bios_sock
+    cmd, val = str(cmd or ""), str(val if val is not None else "")
+    if not re.fullmatch(r"[A-Z0-9_]{2,48}", cmd) or not re.fullmatch(r"[-+A-Z0-9]{1,12}", val):
+        raise ValueError("bad DCS-BIOS command")
+    if _bios_sock is None:
+        _bios_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    _bios_sock.sendto(f"{cmd} {val}\n".encode("ascii"), ("127.0.0.1", BIOS_PORT))
+    return True
 
 
 # ---------------- the live feed ----------------

@@ -100,6 +100,58 @@ tr:first-child .rank{color:var(--amber)}
 body:not(.dcsmode) #tabs [data-view^=dcs]{display:none}
 body.dcsmode #tabs button:not([data-view^=dcs]){display:none}
 body:not(.dcsmode) #dcsTT{display:none}
+/* OVERWATCH cockpit panels (pit.js) */
+body.dcsck{overflow:hidden;background:#000}
+body.dcsck #appShell{position:fixed;overflow:auto;border:1px solid #1d3a26;border-radius:6px;background:var(--bg);z-index:30}
+body.dcsck #appShell header{position:static}
+body.dcsck #dcsTT{position:fixed;border:1px solid #1d3a26;border-top-width:1px}
+body.pitbandhide #appShell,body.pitbandhide #dcsTT{display:none!important}
+#dcsPit{position:fixed;inset:0;z-index:45;pointer-events:none;filter:brightness(var(--pitDim,1))}
+#dcsPit>*{pointer-events:auto}
+#dcsPit button{font-family:var(--head);cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none}
+.pring{position:absolute;box-sizing:border-box;border-style:solid;border-color:#1b1f24;background:transparent;border-radius:10px;box-shadow:inset 0 0 0 1px #000,0 0 0 1px #2a3038}
+.pinner{position:absolute;pointer-events:none}.pinner>*{pointer-events:auto}
+.osb{position:absolute;border-radius:5px;border:1px solid #3a424d;background:linear-gradient(#3a4049,#23282f);box-shadow:0 2px 0 #0b0d10,inset 0 1px 0 rgba(255,255,255,.12);color:#8a95a3;padding:0;display:grid;place-items:center}
+.osb i{font:600 9px var(--mono);font-style:normal;opacity:.55}
+.osb:hover{border-color:#6d7a89}.osb.down{transform:translateY(2px);box-shadow:0 0 0 #0b0d10;background:#1c2026;border-color:#7cf59a}
+.pcorner{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.pcorner b{font:700 8px var(--head);letter-spacing:.12em;color:#c9cfd6;opacity:.8}
+.pcorner button{width:70%;flex:1;border:1px solid #3a424d;background:#2a2f36;color:#aeb7c2;border-radius:4px;font-size:9px;padding:0;line-height:1}
+.pcorner button.down{background:#1c2026;border-color:#7cf59a;color:#7cf59a}
+.pswapc{position:absolute;border:1px solid #3a424d;background:#16191e;color:#c9cfd6;border-radius:6px;font:700 11px var(--head);letter-spacing:.1em;padding:5px 9px}
+#pitDock{position:absolute;display:flex;gap:4px;z-index:3}
+#pitDock button{background:#0d1014;border:1px solid #2c333c;color:#aeb7c2;border-radius:5px;font:700 10px var(--head);letter-spacing:.12em;padding:4px 8px}
+#pitDock button.on,#pitDock button:hover{border-color:#7cf59a;color:#7cf59a}
+/* UFC face */
+.pufc{position:absolute;box-sizing:border-box;background:linear-gradient(#22262c,#16191d);border:2px solid #2d333b;border-radius:12px;padding:calc(var(--u)*3);
+  display:grid;grid-template-columns:18% 1fr 30%;grid-template-rows:1fr auto auto;gap:calc(var(--u)*2.2);font-size:calc(var(--u)*4.2);color:#d6dbe1}
+.pufc button{border:1px solid #3a424d;background:linear-gradient(#3a4049,#262b32);color:#e4e8ec;border-radius:calc(var(--u)*1.2);box-shadow:0 calc(var(--u)*.5) 0 #0b0d10;font:700 1em var(--head);letter-spacing:.06em;padding:0}
+.pufc button.down{transform:translateY(calc(var(--u)*.5));box-shadow:none;border-color:#7cf59a}
+.puleft{display:flex;flex-direction:column;gap:calc(var(--u)*2)}
+.puside{flex:1;font-size:.85em!important}
+.puadf{display:grid;grid-template-columns:1fr 1fr 1fr;gap:calc(var(--u)*.8);align-items:center}.puadf b{grid-column:1/4;font:700 .7em var(--head);letter-spacing:.14em;color:#9aa4b0;text-align:center}
+.puadf button{height:calc(var(--u)*7);font-size:.7em!important}
+.puvol{display:grid;grid-template-columns:1fr auto 1fr;gap:calc(var(--u)*.8);align-items:center}.puvol b{font:700 .62em var(--head);letter-spacing:.12em;color:#9aa4b0}.puvol button{height:calc(var(--u)*6.5)}
+.pumid{display:flex;flex-direction:column;gap:calc(var(--u)*2);min-width:0}
+.puscratch,.puopt,.puchan,.pucue{font-family:var(--mono);color:#7cf59a;text-shadow:0 0 calc(var(--u)*1.2) rgba(124,245,154,.55);white-space:pre}
+.puscratch{background:#05120a;border:1px solid #1d3a26;border-radius:calc(var(--u)*1);height:calc(var(--u)*12);display:flex;align-items:center;gap:calc(var(--u)*2);padding:0 calc(var(--u)*2);font-size:1.5em;overflow:hidden}
+.puscratch .punum{margin-left:auto}
+.pukeys{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:calc(var(--u)*1.6)}
+.pukey{position:relative;font-size:1.25em!important}.pukey small{position:absolute;right:12%;bottom:8%;font-size:.5em;color:#9aa4b0}.pukey.puw{font-size:.8em!important}
+.puright{display:flex;flex-direction:column;gap:calc(var(--u)*1.6)}
+.puos{flex:1;display:flex!important;align-items:center;justify-content:flex-start;gap:calc(var(--u)*1.2);padding:0 calc(var(--u)*2)!important;background:#05120a!important;border-color:#1d3a26!important}
+.puos .pucue{width:.6em;font-size:1.3em}.puos .puopt{font-size:1.3em}
+.pufns{grid-column:1/4;display:grid;grid-template-columns:repeat(7,1fr);gap:calc(var(--u)*1.4)}
+.pufn{height:calc(var(--u)*8);font-size:.75em!important}
+.pucomms{grid-column:1/4;display:grid;grid-template-columns:1fr auto 1fr;gap:calc(var(--u)*3);align-items:end}
+.pucomm{display:flex;flex-direction:column;gap:calc(var(--u)*1)}
+.puchan{background:#05120a;border:1px solid #1d3a26;border-radius:calc(var(--u)*1);text-align:center;font-size:1.5em;height:calc(var(--u)*8);line-height:calc(var(--u)*8)}
+.puknob{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:calc(var(--u)*.8)}.puknob button{height:calc(var(--u)*8)}
+.pupull{border-radius:50%!important;background:radial-gradient(#4a525c,#1e2228)!important}
+.puswap{background:#0d1014!important;font-size:.7em!important;padding:calc(var(--u)*1.5) calc(var(--u)*3)!important;letter-spacing:.12em!important}
+.pufc.nodata .puscratch::before{content:'UFC — waiting for the jet';color:#3f6e4c;font-size:.6em;letter-spacing:.1em}
+.dcsinner{position:absolute;border:1px dashed #5fd3f0;pointer-events:none;text-decoration:none}
+
 body.dcsmode main{padding-bottom:110px}
 #dcsTT{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#020604;border-top:1px solid #1d3a26;padding:6px 14px 8px;font:500 13px/1.45 var(--mono);color:#7cf59a;text-shadow:0 0 6px rgba(124,245,154,.35);height:96px;overflow:hidden;display:flex;gap:14px}
 #dcsTT .tthd{flex:0 0 auto;display:flex;flex-direction:column;gap:2px;border-right:1px solid #1d3a26;padding-right:12px;font-size:10px;letter-spacing:.16em;color:#4c9c63;min-width:110px}
@@ -782,6 +834,28 @@ body.cockpit .cocktop #brief{display:none}
         <details id="dcsLuaBox" style="margin-top:8px"><summary class="sub" style="cursor:pointer">The file ARIA writes</summary><pre id="dcsLua" class="mono" style="font-size:11.5px;white-space:pre-wrap;color:var(--dim)"></pre></details></div>
     </div>
     <p class="sub" style="margin-top:8px">The file goes in <span class="mono">Saved Games\DCS\Config\MonitorSetup</span>, which doesn't touch the game install. Your alignment is saved with ARIA's cockpit layout; re-run “Write to DCS” after you change it.</p>
+  </div>
+  <div class="panel" style="margin-top:14px" id="pitPanel">
+    <div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Cockpit panels — Hornet UFC, AMPCD bezel, OSB rings</h3>
+      <button class="btn" id="pitGo">▶ COCKPIT — fly with panels</button></div>
+    <p class="sub" style="margin:6px 0 10px">ARIA fills the MFD screen, then Windows cuts its window down to just the panels — the DDI and AMPCD viewports are holes, so DCS's real displays show through. Clicks go to the jet through DCS-BIOS, and focus goes straight back to DCS.</p>
+    <div class="grid2">
+      <div>
+        <label class="f">Center display<select id="pitCenter"><option value="ufc">UFC face (ARIA draws it, text from the jet)</option><option value="ampcd">AMPCD (DCS draws it, ARIA's bezel around it)</option></select></label>
+        <label class="chk" style="margin-top:8px"><input type="checkbox" id="pitAmp"> AMPCD bezel with clickable buttons — the AMPCD viewport sits square inside it (re-write to DCS after changing)</label>
+        <label class="f" style="margin-top:8px">AMPCD bezel width <span class="sub" id="pitRingV"></span><input type="range" id="pitRing" min="7" max="22" step="1"></label>
+        <label class="f">Button spread <span class="sub" id="pitSpreadV"></span><input type="range" id="pitSpread" min="50" max="90" step="1"></label>
+      </div>
+      <div>
+        <label class="chk"><input type="checkbox" id="pitOsbL"> OSB ring on the left DDI</label>
+        <label class="chk"><input type="checkbox" id="pitOsbR"> OSB ring on the right DDI</label>
+        <span class="sub">Off if your Cougars are the bezels — they bind in DCS directly.</span>
+        <label class="f" style="margin-top:8px">DDI ring width <span class="sub" id="pitDdiRingV"></span><input type="range" id="pitDdiRing" min="5" max="18" step="1"></label>
+        <label class="f">Bottom band<select id="pitBand"><option value="indent">Indent — start below any panel that reaches into it</option><option value="over">Overlap — panels sit on top of the band</option><option value="hide">Hidden — a small ▴ ARIA tab opens it</option></select></label>
+        <label class="f">Panel brightness <span class="sub" id="pitDimV"></span><input type="range" id="pitDim" min="15" max="100" step="5"></label>
+      </div>
+    </div>
+    <p class="sub" style="margin-top:8px"><b>Dimming the DCS displays:</b> the BRT / CONT / MODE corners on each bezel turn the jet's own knobs (click ▲▼ or scroll). <b>DCS-BIOS:</b> <span id="pitBios"></span></p>
   </div>
 </section>
 
@@ -4926,5 +5000,6 @@ async function bootFinish() {
 <script src="vr.js"></script>
 <script src="squad.js"></script>
 <script src="dcs.js"></script>
+<script src="pit.js"></script>
 </body>
 </html>

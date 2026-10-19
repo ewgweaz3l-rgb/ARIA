@@ -88,6 +88,7 @@ async function dcsRefresh() {
   $('#dcsMain').innerHTML = opt(DCS.layout.main); $('#dcsMfd').innerHTML = opt(DCS.layout.mfd); $('#dcsName').value = DCS.layout.name || 'Cougar Hornet';
   if (!DCS.mons.length) $('#dcsMonNote').innerHTML = '<span class="warn">ARIA can only read your monitors on Windows — these are placeholders.</span>';
   dcsRenderLayout();
+  if (typeof pitSettingsInit === 'function') { pitSettingsInit(); pitSettingsSync(); }
 }
 // ARIA's cockpit alignment (left MFD, right MFD, center) IS the viewport layout — converted to DCS pixels here
 function dcsCompute() {
@@ -97,7 +98,8 @@ function dcsCompute() {
   const W = Math.max(main.x + main.w, mfd.x + mfd.w) - ox, H = Math.max(main.y + main.h, mfd.y + mfd.h) - oy;
   const R = dcsRects(), views = {};
   for (const [key, , ck] of DCSV) { if (!(DCS.layout.use || {})[key]) continue; const r = R[key];
-    views[key] = {x: mfd.x - ox + r.x / 100 * mfd.w, y: mfd.y - oy + r.y / 100 * mfd.h, w: r.w / 100 * mfd.w, h: r.h / 100 * mfd.h}; }
+    const v = typeof pitViewRect === 'function' ? pitViewRect(key, r, mfd.w, mfd.h) : {x: r.x / 100 * mfd.w, y: r.y / 100 * mfd.h, w: r.w / 100 * mfd.w, h: r.h / 100 * mfd.h};
+    views[key] = {x: mfd.x - ox + v.x, y: mfd.y - oy + v.y, w: v.w, h: v.h}; }
   return {name: 'ARIA ' + (DCS.layout.name || 'Cockpit'), W, H, center: {x: main.x - ox, y: main.y - oy, w: main.w, h: main.h}, views, main, mfd, ox, oy};
 }
 function dcsRenderLayout() {
@@ -136,7 +138,7 @@ async function dcsUnfly() { await fetch('/api/display', {method: 'POST', headers
 /* ---------------- live flight data ---------------- */
 function connectDcsFeed() {
   if (DCS.es) return;
-  try { DCS.es = new EventSource('/api/dcs/stream'); DCS.es.onmessage = ev => { try { DCS.feed = JSON.parse(ev.data); renderFlight(); dlogWatch(DCS.feed); mapSync(); } catch {} }; } catch {}
+  try { DCS.es = new EventSource('/api/dcs/stream'); DCS.es.onmessage = ev => { try { DCS.feed = JSON.parse(ev.data); renderFlight(); dlogWatch(DCS.feed); mapSync(); if (typeof PIT !== 'undefined' && PIT.on) pitUfcText(); } catch {} }; } catch {}
 }
 const R2D = 180 / Math.PI;
 function dm(v, pos, neg) { if (v == null) return '—'; const a = Math.abs(v), d = Math.floor(a), m = (a - d) * 60; return `${v >= 0 ? pos : neg} ${d}°${m.toFixed(3).padStart(6, '0')}'`; }
@@ -157,7 +159,7 @@ function renderFlight() {
 
 /* ---------------- viewport editor: outlines on the MFD screen, drag / resize / nudge ----------------
    Boxes are kept in % of the screen ARIA is on (the MFD screen), so they survive resolution changes. */
-const DCS_BOX = {LEFT_MFCD: 'LEFT DDI', RIGHT_MFCD: 'RIGHT DDI', CENTER_MFCD: 'AMPCD', BAND: 'ARIA BAND (FLY)'};
+const DCS_BOX = {LEFT_MFCD: 'LEFT DDI', RIGHT_MFCD: 'RIGHT DDI', CENTER_MFCD: 'AMPCD / UFC (whole unit)', BAND: 'ARIA BAND'};
 function dcsRects() {
   if (!DCS.layout.rects) {  // first time: start from the cockpit alignment, if there is one
     const R = typeof ckRects === 'function' ? ckRects() : {};
@@ -182,7 +184,9 @@ function dcsEditor() {
   const W = () => innerWidth, H = () => innerHeight, px = v => Math.round(v * (devicePixelRatio || 1));
   const draw = () => {
     for (const el of $$('.dcsbox', ed)) { const r = R[el.dataset.k]; Object.assign(el.style, {left: r.x + 'vw', top: r.y + 'vh', width: r.w + 'vw', height: r.h + 'vh'});
-      el.classList.toggle('sel', el.dataset.k === sel); $('.dcssz', el).textContent = `${px(r.w / 100 * W())} × ${px(r.h / 100 * H())}`; }
+      el.classList.toggle('sel', el.dataset.k === sel); $('.dcssz', el).textContent = `${px(r.w / 100 * W())} × ${px(r.h / 100 * H())}`;
+      if (el.dataset.k === 'CENTER_MFCD' && typeof ampGeo === 'function') { let inn = $('.dcsinner', el); if (!inn) { inn = document.createElement('u'); inn.className = 'dcsinner'; el.appendChild(inn); }
+        inn.hidden = !PIT.cfg.amp; const g = ampGeo(r, W(), H()); Object.assign(inn.style, {left: g.disp.x - g.outer.x + 'px', top: g.disp.y - g.outer.y + 'px', width: g.disp.w + 'px', height: g.disp.h + 'px'}); } }
     $$('[data-pick]', ed).forEach(b => b.classList.toggle('on', b.dataset.pick === sel));
     const r = R[sel]; $('#dcsEdInfo').textContent = `${DCS_BOX[sel]} · x ${px(r.x / 100 * W())} y ${px(r.y / 100 * H())} · ${px(r.w / 100 * W())} × ${px(r.h / 100 * H())} px on this screen`;
   };

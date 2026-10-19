@@ -573,6 +573,15 @@ class Handler(SimpleHTTPRequestHandler):
                 if act == "window":  # move ARIA's window to an exact desktop rectangle
                     r = payload.get("rect") or {}
                     return self.send_json(200, {"ok": winsys.place_aria(r.get("x", 0), r.get("y", 0), r.get("w", 800), r.get("h", 600))})
+                if act == "bios":  # a cockpit click → DCS-BIOS ("UFC_1 1"), optionally hand focus back to DCS
+                    for c in (payload.get("cmds") or [[payload.get("cmd"), payload.get("val")]])[:8]:
+                        dcs.bios_send(c[0], c[1])
+                    if payload.get("focus"):
+                        winsys.focus_dcs()
+                    return self.send_json(200, {"ok": True, "simulated": os.name != "nt"})
+                if act == "shape":  # cockpit mode: ARIA's window becomes only its panels; viewports are holes
+                    rects = None if payload.get("off") else list(payload.get("rects") or [])
+                    return self.send_json(200, {"ok": winsys.shape_aria(rects, bool(payload.get("topmost", True)))})
                 if act == "kneeboard":  # PNG pages → Saved Games\DCS\Kneeboard\<aircraft>\
                     return self.send_json(200, dcs.write_kneeboard(cfg_, payload.get("aircraft"), payload.get("pages") or []))
                 if act == "launch":
@@ -800,6 +809,7 @@ def main(argv=None):
         a.host = "0.0.0.0"  # hosting the squad board: reachable from the network
     try:
         srv = ThreadingHTTPServer((a.host, a.port), Handler)
+        dcs.refresh_export(load_config())  # keep an installed add-on script current after updates
         dcs.FEED.start()  # DCS flight data arrives here over UDP (127.0.0.1:7781)
     except OSError:  # already running: just bring up a window
         print(f"ARIA is already running on port {a.port}.")
