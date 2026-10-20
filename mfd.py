@@ -104,13 +104,15 @@ class MFDs:
             side = MFD_PIDS.get(c["pid"]) if c["vid"] == TM_VID else None
             if side:
                 self.detected[side] = j
-                # Windows renumbers joysticks when USB devices come and go: a saved number can end up pointing at a
-                # different device (or nothing) and that MFD goes dead. The Cougar's own ID wins over a stale number.
+                # Windows renumbers joysticks when USB devices come and go: a saved number can end up pointing at
+                # nothing, and that MFD goes dead — then the Cougar is found again by its own ID.
                 cur = self.assign.get(side)
                 cc = self._j.caps(cur) if cur is not None and self._j.buttons(cur) is not None else None
-                is_cougar = bool(cc and cc["vid"] == TM_VID and cc["pid"] in MFD_PIDS)
-                if cc is None or is_cougar:  # missing, or another Cougar slot: use the one that IS this side's Cougar
-                    self.assign[side] = j  # (a non-Cougar device you taught by hand is left alone)
+                other = self.assign.get("R" if side == "L" else "L")
+                # only fix it when it's broken: the device is gone, or both sides point at the same one.
+                # A side you taught with SET L / SET R (even "the right Cougar on the left") is never overridden.
+                if cc is None or (cur is not None and cur == other):
+                    self.assign[side] = j
 
     def _loop(self):
         baseline = {}
