@@ -5,7 +5,7 @@ ARIA opens chat, types it, sends it, reads the clipboard, then puts back whateve
 copied before. Pure input automation — the same thing a macro does. No memory reading.
 
 The keys used are configurable (config.json "locate_keys"), default: Enter to open chat,
-the command typed with scan codes, Enter to send.
+the command pasted (Ctrl+V — never typed, so nothing leaks onto ship binds), Enter to send.
 """
 import ctypes
 import re
@@ -108,11 +108,16 @@ def locate(cfg=None):
         if not winsys.focus_game():
             return {"ok": False, "error": "Star Citizen isn't running (or its window couldn't be brought forward)."}
         before = get_clipboard()
-        seq = user32.GetClipboardSequenceNumber()
-        keys.run(keys.parse(cfg.get("locate_open") or DEFAULT_OPEN))
-        time.sleep(0.18)
-        _type_text(COMMAND)
+        # The command goes in by PASTE, not typed letter by letter: if the chat box isn't open yet,
+        # typed letters land on your ship binds (S, H, O, W, L, C, A, T, I, N … lights, gear, power,
+        # quantum). A stray Ctrl+V does nothing in flight.
+        set_clipboard(COMMAND)
         time.sleep(0.05)
+        keys.run(keys.parse(cfg.get("locate_open") or DEFAULT_OPEN))
+        time.sleep(0.35)  # give the chat box time to take focus
+        keys.run(keys.parse("lctrl+v"))
+        time.sleep(0.08)
+        seq = user32.GetClipboardSequenceNumber()  # anything after this is the game's answer
         keys.run(keys.parse(cfg.get("locate_send") or DEFAULT_SEND))
         text = None
         for _ in range(30):  # up to ~1.5 s for the game to write the clipboard
@@ -122,7 +127,7 @@ def locate(cfg=None):
                 if text and parse(text):
                     break
         xyz = parse(text)
-        if text is not None and text != before and before is not None:
+        if before is not None:
             set_clipboard(before)  # give you back what you had copied
         if not xyz:
             return {"ok": False, "error": "The game didn't put coordinates on the clipboard. Is chat on Enter? (Settings → Assistant → Locate keys)",
