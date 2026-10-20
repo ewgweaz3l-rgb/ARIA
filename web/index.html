@@ -98,6 +98,8 @@ tr:first-child .rank{color:var(--amber)}
 .tag.cy{background:var(--cyan-d);color:var(--cyan)} .tag.am{background:var(--amber-d);color:var(--amber)} .tag.rd{background:#3a1715;color:var(--red)}
 .tablewrap{overflow-x:auto}
 body:not(.dcsmode) #tabs [data-view^=dcs]{display:none}
+@media(max-width:1700px){#tabs button{padding:7px 7px;letter-spacing:.06em}#tabs button .tico{margin-right:4px}}
+#tabs button .tico{width:15px;height:15px;vertical-align:-3px;margin-right:6px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 body.dcsmode #tabs button:not([data-view^=dcs]){display:none}
 body:not(.dcsmode) #dcsTT{display:none}
 /* OVERWATCH cockpit panels (pit.js) */
@@ -174,8 +176,14 @@ body:not(.dcsmode) #dcsTT{display:none}
 body.dcsmode main{padding-bottom:110px}
 #dcsTT{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#020604;border-top:1px solid #1d3a26;padding:6px 14px 8px;font:500 13px/1.45 var(--mono);color:#7cf59a;text-shadow:0 0 6px rgba(124,245,154,.35);height:96px;overflow:hidden;display:flex;gap:14px}
 #dcsTT .tthd{flex:0 0 auto;display:flex;flex-direction:column;gap:2px;border-right:1px solid #1d3a26;padding-right:12px;font-size:10px;letter-spacing:.16em;color:#4c9c63;min-width:110px}
-#dcsTT .tthd b{color:#7cf59a;font-size:12px;cursor:pointer}
-.quitname{cursor:pointer}.quitname:hover,#ttName:hover{color:var(--red,#ff6b5b)!important}
+#dcsTT .tthd b{color:#7cf59a;font-size:12px}
+.pwrsw{display:inline-flex;align-items:center;gap:4px;padding:2px 4px;border:1px solid var(--mline,#1d3a26);border-radius:99px;background:#050a07;cursor:pointer;font:700 8px var(--mono);letter-spacing:.12em;color:#4c9c63}
+.pwrsw i{position:relative;width:26px;height:12px;border-radius:99px;background:#0d1f14;box-shadow:inset 0 0 0 1px #1d3a26}
+.pwrsw i::after{content:'';position:absolute;top:1px;left:15px;width:10px;height:10px;border-radius:50%;background:#7cf59a;box-shadow:0 0 6px rgba(124,245,154,.6);transition:left .2s,background .2s}
+.pwrsw.off i::after{left:1px;background:#ff6b5b;box-shadow:0 0 6px rgba(255,107,91,.6)}
+.pwrsw span:first-child{color:#7cf59a}.pwrsw.off span:first-child{color:#4c9c63}.pwrsw.off span:last-child{color:#ff6b5b}
+.pwrsw:hover{border-color:#7cf59a}
+tr.dim td{opacity:.6}
 #dcsTT .ttlines{flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
 #dcsTT .ttl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dcsTT .ttl i{color:#4c9c63;font-style:normal;margin-right:10px}#dcsTT .ttl.warn{color:#f2c14e}#dcsTT .ttl.alert{color:#ff6b5b}#dcsTT .ttl.dl{color:#5fd3f0}
 .logrow{display:grid;grid-template-columns:90px 80px 70px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px}.logrow i{font-style:normal;color:var(--dim);font-family:var(--mono);font-size:12px}
@@ -558,12 +566,13 @@ body.cockpit .cocktop #brief{display:none}
 <header>
   <div class="brand"><b>ARIA</b><span>Quartermaster</span></div>
   <nav id="tabs">
-    <button data-view="rich" class="on">Make Me Rich</button>
-    <button data-view="shipyard">Shipyard</button>
-    <button data-view="blueprints">Blueprints</button>
-    <button data-view="starmap">Starmap</button>
-    <button data-view="voice">Voice Macros</button>
-    <button data-view="mining">Mining</button>
+    <button data-view="rich" class="on"><svg class="tico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l5 5v15H6z"/><path d="M14 2v5h5M9 12h7M9 16h7M9 8h3"/></svg>Contracts</button>
+    <button data-view="shipyard"><svg class="tico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 21V10l10-6 10 6v11"/><path d="M6 21v-7h12v7M9 17h6"/></svg>Hangar</button>
+    <button data-view="blueprints"><svg class="tico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M8 9v11M12 13h6M12 16h4"/></svg>Blueprints</button>
+    <button data-view="starmap"><svg class="tico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Map</button>
+    <button data-view="refinery"><svg class="tico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6M10 2v6L4 19a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-6-11V2"/><path d="M7 15h10"/></svg>Refinery</button>
+    <button data-view="mining"><svg class="tico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4.5c3-1.5 6 0 7.5 2.5-2.5-1-5-.5-7 1.5"/><path d="M14.5 4.5c-2 2-2.5 4.5-1.5 7"/><path d="M13 11.5L3 21.5"/><path d="M14 8l2 2"/></svg>Mining</button>
+    <button data-view="voice" title="Voice macros"><svg class="tico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="12" r="3"/><path d="M9 4v2M9 18v2M3.3 8.5l1.7 1M13 14.5l1.7 1M3.3 15.5l1.7-1M13 9.5l1.7-1"/><rect x="16" y="4" width="4" height="8" rx="2"/><path d="M14.5 10a3.5 3.5 0 0 0 7 0M18 13.5V17"/></svg>Macros</button>
     <button data-view="dcslog">Log</button>
     <button data-view="dcsdl">DL99</button>
     <button data-view="dcsmap">Map</button>
@@ -723,6 +732,24 @@ body.cockpit .cocktop #brief{display:none}
 </section>
 
 <!-- ============ VOICE MACROS ============ -->
+<!-- ============ REFINERY ============ -->
+<section class="view" id="view-refinery">
+  <div class="panel">
+    <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div><h2 style="margin:0">Refinery</h2><div class="sub" id="rfSub">Refineries in your system, which process for which ore, and refined prices at each refinery's station.</div></div>
+      <div class="row" style="gap:8px;align-items:center">
+        <label class="f" style="flex-direction:row;align-items:center;gap:6px">System<select id="rfSys"><option value="">All systems</option></select></label>
+        <label class="f" style="flex-direction:row;align-items:center;gap:6px">Ore<select id="rfOre"><option value="">Any</option></select></label>
+      </div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="panel"><h3 style="margin:0 0 6px">Refineries <span class="sub" id="rfCount"></span></h3><div class="sub" style="margin-bottom:8px">Pick an ore to rank them by its yield bonus. Each card lists what the station's own terminal pays for refined goods (player-reported on UEX — check the age).</div><div id="rfList"></div></div>
+    <div class="panel"><h3 style="margin:0 0 6px">Which process for which ore</h3><div class="sub" style="margin-bottom:8px">ARIA sorts ores by refined value: the expensive ones want a high-yield process (slow, costs more, keeps the most ore); cheap ones want a fast, cheap one. Ratings are UEX's 1–5.</div><div id="rfMatrix"></div><h4 style="margin:14px 0 4px">Processes</h4><div id="rfMethods"></div></div>
+  </div>
+  <div class="panel" style="margin-top:14px"><h3 style="margin:0 0 6px">Price check — every refinery</h3><div class="sub" style="margin-bottom:8px">All refineries in one table with the best refined sell at each station. Sort by clicking a heading.</div><div class="tablewrap"><table id="rfAll"></table></div></div>
+</section>
+
 <!-- ============ MINING & REFINING ============ -->
 <section class="view" id="view-mining">
   <div class="panel">
@@ -753,9 +780,9 @@ body.cockpit .cocktop #brief{display:none}
       <div id="mnCalcOut" style="margin-top:10px"></div>
     </div>
     <div class="panel">
-      <h3 style="margin:0 0 6px">Refineries</h3>
-      <div class="sub" style="margin-bottom:8px">Every refinery deck, with the processing methods and any per-ore yield bonus UEX knows about. Pick an ore on the board to highlight the best place to refine it.</div>
-      <div id="mnRef"></div>
+      <h3 style="margin:0 0 6px">Refining</h3>
+      <div class="sub">Where to refine, which process for which ore, and refined prices at every refinery now live on the <a href="#" id="mnToRef">Refinery tab</a>.</div>
+      <div id="mnRef" hidden></div>
     </div>
   </div>
   <div class="panel" style="margin-top:14px">
@@ -990,7 +1017,7 @@ body.cockpit .cocktop #brief{display:none}
 <div class="tray" id="tray"></div>
 <div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
-<div id="dcsTT"><div class="tthd"><b id="ttName">ARIA</b><span id="ttSub">OVERWATCH</span><span id="ttLink">NO FEED</span></div><div class="ttlines" id="ttLines"></div></div>
+<div id="dcsTT"><div class="tthd"><b id="ttName">ARIA</b><span id="ttPwr"></span><span id="ttSub">OVERWATCH</span><span id="ttLink">NO FEED</span></div><div class="ttlines" id="ttLines"></div></div>
 
 <script>
 /* =====================================================================
@@ -1143,7 +1170,7 @@ function renderHangarChips() {
   el.innerHTML = l.length
     ? '<span class="faint" style="font:600 10px var(--head);letter-spacing:.16em">MY HANGAR</span>' +
       l.map(n => `<button class="chip amber" data-ship="${esc(n)}">★ ${esc(n)}</button>`).join('')
-    : '<span class="faint" style="font-size:12px">Tip: star ships in the Shipyard and they show up here as one-click picks.</span>';
+    : '<span class="faint" style="font-size:12px">Tip: star ships in the Hangar and they show up here as one-click picks.</span>';
   $$('[data-ship]', el).forEach(b => b.onclick = () => { setShip(b.dataset.ship); runRoutes(); });
 }
 
@@ -1612,7 +1639,7 @@ function shipCard(s) {
   const best = s.prices[0];
   return `<div class="card" data-key="${esc(s.key)}">
     <div class="img" style="${s.img ? `background-image:url('${esc(s.img)}')` : ''}">${s.img ? '' : SHIP_SVG}
-      <div class="badges">${s.pad ? `<span class="tag cy">${esc(s.pad)} PAD</span>` : ''}${s.ground ? '<span class="tag am">GROUND</span>' : ''}</div>
+      <div class="badges">${LOADOUT.get(s.name).link ? '<span class="tag am" title="You saved an Erkul build for this ship">LOADOUT</span>' : ''}${s.pad ? `<span class="tag cy">${esc(s.pad)} PAD</span>` : ''}${s.ground ? '<span class="tag am">GROUND</span>' : ''}</div>
       <div class="acts"><button class="${inH ? 'on' : ''}" data-hangar title="My hangar">★</button><button class="${inC ? 'on' : ''}" data-cmp title="Compare">⇄</button></div>
     </div>
     <div class="body">
@@ -1663,7 +1690,7 @@ async function openShip(s) {
     try {
       const r = await fetch('/api/wiki/vehicles/' + encodeURIComponent(s.uuid || s.slug));
       const j = await r.json();
-      if (r.ok && j.data && $('#drawer').dataset.key === s.key) $('#drawer').innerHTML = shipDrawerHtml(s, j.data), wireDrawer(s);
+      if (r.ok && j.data && $('#drawer').dataset.key === s.key) { s._w = j.data; $('#drawer').innerHTML = shipDrawerHtml(s, j.data); wireDrawer(s); }
     } catch {}
   }
 }
@@ -1687,7 +1714,9 @@ function shipDrawerHtml(s, w) {
       <button class="btn ghost small" data-dc>${compareSet.has(s.key) ? '⇄ Comparing' : '⇄ Compare'}</button>
       ${s.web || w.web_url ? `<a class="btn ghost small" target="_blank" rel="noopener" href="${esc(s.web || w.web_url)}">Wiki ↗</a>` : ''}
       ${w.pledge_url ? `<a class="btn ghost small" target="_blank" rel="noopener" href="${esc(w.pledge_url)}">RSI ↗</a>` : ''}
+      <a class="btn ghost small" target="_blank" rel="noopener" href="https://erkul.games/calculator" title="Erkul's loadout calculator: DPS, power, cooling, components">Erkul loadout ↗</a>
     </div>
+    ${loadoutHtml(s)}
     <div class="specs">
       ${spec('Cargo', s.scu ? fmt(s.scu) + ' SCU' : '—')}
       ${spec('Crew', s.crewMax ? (s.crewMin && s.crewMin !== s.crewMax ? s.crewMin + '–' + s.crewMax : s.crewMax) : '')}
@@ -1714,8 +1743,18 @@ function shipDrawerHtml(s, w) {
     ${w.description ? `<h4>Brief</h4><p class="muted" style="font-size:13px">${esc(typeof w.description === 'string' ? w.description : (w.description.en_EN || w.description.en || Object.values(w.description)[0] || ''))}</p>` : ''}
   </div>`;
 }
+// your Erkul build for this ship: paste the share link, add notes — kept with the ship (and in your OFP/backups)
+const LOADOUT = {all: () => store.get('loadouts', {}), get(n) { return this.all()[n] || {}; }, set(n, v) { const a = this.all(); if (v.link || v.notes) a[n] = v; else delete a[n]; store.set('loadouts', a); }};
+function loadoutHtml(s) {
+  const L = LOADOUT.get(s.name), ok = /^https:\/\/(www\.)?erkul\.games\//i.test(L.link || '');
+  return `<h4>Loadout</h4><div class="sub" style="margin-bottom:6px">Build it on Erkul, use its share button, and paste the link here. ARIA keeps it with this ship.</div>
+    <div class="row" style="gap:6px"><input data-ldlink type="url" value="${esc(L.link || '')}" placeholder="https://erkul.games/…" style="flex:1;min-width:200px">${ok ? `<a class="btn small" target="_blank" rel="noopener" href="${esc(L.link)}">Open my build ↗</a>` : ''}</div>
+    <textarea data-ldnotes rows="3" style="width:100%;margin-top:6px" placeholder="Weapons, shields, power plant, cooler, QT drive — what you fitted and why">${esc(L.notes || '')}</textarea>`;
+}
 function wireDrawer(s) {
   const d = $('#drawer');
+  const ll = $('[data-ldlink]', d), ln = $('[data-ldnotes]', d);
+  if (ll) { const save = () => { LOADOUT.set(s.name, {link: ll.value.trim(), notes: ln.value}); }; ll.onchange = () => { save(); if (ll.value.trim() && !/^https:\/\/(www\.)?erkul\.games\//i.test(ll.value.trim())) toast('Saved — but that isn’t an erkul.games link.'); d.innerHTML = shipDrawerHtml(s, s._w || s.raw); wireDrawer(s); }; ln.oninput = save; }
   $('[data-close]', d).onclick = closeDrawer;
   const dh = $('[data-dh]', d); if (dh) dh.onclick = () => { const on = hangar.toggle(s.name); dh.textContent = on ? '★ In my hangar' : '☆ Add to hangar'; dh.classList.toggle('ghost', !on); renderShipyard(); };
   const dc = $('[data-dc]', d); if (dc) dc.onclick = () => { toggleCompare(s.key); dc.textContent = compareSet.has(s.key) ? '⇄ Comparing' : '⇄ Compare'; renderShipyard(); };
@@ -2698,7 +2737,7 @@ function networkSvg(W, H) {
 function renderJob() {
   const el = $('#jobView');
   if (!PLAN) {
-    el.innerHTML = `<div class="jobnet" id="jobNet"></div><div class="empty" style="padding:50px 20px">No job yet. Plot a course in Navigation, press ⌖ on a haul, or build a multi-haul job with <b>+ Job</b> in Make Me Rich.</div>`;
+    el.innerHTML = `<div class="jobnet" id="jobNet"></div><div class="empty" style="padding:50px 20px">No job yet. Plot a course in Navigation, press ⌖ on a haul, or build a multi-haul job with <b>+ Job</b> in Contracts.</div>`;
     $('#jobNet').innerHTML = networkSvg(Math.max(560, el.clientWidth - 32), 190); wireNet(); return;
   }
   const P = PLAN, T = P.totals;
@@ -3225,14 +3264,21 @@ function parseBind(text) {
 }
 
 // tap ARIA's name in the bottom panel to shut ARIA down (window and helper)
-async function quitAria() {
-  if (!confirm(`Quit ${AI()}?`)) return;
+// the ON/OFF power slider next to ARIA's name (bottom panel, and the teletype in DCS): slide to OFF to shut down
+const pwrSwitch = () => `<button class="pwrsw on" title="Power: slide to OFF to quit ${esc(AI())}" aria-label="Power"><span>ON</span><i></i><span>OFF</span></button>`;
+function wirePwrSwitch(root) {
+  $$('.pwrsw', root).forEach(b => { if (b._w) return; b._w = 1;
+    b.onclick = () => { b.classList.remove('on'); b.classList.add('off'); setTimeout(() => quitAria(true).then(ok => { if (!ok) { b.classList.add('on'); b.classList.remove('off'); } }), 250); }; });
+}
+async function quitAria(fromSwitch) {
+  if (!confirm(`Shut ${AI()} down?`)) return false;
   try { await fetch('/api/quit', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}); } catch {}
   document.body.innerHTML = `<div style="display:grid;place-items:center;height:100vh;font:600 14px var(--mono);color:var(--dim);letter-spacing:.2em">${esc(AI().toUpperCase())} OFFLINE</div>`;
   setTimeout(() => { try { window.close(); } catch {} }, 300);
+  return true;
 }
 /* ---------------- OFP: the whole cockpit setup saved as a named version (OFP 1, OFP 2 …) ---------------- */
-const OFP_KEYS = ['ofpMode', 'ofpMM', 'ckRects', 'osbGeo', 'ckBezel', 'osbAssign', 'mfdPageL', 'mfdPageR', 'mfdSoi', 'mfdBrt', 'mmFilt', 'cockpit', 'dcsLayout', 'dcsPit', 'theme'];
+const OFP_KEYS = ['loadouts', 'ofpMode', 'ofpMM', 'ckRects', 'osbGeo', 'ckBezel', 'osbAssign', 'mfdPageL', 'mfdPageR', 'mfdSoi', 'mfdBrt', 'mmFilt', 'cockpit', 'dcsLayout', 'dcsPit', 'theme'];
 const OFP = {
   snap(name) { const st = {}; for (const k of OFP_KEYS) { const v = store.get(k, undefined); if (v !== undefined) st[k] = v; }
     return {name, saved: new Date().toISOString(), aria: (typeof STAT !== 'undefined' && STAT.version) || '', store: st}; },
@@ -4066,7 +4112,7 @@ function ufcRender() {
     <div class="ukeys"><button>SAY</button><button>RTB</button><button>MAP</button></div>`;
   const acts = [() => say(UFC.msg || 'Nothing to report.'), () => rtb(), () => { show('starmap'); setSystem('job'); }];
   const kt = $('.ukeystog', el); if (kt) kt.onclick = () => setKeysLive(!$('#keysLive').checked);
-  const nm = $('.uhead b', el); if (nm) { nm.classList.add('quitname'); nm.title = 'Quit ARIA'; nm.onclick = quitAria; }
+  const nm = $('.uhead b', el); if (nm && !$('.pwrsw', el)) nm.insertAdjacentHTML('afterend', pwrSwitch()); wirePwrSwitch(el);
   $$('.ukeys button', el).forEach((b, i) => b.onclick = acts[i]);
   if (UFC.typed < UFC.msg.length) ufcType();
   if (MFDS.C.page === 'UFC') mfdRender('C');
@@ -4946,6 +4992,65 @@ function renderRefineries(d) {
       ${b.all.length && !o ? `<div class="wh" style="margin-top:4px">Bonus ores: ${b.all.slice().sort((x, y) => num(y.value) - num(x.value)).slice(0, 5).map(y => esc((d.T.com.get(y.id_commodity) || {name: y.commodity_name}).name) + ' ' + (num(y.value) > 0 ? '+' : '') + fmt(y.value, 1) + '%').join(' · ')}</div>` : ''}</div>`; }).join('') +
     (d.methods.length ? `<h4 style="margin:12px 0 4px">Methods</h4><table>${d.methods.map(m => `<tr><td><b>${esc(m.name)}</b></td><td class="sub">yield ${esc(m.rating_yield ?? '—')} · cost ${esc(m.rating_cost ?? '—')} · speed ${esc(m.rating_speed ?? '—')}</td></tr>`).join('')}</table><div class="sub">Ratings are UEX's 1–5 scale: higher yield keeps more ore, higher cost costs more aUEC, higher speed finishes sooner.</div>` : '');
 }
+/* ---------------- REFINERY tab: refineries in your system, process per ore, refined price check ---------------- */
+const RF = {sort: 'best'};
+function rfStation(d, r) {  // the commodity terminals that share the refinery's station / city / outpost
+  const keyOf = t => t && (num(t.id_space_station) ? 's' + t.id_space_station : num(t.id_city) ? 'c' + t.id_city : num(t.id_outpost) ? 'o' + t.id_outpost : null);
+  const k = keyOf(r); if (!k) return [];
+  return [...d.T.term.values()].filter(t => keyOf(t) === k).map(t => t.id);
+}
+function rfSells(d, r) {  // refined goods the refinery's own station buys, best first
+  const ids = new Set(rfStation(d, r)); if (!ids.size) return [];
+  const out = [];
+  for (const o of d.ores) { if (!o.ref) continue; const p = o.refAll.filter(x => ids.has(x.id_terminal)).sort((a, b) => num(b.price_sell) - num(a.price_sell))[0]; if (p) out.push({o, p}); }
+  return out.sort((a, b) => num(b.p.price_sell) - num(a.p.price_sell));
+}
+async function renderRefinery() {
+  const list = $('#rfList'); if (!list) return;
+  if (!MN.data) list.innerHTML = '<div class="muted">Loading refineries…</div>';
+  let d; try { d = await miningData(); } catch (e) { list.innerHTML = `<div class="bad">Couldn't load refinery data (${esc(e.message)}).</div>`; return; }
+  const sysSel = $('#rfSys'), oreSel = $('#rfOre');
+  if (sysSel.options.length <= 1) {
+    uniq(d.refineries.map(r => r.star_system_name).filter(Boolean)).sort().forEach(n => sysSel.insertAdjacentHTML('beforeend', `<option>${esc(n)}</option>`));
+    const h = typeof hereEnt === 'function' && hereEnt(); const cur = h ? sysName(h.sys) : (typeof MM !== 'undefined' && MM.sys ? sysName(MM.sys) : '');
+    const opt = [...sysSel.options].find(o => cur && o.value.toLowerCase() === String(cur).toLowerCase()); sysSel.value = opt ? opt.value : ([...sysSel.options].find(o => /stanton/i.test(o.value)) || {value: ''}).value;
+    d.ores.filter(o => o.ref && o.cat === 'ship').sort((a, b) => a.name.localeCompare(b.name)).forEach(o => oreSel.insertAdjacentHTML('beforeend', `<option value="${o.id}">${esc(o.name)}</option>`));
+    sysSel.onchange = oreSel.onchange = () => renderRefinery();
+  }
+  const sys = sysSel.value, ore = d.ores.find(o => o.id === +oreSel.value);
+  const refs = d.refineries.filter(r => !sys || r.star_system_name === sys);
+  const bonus = r => { const l = d.yieldBy.get(r.id) || []; return {all: l, mine: ore ? l.find(y => y.id_commodity === (ore.ref ? ore.ref.id : ore.id) || y.id_commodity === ore.id) : null}; };
+  const sorted = refs.slice().sort((a, b) => (num((bonus(b).mine || {}).value) - num((bonus(a).mine || {}).value)) || termLabel(a).localeCompare(termLabel(b)));
+  $('#rfCount').textContent = `· ${refs.length}${sys ? ' in ' + sys : ''}`;
+  if (!d.refineries.length) list.innerHTML = '<div class="muted">No refinery list from UEX yet (⟳ to retry). Stanton refineries: ARC-L1, ARC-L2, ARC-L4, CRU-L1, HUR-L1, HUR-L2, MIC-L1, MIC-L2, MIC-L5; Pyro has refining at several stations.</div>';
+  else list.innerHTML = sorted.map((r, i) => { const b = bonus(r), sells = rfSells(d, r);
+    return `<div class="mnref${ore && i === 0 && b.mine ? ' best' : ''}"><div class="row" style="justify-content:space-between"><span class="nm">${esc(termLabel(r))}</span>${b.mine ? `<span class="yl">${esc(ore.name)} ${num(b.mine.value) > 0 ? '+' : ''}${fmt(b.mine.value, 1)}%</span>` : ''}</div>
+      <div class="wh">${esc(placeLabel(r))}</div>
+      ${b.all.length ? `<div class="wh" style="margin-top:4px">Yield bonuses: ${b.all.slice().sort((x, y) => num(y.value) - num(x.value)).slice(0, 6).map(y => esc((d.T.com.get(y.id_commodity) || {name: y.commodity_name}).name) + ' ' + (num(y.value) > 0 ? '+' : '') + fmt(y.value, 1) + '%').join(' · ')}</div>` : ''}
+      ${sells.length ? `<div class="wh" style="margin-top:4px">Station buys refined: ${sells.slice(0, 5).map(x => `${esc(x.o.name)} <b class="good">${fmt(x.p.price_sell)}</b>`).join(' · ')}</div>` : '<div class="wh faint" style="margin-top:4px">No refined sell prices reported at this station.</div>'}</div>`; }).join('');
+  // process per ore: value tiers from the best refined price anywhere (or in this system)
+  const inSys = p => !sys || (d.T.term.get(p.id_terminal) || {}).star_system_name === sys;
+  const ores = d.ores.filter(o => o.ref && o.cat === 'ship').map(o => ({o, v: Math.max(0, ...o.refAll.filter(inSys).map(p => num(p.price_sell)))})).filter(x => x.v > 0).sort((a, b) => b.v - a.v);
+  const M = d.methods.map(m => ({name: m.name, y: num(m.rating_yield), c: num(m.rating_cost), s: num(m.rating_speed)}));
+  const pick = tier => { if (!M.length) return null;
+    const sc = m => tier === 'high' ? m.y * 3 - m.c * .5 : tier === 'mid' ? m.y * 1.5 + m.s - m.c : m.s * 2 - m.c * 1.5 + m.y * .5;
+    return M.slice().sort((a, b) => sc(b) - sc(a))[0]; };
+  const hi = ores.length ? ores[Math.floor(ores.length / 3)].v : 0, lo = ores.length ? ores[Math.floor(ores.length * 2 / 3)].v : 0;
+  const tierOf = v => v >= hi ? 'high' : v >= lo ? 'mid' : 'low';
+  const why = {high: 'high value — keep every SCU', mid: 'middle — balance yield and time', low: 'cheap — fast and cheap beats a few % yield'};
+  $('#rfMatrix').innerHTML = ores.length ? `<table><tr><th>Ore</th><th class="r">Refined / SCU</th><th>Process</th><th></th></tr>${ores.map(({o, v}) => { const t = tierOf(v), m = pick(t);
+      return `<tr${ore && ore.id === o.id ? ' class="on"' : ''}><td><b>${esc(o.name)}</b></td><td class="r num good">${fmt(v)}</td><td>${m ? esc(m.name) : '—'}</td><td class="sub">${why[t]}</td></tr>`; }).join('')}</table>`
+    : '<div class="muted">No refined prices to rank by yet.</div>';
+  $('#rfMethods').innerHTML = M.length ? `<table><tr><th>Process</th><th class="r">Yield</th><th class="r">Cost</th><th class="r">Speed</th></tr>${M.slice().sort((a, b) => b.y - a.y).map(m => `<tr><td>${esc(m.name)}</td><td class="r num">${'●'.repeat(m.y)}<span class="faint">${'●'.repeat(Math.max(0, 5 - m.y))}</span></td><td class="r num">${'●'.repeat(m.c)}<span class="faint">${'●'.repeat(Math.max(0, 5 - m.c))}</span></td><td class="r num">${'●'.repeat(m.s)}<span class="faint">${'●'.repeat(Math.max(0, 5 - m.s))}</span></td></tr>`).join('')}</table>` : '<div class="muted">UEX hasn’t sent the process list yet (⟳).</div>';
+  // all refineries, price check
+  const rows = d.refineries.map(r => { const sells = rfSells(d, r), b = bonus(r); return {r, top: sells[0], n: sells.length, mine: b.mine}; });
+  const key = {name: x => termLabel(x.r), sys: x => x.r.star_system_name || '', best: x => num(x.top && x.top.p.price_sell), n: x => x.n, bonus: x => num(x.mine && x.mine.value)}[RF.sort];
+  rows.sort((a, b) => typeof key(a) === 'string' ? key(a).localeCompare(key(b)) : key(b) - key(a));
+  $('#rfAll').innerHTML = `<tr><th class="sort" data-s="name">Refinery</th><th class="sort" data-s="sys">System</th><th>Location</th>${ore ? `<th class="r sort" data-s="bonus">${esc(ore.name)} bonus</th>` : ''}<th class="r sort" data-s="best">Best refined sell here</th><th class="r sort" data-s="n">Refined goods bought</th></tr>` +
+    rows.map(x => `<tr${sys && x.r.star_system_name === sys ? '' : ' class="dim"'}><td><b>${esc(termLabel(x.r))}</b></td><td>${esc(x.r.star_system_name || '—')}</td><td class="sub">${esc(placeLabel(x.r))}</td>${ore ? `<td class="r num">${x.mine ? (num(x.mine.value) > 0 ? '+' : '') + fmt(x.mine.value, 1) + '%' : '—'}</td>` : ''}<td class="r num good">${x.top ? `${esc(x.top.o.name)} ${fmt(x.top.p.price_sell)}` : '—'}</td><td class="r num">${x.n || '—'}</td></tr>`).join('');
+  $$('#rfAll th.sort').forEach(h => h.onclick = () => { RF.sort = h.dataset.s; renderRefinery(); });
+  $('#rfSub').textContent = `${d.refineries.length} refineries · ${d.methods.length} processes · prices player-reported on UEX`;
+}
 function renderMnCalc(d) {
   const el = $('#mnCalc'), names = d.ores.map(o => o.name).sort();
   el.innerHTML = MN.rows.map((r, i) => `<div class="mncalc"><input list="mnList" value="${esc(r.name)}" data-i="${i}" data-f="name" placeholder="Mineral"><input type="number" min="0" step="0.1" value="${esc(r.scu)}" data-i="${i}" data-f="scu" placeholder="SCU"><button class="btn ghost small" data-x="${i}" title="Remove">×</button></div>`).join('') +
@@ -4970,6 +5075,7 @@ function mnCalcOut(d) {
   out.innerHTML = `<table><tr><th>Mineral</th><th class="r">Raw</th><th class="r">Refined @${Math.round(y * 100)}%</th></tr>${lines.join('')}<tr><td><b>Total</b></td><td class="r num"><b>${fmt(raw)}</b></td><td class="r num good"><b>${fmt(ref)}</b></td></tr></table><div style="margin-top:8px">${verdict}</div>`;
 }
 ['#mnSys', '#mnKind'].forEach(id => $(id).onchange = () => renderMining());
+$('#mnToRef').onclick = e => { e.preventDefault(); show('refinery'); };
 $('#mnFind').oninput = () => renderMining();
 // reference charts load the first time the Mining tab opens (fetched once by ARIA, then kept in cache/)
 function loadRefCharts() {
@@ -4995,6 +5101,7 @@ function show(view) {
   if (view === 'starmap') initMap();
   if (view === 'voice') initVoice();
   if (view === 'mining') { renderMining(); loadRefCharts(); }
+  if (view === 'refinery') renderRefinery();
   if (view.startsWith('dcs') && typeof dcsInit === 'function') { dcsInit(); if (typeof dcsView === 'function') dcsView(view); }
   renderTray();
 }
