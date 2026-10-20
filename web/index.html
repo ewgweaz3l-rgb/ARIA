@@ -3812,7 +3812,9 @@ function mfdRender(side) {
       <div class="mtitle">${esc(d.title)}</div>${MFDS.soi === side ? '<div class="msoi" title="Sensor of interest">◆</div>' : ''}
       ${labels.join('')}<div class="mbody">${d.body}</div>${overlay}</div>`;
   if (oldCanvas) { const nc = $('#arcCanvas', el); if (nc) nc.replaceWith(oldCanvas); }
-  $$('.osb', el).forEach(b => b.onclick = () => mfdPress(side, +b.dataset.n, true));
+  // press on pointer-down, on the MFD itself: the screens redraw every second, and a click (down + up on the same
+  // element) was lost whenever a redraw landed between the two — the button looked dead
+  if (!el._osbWired) { el._osbWired = 1; el.addEventListener('pointerdown', e => { const b = e.target.closest('.osb'); if (!b || e.button > 0) return; e.preventDefault(); mfdPress(side, +b.dataset.n, true); }); }
   $$('.csq', el).forEach(c => c.onclick = () => { CH.cur = +c.dataset.sq; chSelect(); });
   MFDS.cur = MFDS.cur || {}; MFDS.cur[side] = d;
   el.classList.toggle('mmpage', d.title === 'MAP');  // the map runs edge to edge under the labels
