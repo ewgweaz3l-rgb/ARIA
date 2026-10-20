@@ -1,21 +1,22 @@
 /* ofp.js — OFP 2 "Hornet": the F/A-18's display logic on ARIA's Star Citizen MFDs.
 
    • MENU sits bottom-center (OSB 13) on all three MFDs. Press it to get the TAC menu, press it again for SUPT.
-   • Master modes NAV · A/A · A/G (left column on both menus) load that mode's formats on all three screens
-     and switch the game's operator mode (A/A → missile/gunnery, A/G → mining), like the jet.
-   • Formats keep Hornet names: SA (map), STORES, RADAR, EW, SHLD, MINE, SALV · HSI, ENG, FCS, FUEL, CHKLST,
+   • Mode buttons NAV · MSL · RADAR (left column on both menus) load that mode's formats on all three screens
+     and switch the game's operator mode (MSL → missile mode, RADAR → scanning mode), like the jet's master modes.
+   • Format names are Star Citizen's: MAP, WPN, RADAR, CM, SHLD, MINE, SALV · NAV, PWR, FLT, FUEL, CHKLST,
      DATA, CARGO, TIMER, COMM, BIT, OFP. Most are ARIA's existing pages under their Hornet name.
    • Selected options are boxed, not lit — Hornet style.
    OFP 1 (ARIA's classic layout) is untouched: ofpMode 'classic' runs the original pages. */
 
 const OFPM = {get: () => store.get('ofpMode', 'classic'), hornet: () => store.get('ofpMode', 'classic') === 'hornet'};
 // Hornet names for ARIA's existing pages (the page ids stay the same underneath)
-const HN = {MAP: 'SA', WPN: 'STORES', SCAN: 'RADAR', NAV: 'HSI', PWR: 'ENG', JOB: 'DATA', ATC: 'COMM', SYS: 'BIT'};
+// labels: the Hornet's layout and logic, but Star Citizen names where a jet word means nothing in a spaceship
+const HN = {SCAN: 'RADAR'};
 // what each master mode puts on left · center · right, and the game operator mode it selects
 const MASTER = {
   NAV: {L: 'NAV', C: 'MAP', R: 'JOB', game: null, say: 'Nav master mode.'},
-  AA: {L: 'WPN', C: 'MAP', R: 'SCAN', game: 'msl', say: 'Air to air.'},
-  AG: {L: 'MINE', C: 'MAP', R: 'SCAN', game: 'mineMode', say: 'Air to ground. Mining mode.'}
+  AA: {L: 'WPN', C: 'MAP', R: 'SCAN', game: 'msl', say: 'Missiles.'},          // MSL button
+  AG: {L: 'SCAN', C: 'MAP', R: 'MINE', game: 'scanMode', say: 'Radar mode.'}    // RADAR button (scanning mode)
 };
 Object.assign(GAME, {
   cmCyc: ['cycle countermeasure', 'countermeasure cycle', 'cycle countermeasures'], cmLaunch: ['launch countermeasure', 'deploy countermeasure'],
@@ -44,7 +45,7 @@ function ofpMaster(mm, side) {
 }
 const mmBtns = side => {
   const cur = store.get('ofpMM', 'NAV');
-  return {16: {l: 'NAV', on: cur === 'NAV', fn: () => ofpMaster('NAV', side)}, 17: {l: 'A/A', on: cur === 'AA', fn: () => ofpMaster('AA', side)}, 18: {l: 'A/G', on: cur === 'AG', fn: () => ofpMaster('AG', side)}};
+  return {16: {l: 'NAV', on: cur === 'NAV', fn: () => ofpMaster('NAV', side)}, 17: {l: 'MSL', on: cur === 'AA', fn: () => ofpMaster('AA', side)}, 18: {l: 'RADAR', on: cur === 'AG', fn: () => ofpMaster('AG', side)}};
 };
 
 /* ---------------- timers (refinery jobs, contract clocks) ---------------- */
@@ -70,26 +71,26 @@ pageDef0 = function (side) {
   const box = (title, sub, rows) => `<div class="mbig sm">${title}</div>${sub ? `<div class="msub">${sub}</div>` : ''}${rows || ''}`;
   if (p === 'MENU') {
     const tac = S.menu !== 'SUPT';
-    const o = tac ? {...common, ...mmBtns(side), 1: {l: 'SA', go: 'MAP'}, 2: {l: 'STORES', go: 'WPN'}, 3: {l: 'RADAR', go: 'SCAN'}, 4: {l: 'EW', go: 'EW'}, 5: {l: 'SHLD', go: 'SHLD'},
+    const o = tac ? {...common, ...mmBtns(side), 1: {l: 'MAP', go: 'MAP'}, 2: {l: 'WPN', go: 'WPN'}, 3: {l: 'RADAR', go: 'SCAN'}, 4: {l: 'CM', go: 'EW'}, 5: {l: 'SHLD', go: 'SHLD'},
       6: {l: 'MINE', go: 'MINE'}, 7: {l: 'SALV', go: 'SALV'}, 8: {l: 'UFC', go: 'UFC'}, 10: {l: 'GAME', go: 'GAME'}, 20: {l: 'HELP', go: 'HELP'}}
-      : {...common, ...mmBtns(side), 1: {l: 'HSI', go: 'NAV'}, 2: {l: 'ENG', go: 'PWR'}, 3: {l: 'FCS', go: 'FCS'}, 4: {l: 'FUEL', go: 'FUEL'}, 5: {l: 'CHKLST', go: 'CHKLST'},
-      6: {l: 'DATA', go: 'JOB'}, 7: {l: 'CARGO', go: 'CARGO'}, 8: {l: 'TIMER', go: 'TIMER'}, 9: {l: 'COMM', go: 'ATC'}, 10: {l: 'BIT', go: 'SYS'}, 19: {l: 'OFP', go: 'OFP'}, 20: {l: 'HELP', go: 'HELP'}};
+      : {...common, ...mmBtns(side), 1: {l: 'NAV', go: 'NAV'}, 2: {l: 'PWR', go: 'PWR'}, 3: {l: 'FLT', go: 'FCS'}, 4: {l: 'FUEL', go: 'FUEL'}, 5: {l: 'CHKLST', go: 'CHKLST'},
+      6: {l: 'JOB', go: 'JOB'}, 7: {l: 'CARGO', go: 'CARGO'}, 8: {l: 'TIMER', go: 'TIMER'}, 9: {l: 'ATC', go: 'ATC'}, 10: {l: 'SYS', go: 'SYS'}, 19: {l: 'OFP', go: 'OFP'}, 20: {l: 'HELP', go: 'HELP'}};
     const mm = store.get('ofpMM', 'NAV');
-    return {title: tac ? 'TAC' : 'SUPT', osb: o, body: `<div class="mbig">${tac ? 'TAC' : 'SUPT'}</div><div class="msub">MENU ▸ ${tac ? 'SUPT' : 'TAC'} · MASTER ${mm === 'AA' ? 'A/A' : mm === 'AG' ? 'A/G' : 'NAV'}</div>
+    return {title: tac ? 'TAC' : 'SUPT', osb: o, body: `<div class="mbig">${tac ? 'TAC' : 'SUPT'}</div><div class="msub">MENU ▸ ${tac ? 'SUPT' : 'TAC'} · MODE ${mm === 'AA' ? 'MSL' : mm === 'AG' ? 'RADAR' : 'NAV'}</div>
       <div class="mclock">${new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div><div class="mnote">${esc(store.get('ofpCur', 'OFP 2'))}</div>`};
   }
-  if (p === 'EW') return {title: 'EW', osb: {...common, 1: gameBtn(side, 'cmD', 'DECOY'), 2: gameBtn(side, 'cmN', 'NOISE'), 3: gameBtn(side, 'cmCyc', 'CYCLE'), 4: gameBtn(side, 'cmLaunch', 'LNCH'), 10: {l: 'STORES', go: 'WPN'}},
-    body: box('EW', 'COUNTERMEASURES', gameRows(side, ['cmD', 'cmN', 'cmCyc', 'cmLaunch']))};
+  if (p === 'EW') return {title: 'CM', osb: {...common, 1: gameBtn(side, 'cmD', 'DECOY'), 2: gameBtn(side, 'cmN', 'NOISE'), 3: gameBtn(side, 'cmCyc', 'CYCLE'), 4: gameBtn(side, 'cmLaunch', 'LNCH'), 10: {l: 'WPN', go: 'WPN'}},
+    body: box('CM', 'COUNTERMEASURES', gameRows(side, ['cmD', 'cmN', 'cmCyc', 'cmLaunch']))};
   if (p === 'MINE') return {title: 'MINE', osb: {...common, 1: gameBtn(side, 'mineMode', 'MODE'), 2: gameBtn(side, 'mineSwitch', 'LASER'), 3: gameBtn(side, 'minePwrUp', 'PWR+'), 4: gameBtn(side, 'minePwrDn', 'PWR−'),
       6: gameBtn(side, 'mineMod1', 'MOD 1'), 7: gameBtn(side, 'mineMod2', 'MOD 2'), 9: {l: 'RADAR', go: 'SCAN'}, 10: gameBtn(side, 'jettison', 'JETT')},
     body: box('MINE', 'MINING HEAD · MODULES', gameRows(side, ['mineMode', 'mineSwitch', 'minePwrUp', 'minePwrDn', 'mineMod1', 'mineMod2', 'jettison'])) + '<div class="mnote">LASER / CRACK WINDOW NOT LIVE — GAME DOESN’T EXPORT IT</div>'};
   if (p === 'SALV') return {title: 'SALV', osb: {...common, 1: gameBtn(side, 'salvMode', 'MODE'), 2: gameBtn(side, 'salvBeam', 'BEAM'), 3: gameBtn(side, 'salvMod', 'MODF'), 4: gameBtn(side, 'salvSpread', 'SPCG'), 5: gameBtn(side, 'tractor', 'TRCTR')},
     body: box('SALV', 'SALVAGE HEADS · TRACTOR', gameRows(side, ['salvMode', 'salvBeam', 'salvMod', 'salvSpread', 'tractor']))};
-  if (p === 'FCS') return {title: 'FCS', osb: {...common, 1: gameBtn(side, 'decouple', 'DCPL'), 2: gameBtn(side, 'gsafe', 'GSAFE'), 3: gameBtn(side, 'spdlim', 'SPDLM'), 4: gameBtn(side, 'esp', 'ESP'), 5: gameBtn(side, 'cruise', 'CRUZ'), 6: gameBtn(side, 'qt', 'QT')},
-    body: box('FCS', 'FLIGHT CONTROL', gameRows(side, ['decouple', 'gsafe', 'spdlim', 'esp', 'cruise', 'qt']))};
+  if (p === 'FCS') return {title: 'FLT', osb: {...common, 1: gameBtn(side, 'decouple', 'DCPL'), 2: gameBtn(side, 'gsafe', 'GSAFE'), 3: gameBtn(side, 'spdlim', 'SPDLM'), 4: gameBtn(side, 'esp', 'ESP'), 5: gameBtn(side, 'cruise', 'CRUZ'), 6: gameBtn(side, 'qt', 'QT')},
+    body: box('FLT', 'FLIGHT CONTROL', gameRows(side, ['decouple', 'gsafe', 'spdlim', 'esp', 'cruise', 'qt']))};
   if (p === 'FUEL') {
     const P = curPlan(), legs = P ? P.segs.flatMap(s => s.legs) : [], jf = legs.filter(l => l.jump).reduce((a, l) => a + (l.fuel || 0), 0), qtd = legs.filter(l => !l.jump).reduce((a, l) => a + (l.dist || 0), 0);
-    return {title: 'FUEL', osb: {...common, 6: {l: 'HSI', go: 'NAV'}},
+    return {title: 'FUEL', osb: {...common, 6: {l: 'NAV', go: 'NAV'}},
       body: box('FUEL', 'PLANNED, NOT LIVE', `<div class="mrow"><span>QT DISTANCE (JOB)</span><b>${P ? fmtDist(qtd) : '—'}</b></div><div class="mrow"><span>JUMP FUEL</span><b>${P ? (jf ? fmt(jf, 1) + ' SCU' : 'NO JUMPS') : '—'}</b></div>
         <div class="mrow"><span>LEGS</span><b>${P ? legs.length : '—'}</b></div><div class="mnote">STAR CITIZEN DOESN’T EXPORT FUEL · CHECK YOUR HUD</div>`)};
   }

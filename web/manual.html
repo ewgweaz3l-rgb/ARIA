@@ -244,17 +244,18 @@ table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}td,th{bord
 <li>Profiles live in <code>ofp_profiles</code> next to ARIA and updates never touch them. The code as of OFP 1 is kept on the <code>ofp-1</code> branch on GitHub.</li></ul>
 <h3>OFP 2 · Hornet</h3>
 <ul><li><b>MENU</b> sits bottom-center (OSB 13) on all three MFDs. Press it for the <b>TAC</b> menu, press again for <b>SUPT</b>. Selected options are boxed, like the jet.</li>
-<li><b>TAC:</b> SA (map), STORES, RADAR, EW, SHLD · MINE, SALV, UFC, GAME · HELP.</li>
-<li><b>SUPT:</b> HSI, ENG, FCS, FUEL, CHKLST · DATA, CARGO, TIMER, COMM, BIT · OFP, HELP.</li>
-<li><b>Master modes</b> (16 NAV, 17 A/A, 18 A/G on both menus) load that mode's formats on the left · center · right MFDs:
-<ul><li><b>NAV:</b> HSI · SA · DATA.</li>
-<li><b>A/A:</b> STORES · SA · RADAR. Also presses your missile-mode key.</li>
-<li><b>A/G:</b> MINE · SA · RADAR. Also presses your mining-mode key.</li></ul></li>
+<li><b>TAC:</b> MAP, WPN, RADAR, CM, SHLD · MINE, SALV, UFC, GAME · HELP.</li>
+<li><b>SUPT:</b> NAV, PWR, FLT, FUEL, CHKLST · JOB, CARGO, TIMER, ATC, SYS · OFP, HELP.</li>
+<li><b>Mode buttons</b> (16 NAV, 17 MSL, 18 RADAR on both menus) work like the jet's master modes. Each loads its formats on the left · center · right MFDs:
+<ul><li><b>NAV:</b> NAV · MAP · JOB.</li>
+<li><b>MSL:</b> WPN · MAP · RADAR. Also presses your missile-mode key.</li>
+<li><b>RADAR:</b> RADAR · MAP · MINE. Also presses your scanning-mode key.</li></ul></li>
+<li>The layout and logic are the Hornet's; the labels are Star Citizen's wherever a jet word wouldn't mean anything in a spaceship.</li>
 <li><b>New formats:</b>
-<ul><li><b>EW:</b> decoy, noise and countermeasure cycle.</li>
+<ul><li><b>CM:</b> decoy, noise and countermeasure cycle.</li>
 <li><b>MINE:</b> mode, laser switch, power ±, modules, jettison.</li>
 <li><b>SALV:</b> mode, beam, modifier, spacing, tractor.</li>
-<li><b>FCS:</b> decoupled, G-safe, speed limiter, ESP, cruise, QT.</li>
+<li><b>FLT:</b> decoupled, G-safe, speed limiter, ESP, cruise, QT.</li>
 <li><b>FUEL:</b> planned jump fuel and QT distance for the job. Live fuel isn't exported by the game.</li>
 <li><b>CHKLST:</b> pre-takeoff steps that press the key and tick off.</li>
 <li><b>TIMER:</b> 15 m to 8 h countdowns for refinery jobs and contracts; ARIA calls them out when they finish.</li></ul></li>
