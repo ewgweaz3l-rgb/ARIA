@@ -339,6 +339,14 @@ body.cockpit main{padding:10px 14px;max-width:none}
 body.cockpit .mapwrap{height:calc(var(--appH,45vh) - 40px);min-height:300px}
 body.cockpit .cocktop{position:fixed;display:block!important;overflow:hidden;padding:0}
 #cockTop #mfdC{position:absolute;inset:0;width:auto;height:auto}
+#ckBezel{position:absolute;inset:0;background:linear-gradient(145deg,#2a2f36,#15181c 55%,#1e2228);border-radius:10px;box-shadow:inset 0 0 0 1px #3a424d,inset 0 2px 0 rgba(255,255,255,.06)}
+#ckBezel .bzb{position:absolute;padding:0;border-radius:5px;border:1px solid #3a424d;background:linear-gradient(#3d444d,#23282f);box-shadow:0 2px 0 #0b0d10,inset 0 1px 0 rgba(255,255,255,.12);cursor:pointer;display:grid;place-items:center}
+#ckBezel .bzb i{font:600 9px var(--mono);font-style:normal;color:#8a95a3;opacity:.6}
+#ckBezel .bzb:hover{border-color:var(--amber)}#ckBezel .bzb.down,#ckBezel .bzr button.down{transform:translateY(2px);box-shadow:none;border-color:var(--amber);background:#1c2026}
+#ckBezel .bzr{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+#ckBezel .bzr b{font:700 8px var(--head);letter-spacing:.12em;color:#c9cfd6;opacity:.8}
+#ckBezel .bzr button{width:70%;flex:1;border:1px solid #3a424d;background:#2a2f36;color:#aeb7c2;border-radius:4px;font-size:9px;padding:0;line-height:1;cursor:pointer}
+
 body.cockpit #ufc{display:flex;flex-direction:row;align-items:stretch;gap:14px;margin:8px 10px 0;padding:8px 12px;min-height:0}
 body.cockpit #ufc .uhead{flex-direction:column;align-items:flex-start;gap:3px;min-width:96px;border-right:1px solid var(--mline);padding-right:12px;font-size:10px}
 body.cockpit #ufc .uhead b{font-size:13px;letter-spacing:.2em}
@@ -3233,7 +3241,7 @@ const CK_DEFAULT = {
 const CK = {on: false, rects: null, moved: [], cal: false, sel: 'L'};
 const OSB_DEF = {spread: 67, inset: 1.5, scale: 100, vspread: 67, vinset: 1.5};
 function osbGeo(side) { return {...OSB_DEF, ...store.get('osbGeo', {})[side]}; }
-function setOsbGeo(side, patch) { const g = store.get('osbGeo', {}); g[side] = {...osbGeo(side), ...patch}; store.set('osbGeo', g); mfdRender(side); }
+function setOsbGeo(side, patch) { const g = store.get('osbGeo', {}); g[side] = {...osbGeo(side), ...patch}; store.set('osbGeo', g); mfdRender(side); if (side === 'C') ckBezel(); }
 function ckRects() {
   return CK.rects || (CK.rects = {...JSON.parse(JSON.stringify(CK_DEFAULT)), ...store.get('ckRects', {})});
 }
@@ -3241,10 +3249,44 @@ function ckPlace(el, r) { Object.assign(el.style, {left: r.x + 'vw', top: r.y + 
 function ckLayout() {
   const R = ckRects();
   ckPlace($('#mfdL'), R.L); ckPlace($('#mfdR'), R.R); ckPlace($('#cockTop'), R.TOP); ckPlace($('#appShell'), R.APP);
+  ckBezel();
   document.documentElement.style.setProperty('--appH', (R.APP.h * innerHeight / 100) + 'px');
   if (CK.cal) renderCal();
   if ($('#view-starmap').classList.contains('on')) { if (MAP.mode === 'job') renderJob(); else requestDraw(); }
 }
+/* ---- center MFD bezel: a Cougar-style frame with 20 clickable OSBs + 4 rockers around the middle screen.
+   The center box is the whole unit; the screen sits inside the bezel. Width and button spacing are adjustable
+   in CALIBRATE (Center MFD) and the buttons follow the same spacing as the labels, so they always line up. */
+const BZ_DEF = {on: true, t: 8};
+function bzCfg() { return {...BZ_DEF, ...store.get('ckBezel', {})}; }
+function setBz(patch) { store.set('ckBezel', {...bzCfg(), ...patch}); ckBezel(); mfdRender('C'); if (CK.cal) renderCal(); }
+const BZ_ROCK = {tl: ['GAIN', 21, 22], tr: ['SYM', 23, 24], bl: ['BRT', 25, 26], br: ['CON', 27, 28]};
+function ckBezel() {
+  const top = $('#cockTop'), mc = $('#mfdC'); if (!top || !mc) return;
+  let bz = $('#ckBezel');
+  const b = bzCfg();
+  if (!CK.on || !b.on) { if (bz) bz.remove(); mc.style.inset = ''; return; }
+  const W = top.clientWidth, H = top.clientHeight, t = Math.round(Math.min(W, H) * b.t / 100);
+  mc.style.inset = t + 'px';
+  if (!bz) { bz = document.createElement('div'); bz.id = 'ckBezel'; top.insertBefore(bz, mc);
+    bz.addEventListener('pointerdown', e => { const el = e.target.closest('[data-bn]'); if (!el) return; e.preventDefault(); el.classList.add('down');
+      const up = () => { el.classList.remove('down'); removeEventListener('pointerup', up); }; addEventListener('pointerup', up);
+      mfdPress('C', +el.dataset.bn, true); }); }
+  const g = osbGeo('C'), iw = W - 2 * t, ih = H - 2 * t, s = Math.max(12, Math.min(t * .74, Math.min(iw * g.spread, ih * g.vspread) / 100 / 5 * .78));
+  const btns = [];
+  for (let n = 1; n <= 20; n++) {  // same numbering and spacing as the labels: 1–5 top, 6–10 right, 11–15 bottom, 16–20 left
+    const {side, k} = osbPos(n), horiz = side === 'top' || side === 'bottom';
+    const f = (50 + (k - 2) * (horiz ? g.spread : g.vspread) / 4) / 100;
+    const cx = horiz ? t + f * iw : side === 'left' ? t / 2 : W - t / 2, cy = horiz ? (side === 'top' ? t / 2 : H - t / 2) : t + f * ih;
+    btns.push(`<button class="bzb" data-bn="${n}" title="OSB ${n}" style="left:${cx - s / 2}px;top:${cy - s / 2}px;width:${s}px;height:${s}px"><i>${n}</i></button>`);
+  }
+  const cs = t * .92;
+  const rocks = Object.entries(BZ_ROCK).map(([pos, [lab, up, dn]]) => `<div class="bzr" style="${pos[0] === 't' ? 'top' : 'bottom'}:${(t - cs) / 2}px;${pos[1] === 'l' ? 'left' : 'right'}:${(t - cs) / 2}px;width:${cs}px;height:${cs}px">
+      <button data-bn="${up}" title="${lab} ▲ (${up})">▲</button><b>${lab}</b><button data-bn="${dn}" title="${lab} ▼ (${dn})">▼</button></div>`).join('');
+  bz.style.setProperty('--bzt', t + 'px');
+  bz.innerHTML = btns.join('') + rocks;
+}
+addEventListener('resize', () => { if (CK.on) ckBezel(); });
 function setCockpit(on) {
   CK.on = on; store.set('cockpit', on);
   const bc = $('#btnCockpit'); $('.dot', bc).className = 'dot ' + (on ? 'live' : ''); bc.lastChild.textContent = on ? 'COCKPIT on' : 'COCKPIT off';
@@ -3266,6 +3308,7 @@ function setCockpit(on) {
     for (const m of CK.moved.reverse()) m.parent.insertBefore(m.el, m.next);
     CK.moved = [];
     for (const id of ['#mfdL', '#mfdR', '#mfdC', '#cockTop', '#appShell']) $(id).removeAttribute('style');
+    const bz = $('#ckBezel'); if (bz) bz.remove();
     CK.cal = false; $('#calib').innerHTML = '';
   }
   if ($('#view-starmap').classList.contains('on')) setTimeout(() => { if (MAP.mode === 'job') renderJob(); else requestDraw(); }, 50);
@@ -3336,6 +3379,7 @@ function calPanel() {
       <label>⇥ Label inset (top/bottom)<input type="range" id="oi" min="0" max="12" step="0.25" value="${g.inset}"><span>${g.inset}%</span><i><button data-og="inset:-1">−</button><button data-og="inset:1">+</button></i></label>
       <label>⇥ Label inset (sides)<input type="range" id="ovi" min="0" max="12" step="0.25" value="${g.vinset}"><span>${g.vinset}%</span><i><button data-og="vinset:-1">−</button><button data-og="vinset:1">+</button></i></label>
       <label>Aa Label size<input type="range" id="osc" min="50" max="180" step="5" value="${g.scale}"><span>${g.scale}%</span><i><button data-og="scale:-1">−</button><button data-og="scale:1">+</button></i></label>` : ''}
+      ${k === 'TOP' ? `<label>▢ Bezel + buttons<span class="sub" style="text-align:left;grid-column:2/3">${bzCfg().on ? 'on' : 'off'} · width ${bzCfg().t}%</span><i><button data-bz="on">${bzCfg().on ? 'Off' : 'On'}</button><button data-bz="t:-1">−</button><button data-bz="t:1">+</button></i></label>` : ''}
       ${k === 'TOP' ? `<label>▣ Fill the gap<span class="sub" style="text-align:left;grid-column:2/4">snap between the MFDs, top of screen to the bottom band</span><i><button data-fill>Fill</button></i></label>` : ''}
     </div>
     <div class="sub">Drag a box to move it · drag an edge handle to move that side · corner handle moves two sides (hold <b>Ctrl</b> for one side only, <b>Shift</b> to keep the shape) · arrow keys nudge 1 px (Shift = 10) · <b>Ctrl+Z</b> undo · <b>Esc</b> done.${g ? ' This MFD shows its button numbers while selected: 1–5 top, 6–10 right, 11–15 bottom, 16–20 left.' : ''}</div>
@@ -3370,6 +3414,7 @@ function wireCalPanel() {
     const el = $(id, pan); if (!el) continue;
     el.oninput = () => { setOsbGeo(k === 'TOP' ? 'C' : k, {[f]: +el.value}); el.nextElementSibling.textContent = el.value + '%'; };
   }
+  $$('[data-bz]', pan).forEach(b => b.onclick = ev => { const a = b.dataset.bz; if (a === 'on') setBz({on: !bzCfg().on}); else setBz({t: Math.max(3, Math.min(20, bzCfg().t + (+a.split(':')[1]) * (ev.shiftKey ? 2 : .5)))}); });
   $$('[data-og]', pan).forEach(b => b.onclick = ev => { const [f, d] = b.dataset.og.split(':'); const st = f === 'scale' ? 5 : (ev.shiftKey ? 2 : .5); const gk = k === 'TOP' ? 'C' : k; setOsbGeo(gk, {[f]: +(osbGeo(gk)[f] + d * st).toFixed(2)}); refresh(); });
   const fill = $('[data-fill]', pan); if (fill) fill.onclick = () => {
     calSnap(); const l = R.L.x + R.L.w, r = R.R.x, top = 0.4, bot = R.APP.y - 0.8;
