@@ -3864,7 +3864,7 @@ const UFC_KEYS = {
   log: [['CLR', 'Clear log', () => { UFC.keylog = []; store.set('keylog', []); ufcRender(); }], ['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]],
   shld: [['BACK', '', () => { UFC.mode = 'route'; ufcRender(); }]]};
 /* ---------------- MAP page: the starmap on an MFD ----------------
-   top: INFO (STN MKT MED filters) · SYS cycles the system · right: ZM+ ZM− · left: RTB CTR NAV · tap the map to pick a target */
+   top: INFO (STN MKT MED filters) · SYS cycles the system · right: ZM+ ZM− TGT▲ TGT▼ · left: RTB CTR NAV · or tap the map to pick a target */
 const MM = {f: store.get('mmFilt', {stn: true, mkt: true, med: false}), sys: null, tgt: 0, zoom: 1, med: null, loading: false};
 const HERE = {get: () => store.get('here', ''), set(v) { store.set('here', v); MM.tgt = 0; mfdRenderAll(); }};
 function hereEnt() { const h = HERE.get(); return h ? resolvePlace(h) : null; }
@@ -3945,11 +3945,12 @@ function mapPage(side, common) {
   const T = marks[MM.tgt], here = HERE.get();
   const f = k => ({l: k.toUpperCase(), on: MM.f[k], fn: () => { MM.f[k] = !MM.f[k]; store.set('mmFilt', MM.f); MM.tgt = 0; mfdRenderAll(); }});
   // top: INFO (opens the STN · MKT · MED filters on 1 · 2 · 4) · SYS on 5 · right: ZM+ ZM− · left (bottom up): RTB CTR NAV
-  // pick a target by tapping it on the map (the old TGT ▲▼ stepping is gone)
+  // pick a target with TGT ▲▼ (9 / 10, nearest first) or by tapping it on the map
   const o = {...common,
     3: {l: 'INFO', on: !!MM.info, fn: () => { MM.info = !MM.info; mfdRenderAll(); }},
     5: {l: S ? S.name.toUpperCase().slice(0, 7) : 'SYS', fn: () => { const ks = [...MAP.systems.keys()]; MM.sys = ks[(ks.indexOf(MM.sys) + 1) % ks.length]; MM.tgt = 0; mfdRenderAll(); }},
     6: {l: 'ZM+', fn: () => { MM.zoom = Math.min(64, MM.zoom * 2); mfdRenderAll(); }}, 7: {l: 'ZM−', fn: () => { MM.zoom = Math.max(1, MM.zoom / 2); mfdRenderAll(); }},
+    9: {l: 'TGT ▲', fn: () => { MM.tgt = Math.max(0, MM.tgt - 1); mfdRenderAll(); }}, 10: {l: 'TGT ▼', fn: () => { MM.tgt = Math.min(marks.length - 1, MM.tgt + 1); mfdRenderAll(); }},
     18: {l: 'NAV', fn: () => { if (!T) { mfdMsg(side, 'NO TARGET · TAP ONE ON THE MAP'); return; }
       const go = h => { $('#navFrom').value = h; $('#navTo').value = T.e.name + ' · ' + sysName(T.e.sys); plotNav().then(() => mfdRenderAll()); };
       if (here) go(here); else askHere(go); }},
