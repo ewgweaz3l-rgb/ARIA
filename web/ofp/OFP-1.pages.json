@@ -1,0 +1,1784 @@
+{
+ "L": {
+  "MENU": {
+   "title": "MENU",
+   "osb": {
+    "1": {
+     "label": "SHLD",
+     "goes_to": "SHLD"
+    },
+    "2": {
+     "label": "PWR",
+     "goes_to": "PWR"
+    },
+    "3": {
+     "label": "WPN",
+     "goes_to": "WPN"
+    },
+    "4": {
+     "label": "SCAN",
+     "goes_to": "SCAN"
+    },
+    "5": {
+     "label": "MAP",
+     "goes_to": "MAP"
+    },
+    "6": {
+     "label": "ATC",
+     "goes_to": "ATC"
+    },
+    "7": {
+     "label": "CARGO",
+     "goes_to": "CARGO"
+    },
+    "8": {
+     "label": "JOB",
+     "goes_to": "JOB"
+    },
+    "9": {
+     "label": "UFC",
+     "goes_to": "UFC"
+    },
+    "10": {
+     "label": "NAV",
+     "goes_to": "NAV"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "12": {
+     "label": "ALGN"
+    },
+    "15": {
+     "label": "HOME"
+    },
+    "16": {
+     "label": "GAME",
+     "goes_to": "GAME"
+    },
+    "17": {
+     "label": "SYS",
+     "goes_to": "SYS"
+    },
+    "20": {
+     "label": "HELP",
+     "goes_to": "HELP"
+    }
+   }
+  },
+  "HELP": {
+   "title": "HELP",
+   "osb": {
+    "1": {
+     "label": "MANUAL"
+    },
+    "2": {
+     "label": "SET"
+    },
+    "3": {
+     "label": "VR"
+    },
+    "6": {
+     "label": "LOG"
+    },
+    "7": {
+     "label": "VOICE",
+     "goes_to": "VOICE"
+    },
+    "8": {
+     "label": "MACR",
+     "goes_to": "MACR"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "MAP": {
+   "title": "MAP",
+   "osb": {
+    "3": {
+     "label": "INFO"
+    },
+    "5": {
+     "label": "STANTON"
+    },
+    "6": {
+     "label": "ZM+"
+    },
+    "7": {
+     "label": "ZM−"
+    },
+    "9": {
+     "label": "TGT ▲"
+    },
+    "10": {
+     "label": "TGT ▼"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "RTB"
+    },
+    "17": {
+     "label": "CTR"
+    },
+    "18": {
+     "label": "NAV"
+    }
+   }
+  },
+  "SCAN": {
+   "title": "SCAN",
+   "osb": {
+    "1": {
+     "label": "CLR"
+    },
+    "2": {
+     "label": "DEL"
+    },
+    "3": {
+     "label": "LIST"
+    },
+    "4": {
+     "label": "SAY"
+    },
+    "6": {
+     "label": "1"
+    },
+    "7": {
+     "label": "2"
+    },
+    "8": {
+     "label": "3"
+    },
+    "9": {
+     "label": "4"
+    },
+    "10": {
+     "label": "5"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "12": {
+     "label": "PING"
+    },
+    "14": {
+     "label": "SCAN"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "0"
+    },
+    "17": {
+     "label": "9"
+    },
+    "18": {
+     "label": "8"
+    },
+    "19": {
+     "label": "7"
+    },
+    "20": {
+     "label": "6"
+    }
+   }
+  },
+  "UFC": {
+   "title": "UFC",
+   "osb": {
+    "1": {
+     "label": "ACPT"
+    },
+    "2": {
+     "label": "NEXT"
+    },
+    "3": {
+     "label": "RTB"
+    },
+    "4": {
+     "label": "MAP"
+    },
+    "5": {
+     "label": "SAY"
+    },
+    "6": {
+     "label": "LOG"
+    },
+    "7": {
+     "label": "DIM"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "ATC": {
+   "title": "ATC",
+   "osb": {
+    "1": {
+     "label": "HAIL"
+    },
+    "2": {
+     "label": "GEAR"
+    },
+    "3": {
+     "label": "AUTO"
+    },
+    "4": {
+     "label": "VTOL"
+    },
+    "5": {
+     "label": "FLT RDY"
+    },
+    "6": {
+     "label": "LIGHT"
+    },
+    "10": {
+     "label": "CARGO",
+     "goes_to": "CARGO"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "SVC"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "CARGO": {
+   "title": "CARGO",
+   "osb": {
+    "1": {
+     "label": "OPEN"
+    },
+    "2": {
+     "label": "CLOSE"
+    },
+    "3": {
+     "label": "TOGGLE"
+    },
+    "4": {
+     "label": "LOCK"
+    },
+    "5": {
+     "label": "UNLCK"
+    },
+    "6": {
+     "label": "LK TGL"
+    },
+    "10": {
+     "label": "ATC",
+     "goes_to": "ATC"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "WPN": {
+   "title": "WPN",
+   "osb": {
+    "1": {
+     "label": "MSL"
+    },
+    "2": {
+     "label": "TYPE"
+    },
+    "3": {
+     "label": "ARM+"
+    },
+    "4": {
+     "label": "ARM−"
+    },
+    "5": {
+     "label": "LNCH"
+    },
+    "6": {
+     "label": "DECOY"
+    },
+    "7": {
+     "label": "NOISE"
+    },
+    "8": {
+     "label": "GMBL"
+    },
+    "10": {
+     "label": "SHLD",
+     "goes_to": "SHLD"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "BOMB"
+    },
+    "14": {
+     "label": "DROP"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "SHLD": {
+   "title": "SHLD",
+   "osb": {
+    "1": {
+     "label": "RST"
+    },
+    "3": {
+     "label": "FWD"
+    },
+    "5": {
+     "label": "BIND"
+    },
+    "8": {
+     "label": "RGHT"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "AFT"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "18": {
+     "label": "LEFT"
+    }
+   }
+  },
+  "PWR": {
+   "title": "PWR",
+   "osb": {
+    "1": {
+     "label": "RST"
+    },
+    "3": {
+     "label": "WPN+"
+    },
+    "8": {
+     "label": "SHD+"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "ENG+"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "NAV": {
+   "title": "NAV",
+   "osb": {
+    "1": {
+     "label": "RTB"
+    },
+    "3": {
+     "label": "JOB",
+     "goes_to": "JOB"
+    },
+    "5": {
+     "label": "MAP"
+    },
+    "6": {
+     "label": "NEXT"
+    },
+    "7": {
+     "label": "PREV"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "JOB": {
+   "title": "JOB",
+   "osb": {
+    "1": {
+     "label": "VIEW"
+    },
+    "2": {
+     "label": "FIND"
+    },
+    "3": {
+     "label": "NAV",
+     "goes_to": "NAV"
+    },
+    "6": {
+     "label": "DONE"
+    },
+    "7": {
+     "label": "BACK"
+    },
+    "10": {
+     "label": "RSET"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "MACR": {
+   "title": "MACR",
+   "osb": {
+    "1": {
+     "label": "◀"
+    },
+    "5": {
+     "label": "▶"
+    },
+    "6": {
+     "label": "OPEN M"
+    },
+    "7": {
+     "label": "OPEN S"
+    },
+    "8": {
+     "label": "EXIT S"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "VTOL"
+    },
+    "17": {
+     "label": "LIGHTS"
+    },
+    "18": {
+     "label": "FLIGHT"
+    },
+    "19": {
+     "label": "LANDIN"
+    },
+    "20": {
+     "label": "CALL A"
+    }
+   }
+  },
+  "VOICE": {
+   "title": "VOICE",
+   "osb": {
+    "6": {
+     "label": "LSTN"
+    },
+    "7": {
+     "label": "KEYS"
+    },
+    "8": {
+     "label": "PTT"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "SYS": {
+   "title": "SYS",
+   "osb": {
+    "6": {
+     "label": "REFR"
+    },
+    "7": {
+     "label": "CAL"
+    },
+    "8": {
+     "label": "TEST"
+    },
+    "9": {
+     "label": "FULL"
+    },
+    "10": {
+     "label": "EDIT"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "SET R"
+    },
+    "17": {
+     "label": "SET L"
+    },
+    "18": {
+     "label": "VR"
+    }
+   }
+  },
+  "GAME": {
+   "title": "GAME",
+   "osb": {
+    "3": {
+     "label": "SQUAD"
+    },
+    "4": {
+     "label": "PILOT"
+    },
+    "6": {
+     "label": "FLEET"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "CHESS"
+    },
+    "17": {
+     "label": "CARGO"
+    },
+    "18": {
+     "label": "RUNNER"
+    },
+    "19": {
+     "label": "ROIDS"
+    },
+    "20": {
+     "label": "TANKS"
+    }
+   }
+  }
+ },
+ "R": {
+  "MENU": {
+   "title": "MENU",
+   "osb": {
+    "1": {
+     "label": "SHLD",
+     "goes_to": "SHLD"
+    },
+    "2": {
+     "label": "PWR",
+     "goes_to": "PWR"
+    },
+    "3": {
+     "label": "WPN",
+     "goes_to": "WPN"
+    },
+    "4": {
+     "label": "SCAN",
+     "goes_to": "SCAN"
+    },
+    "5": {
+     "label": "MAP",
+     "goes_to": "MAP"
+    },
+    "6": {
+     "label": "ATC",
+     "goes_to": "ATC"
+    },
+    "7": {
+     "label": "CARGO",
+     "goes_to": "CARGO"
+    },
+    "8": {
+     "label": "JOB",
+     "goes_to": "JOB"
+    },
+    "9": {
+     "label": "UFC",
+     "goes_to": "UFC"
+    },
+    "10": {
+     "label": "NAV",
+     "goes_to": "NAV"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "12": {
+     "label": "ALGN"
+    },
+    "15": {
+     "label": "HOME"
+    },
+    "16": {
+     "label": "GAME",
+     "goes_to": "GAME"
+    },
+    "17": {
+     "label": "SYS",
+     "goes_to": "SYS"
+    },
+    "20": {
+     "label": "HELP",
+     "goes_to": "HELP"
+    }
+   }
+  },
+  "HELP": {
+   "title": "HELP",
+   "osb": {
+    "1": {
+     "label": "MANUAL"
+    },
+    "2": {
+     "label": "SET"
+    },
+    "3": {
+     "label": "VR"
+    },
+    "6": {
+     "label": "LOG"
+    },
+    "7": {
+     "label": "VOICE",
+     "goes_to": "VOICE"
+    },
+    "8": {
+     "label": "MACR",
+     "goes_to": "MACR"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "MAP": {
+   "title": "MAP",
+   "osb": {
+    "3": {
+     "label": "INFO"
+    },
+    "5": {
+     "label": "STANTON"
+    },
+    "6": {
+     "label": "ZM+"
+    },
+    "7": {
+     "label": "ZM−"
+    },
+    "9": {
+     "label": "TGT ▲"
+    },
+    "10": {
+     "label": "TGT ▼"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "RTB"
+    },
+    "17": {
+     "label": "CTR"
+    },
+    "18": {
+     "label": "NAV"
+    }
+   }
+  },
+  "SCAN": {
+   "title": "SCAN",
+   "osb": {
+    "1": {
+     "label": "CLR"
+    },
+    "2": {
+     "label": "DEL"
+    },
+    "3": {
+     "label": "LIST"
+    },
+    "4": {
+     "label": "SAY"
+    },
+    "6": {
+     "label": "1"
+    },
+    "7": {
+     "label": "2"
+    },
+    "8": {
+     "label": "3"
+    },
+    "9": {
+     "label": "4"
+    },
+    "10": {
+     "label": "5"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "12": {
+     "label": "PING"
+    },
+    "14": {
+     "label": "SCAN"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "0"
+    },
+    "17": {
+     "label": "9"
+    },
+    "18": {
+     "label": "8"
+    },
+    "19": {
+     "label": "7"
+    },
+    "20": {
+     "label": "6"
+    }
+   }
+  },
+  "UFC": {
+   "title": "UFC",
+   "osb": {
+    "1": {
+     "label": "ACPT"
+    },
+    "2": {
+     "label": "NEXT"
+    },
+    "3": {
+     "label": "RTB"
+    },
+    "4": {
+     "label": "MAP"
+    },
+    "5": {
+     "label": "SAY"
+    },
+    "6": {
+     "label": "LOG"
+    },
+    "7": {
+     "label": "DIM"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "ATC": {
+   "title": "ATC",
+   "osb": {
+    "1": {
+     "label": "HAIL"
+    },
+    "2": {
+     "label": "GEAR"
+    },
+    "3": {
+     "label": "AUTO"
+    },
+    "4": {
+     "label": "VTOL"
+    },
+    "5": {
+     "label": "FLT RDY"
+    },
+    "6": {
+     "label": "LIGHT"
+    },
+    "10": {
+     "label": "CARGO",
+     "goes_to": "CARGO"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "SVC"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "CARGO": {
+   "title": "CARGO",
+   "osb": {
+    "1": {
+     "label": "OPEN"
+    },
+    "2": {
+     "label": "CLOSE"
+    },
+    "3": {
+     "label": "TOGGLE"
+    },
+    "4": {
+     "label": "LOCK"
+    },
+    "5": {
+     "label": "UNLCK"
+    },
+    "6": {
+     "label": "LK TGL"
+    },
+    "10": {
+     "label": "ATC",
+     "goes_to": "ATC"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "WPN": {
+   "title": "WPN",
+   "osb": {
+    "1": {
+     "label": "MSL"
+    },
+    "2": {
+     "label": "TYPE"
+    },
+    "3": {
+     "label": "ARM+"
+    },
+    "4": {
+     "label": "ARM−"
+    },
+    "5": {
+     "label": "LNCH"
+    },
+    "6": {
+     "label": "DECOY"
+    },
+    "7": {
+     "label": "NOISE"
+    },
+    "8": {
+     "label": "GMBL"
+    },
+    "10": {
+     "label": "SHLD",
+     "goes_to": "SHLD"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "BOMB"
+    },
+    "14": {
+     "label": "DROP"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "SHLD": {
+   "title": "SHLD",
+   "osb": {
+    "1": {
+     "label": "RST"
+    },
+    "3": {
+     "label": "FWD"
+    },
+    "5": {
+     "label": "BIND"
+    },
+    "8": {
+     "label": "RGHT"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "AFT"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "18": {
+     "label": "LEFT"
+    }
+   }
+  },
+  "PWR": {
+   "title": "PWR",
+   "osb": {
+    "1": {
+     "label": "RST"
+    },
+    "3": {
+     "label": "WPN+"
+    },
+    "8": {
+     "label": "SHD+"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "ENG+"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "NAV": {
+   "title": "NAV",
+   "osb": {
+    "1": {
+     "label": "RTB"
+    },
+    "3": {
+     "label": "JOB",
+     "goes_to": "JOB"
+    },
+    "5": {
+     "label": "MAP"
+    },
+    "6": {
+     "label": "NEXT"
+    },
+    "7": {
+     "label": "PREV"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "JOB": {
+   "title": "JOB",
+   "osb": {
+    "1": {
+     "label": "VIEW"
+    },
+    "2": {
+     "label": "FIND"
+    },
+    "3": {
+     "label": "NAV",
+     "goes_to": "NAV"
+    },
+    "6": {
+     "label": "DONE"
+    },
+    "7": {
+     "label": "BACK"
+    },
+    "10": {
+     "label": "RSET"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "MACR": {
+   "title": "MACR",
+   "osb": {
+    "1": {
+     "label": "◀"
+    },
+    "5": {
+     "label": "▶"
+    },
+    "6": {
+     "label": "OPEN M"
+    },
+    "7": {
+     "label": "OPEN S"
+    },
+    "8": {
+     "label": "EXIT S"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "VTOL"
+    },
+    "17": {
+     "label": "LIGHTS"
+    },
+    "18": {
+     "label": "FLIGHT"
+    },
+    "19": {
+     "label": "LANDIN"
+    },
+    "20": {
+     "label": "CALL A"
+    }
+   }
+  },
+  "VOICE": {
+   "title": "VOICE",
+   "osb": {
+    "6": {
+     "label": "LSTN"
+    },
+    "7": {
+     "label": "KEYS"
+    },
+    "8": {
+     "label": "PTT"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "SYS": {
+   "title": "SYS",
+   "osb": {
+    "6": {
+     "label": "REFR"
+    },
+    "7": {
+     "label": "CAL"
+    },
+    "8": {
+     "label": "TEST"
+    },
+    "9": {
+     "label": "FULL"
+    },
+    "10": {
+     "label": "EDIT"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "SET R"
+    },
+    "17": {
+     "label": "SET L"
+    },
+    "18": {
+     "label": "VR"
+    }
+   }
+  },
+  "GAME": {
+   "title": "GAME",
+   "osb": {
+    "3": {
+     "label": "SQUAD"
+    },
+    "4": {
+     "label": "PILOT"
+    },
+    "6": {
+     "label": "FLEET"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "15": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "CHESS"
+    },
+    "17": {
+     "label": "CARGO"
+    },
+    "18": {
+     "label": "RUNNER"
+    },
+    "19": {
+     "label": "ROIDS"
+    },
+    "20": {
+     "label": "TANKS"
+    }
+   }
+  }
+ },
+ "C": {
+  "MENU": {
+   "title": "MENU",
+   "osb": {
+    "1": {
+     "label": "PWR",
+     "goes_to": "PWR"
+    },
+    "2": {
+     "label": "SCAN",
+     "goes_to": "SCAN"
+    },
+    "3": {
+     "label": "NAV",
+     "goes_to": "NAV"
+    },
+    "5": {
+     "label": "UFC",
+     "goes_to": "UFC"
+    },
+    "6": {
+     "label": "ATC",
+     "goes_to": "ATC"
+    },
+    "7": {
+     "label": "CARGO",
+     "goes_to": "CARGO"
+    },
+    "8": {
+     "label": "SYS",
+     "goes_to": "SYS"
+    },
+    "10": {
+     "label": "GAME",
+     "goes_to": "GAME"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MAP"
+    },
+    "15": {
+     "label": "HOME"
+    },
+    "16": {
+     "label": "SWAP"
+    },
+    "18": {
+     "label": "RESET"
+    },
+    "20": {
+     "label": "HELP",
+     "goes_to": "HELP"
+    }
+   }
+  },
+  "HELP": {
+   "title": "HELP",
+   "osb": {
+    "1": {
+     "label": "MANUAL"
+    },
+    "2": {
+     "label": "SET"
+    },
+    "3": {
+     "label": "VR"
+    },
+    "6": {
+     "label": "LOG"
+    },
+    "7": {
+     "label": "VOICE",
+     "goes_to": "VOICE"
+    },
+    "8": {
+     "label": "MACR",
+     "goes_to": "MACR"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "MAP": {
+   "title": "MAP",
+   "osb": {
+    "3": {
+     "label": "INFO"
+    },
+    "5": {
+     "label": "STANTON"
+    },
+    "6": {
+     "label": "ZM+"
+    },
+    "7": {
+     "label": "ZM−"
+    },
+    "9": {
+     "label": "TGT ▲"
+    },
+    "10": {
+     "label": "TGT ▼"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "RTB"
+    },
+    "17": {
+     "label": "CTR"
+    },
+    "18": {
+     "label": "NAV"
+    }
+   }
+  },
+  "SCAN": {
+   "title": "SCAN",
+   "osb": {
+    "1": {
+     "label": "CLR"
+    },
+    "2": {
+     "label": "DEL"
+    },
+    "3": {
+     "label": "LIST"
+    },
+    "4": {
+     "label": "SAY"
+    },
+    "6": {
+     "label": "1"
+    },
+    "7": {
+     "label": "2"
+    },
+    "8": {
+     "label": "3"
+    },
+    "9": {
+     "label": "4"
+    },
+    "10": {
+     "label": "5"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "12": {
+     "label": "PING"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "14": {
+     "label": "SCAN"
+    },
+    "16": {
+     "label": "0"
+    },
+    "17": {
+     "label": "9"
+    },
+    "18": {
+     "label": "8"
+    },
+    "19": {
+     "label": "7"
+    },
+    "20": {
+     "label": "6"
+    }
+   }
+  },
+  "UFC": {
+   "title": "UFC",
+   "osb": {
+    "1": {
+     "label": "ACPT"
+    },
+    "2": {
+     "label": "NEXT"
+    },
+    "3": {
+     "label": "RTB"
+    },
+    "4": {
+     "label": "MAP"
+    },
+    "5": {
+     "label": "SAY"
+    },
+    "6": {
+     "label": "LOG"
+    },
+    "7": {
+     "label": "DIM"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "ATC": {
+   "title": "ATC",
+   "osb": {
+    "1": {
+     "label": "HAIL"
+    },
+    "2": {
+     "label": "GEAR"
+    },
+    "3": {
+     "label": "AUTO"
+    },
+    "4": {
+     "label": "VTOL"
+    },
+    "5": {
+     "label": "FLT RDY"
+    },
+    "6": {
+     "label": "LIGHT"
+    },
+    "10": {
+     "label": "CARGO",
+     "goes_to": "CARGO"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "15": {
+     "label": "SVC"
+    }
+   }
+  },
+  "CARGO": {
+   "title": "CARGO",
+   "osb": {
+    "1": {
+     "label": "OPEN"
+    },
+    "2": {
+     "label": "CLOSE"
+    },
+    "3": {
+     "label": "TOGGLE"
+    },
+    "4": {
+     "label": "LOCK"
+    },
+    "5": {
+     "label": "UNLCK"
+    },
+    "6": {
+     "label": "LK TGL"
+    },
+    "10": {
+     "label": "ATC",
+     "goes_to": "ATC"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "WPN": {
+   "title": "WPN",
+   "osb": {
+    "1": {
+     "label": "MSL"
+    },
+    "2": {
+     "label": "TYPE"
+    },
+    "3": {
+     "label": "ARM+"
+    },
+    "4": {
+     "label": "ARM−"
+    },
+    "5": {
+     "label": "LNCH"
+    },
+    "6": {
+     "label": "DECOY"
+    },
+    "7": {
+     "label": "NOISE"
+    },
+    "8": {
+     "label": "GMBL"
+    },
+    "10": {
+     "label": "SHLD",
+     "goes_to": "SHLD"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "14": {
+     "label": "DROP"
+    },
+    "15": {
+     "label": "BOMB"
+    }
+   }
+  },
+  "SHLD": {
+   "title": "SHLD",
+   "osb": {
+    "1": {
+     "label": "RST"
+    },
+    "3": {
+     "label": "FWD"
+    },
+    "5": {
+     "label": "BIND"
+    },
+    "8": {
+     "label": "RGHT"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "15": {
+     "label": "AFT"
+    },
+    "18": {
+     "label": "LEFT"
+    }
+   }
+  },
+  "PWR": {
+   "title": "PWR",
+   "osb": {
+    "1": {
+     "label": "RST"
+    },
+    "3": {
+     "label": "WPN+"
+    },
+    "8": {
+     "label": "SHD+"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "15": {
+     "label": "ENG+"
+    }
+   }
+  },
+  "NAV": {
+   "title": "NAV",
+   "osb": {
+    "1": {
+     "label": "RTB"
+    },
+    "3": {
+     "label": "JOB",
+     "goes_to": "JOB"
+    },
+    "5": {
+     "label": "MAP"
+    },
+    "6": {
+     "label": "NEXT"
+    },
+    "7": {
+     "label": "PREV"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "JOB": {
+   "title": "JOB",
+   "osb": {
+    "1": {
+     "label": "VIEW"
+    },
+    "2": {
+     "label": "FIND"
+    },
+    "3": {
+     "label": "NAV",
+     "goes_to": "NAV"
+    },
+    "6": {
+     "label": "DONE"
+    },
+    "7": {
+     "label": "BACK"
+    },
+    "10": {
+     "label": "RSET"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "MACR": {
+   "title": "MACR",
+   "osb": {
+    "1": {
+     "label": "◀"
+    },
+    "5": {
+     "label": "▶"
+    },
+    "6": {
+     "label": "OPEN M"
+    },
+    "7": {
+     "label": "OPEN S"
+    },
+    "8": {
+     "label": "EXIT S"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "VTOL"
+    },
+    "17": {
+     "label": "LIGHTS"
+    },
+    "18": {
+     "label": "FLIGHT"
+    },
+    "19": {
+     "label": "LANDIN"
+    },
+    "20": {
+     "label": "CALL A"
+    }
+   }
+  },
+  "VOICE": {
+   "title": "VOICE",
+   "osb": {
+    "6": {
+     "label": "LSTN"
+    },
+    "7": {
+     "label": "KEYS"
+    },
+    "8": {
+     "label": "PTT"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    }
+   }
+  },
+  "SYS": {
+   "title": "SYS",
+   "osb": {
+    "6": {
+     "label": "REFR"
+    },
+    "7": {
+     "label": "CAL"
+    },
+    "8": {
+     "label": "TEST"
+    },
+    "9": {
+     "label": "FULL"
+    },
+    "10": {
+     "label": "EDIT"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "SET R"
+    },
+    "17": {
+     "label": "SET L"
+    },
+    "18": {
+     "label": "VR"
+    }
+   }
+  },
+  "GAME": {
+   "title": "GAME",
+   "osb": {
+    "3": {
+     "label": "SQUAD"
+    },
+    "4": {
+     "label": "PILOT"
+    },
+    "6": {
+     "label": "FLEET"
+    },
+    "11": {
+     "label": "SOI"
+    },
+    "13": {
+     "label": "MENU",
+     "goes_to": "MENU"
+    },
+    "16": {
+     "label": "CHESS"
+    },
+    "17": {
+     "label": "CARGO"
+    },
+    "18": {
+     "label": "RUNNER"
+    },
+    "19": {
+     "label": "ROIDS"
+    },
+    "20": {
+     "label": "TANKS"
+    }
+   }
+  }
+ }
+}

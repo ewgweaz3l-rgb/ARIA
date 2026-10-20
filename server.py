@@ -41,6 +41,7 @@ import winsys
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WEB = os.path.join(ROOT, "web")
 CACHE = os.path.join(ROOT, "cache")
+OFPDIR = os.path.join(ROOT, "ofp_profiles")  # saved cockpit profiles (OFP 1, OFP 2 …) — kept across updates
 CONFIG = os.path.join(ROOT, "config.json")
 
 UEX_HOSTS = ["https://api.uexcorp.uk/2.0", "https://api.uexcorp.space/2.0"]
@@ -372,6 +373,26 @@ class Handler(SimpleHTTPRequestHandler):
                     "launcher": find_launcher(cfg.get("launcher_path")), "launcher_path": cfg.get("launcher_path", ""),
                     "locate_open": cfg.get("locate_open", ""), "locate_send": cfg.get("locate_send", ""),
                 })
+            elif kind == "ofp":  # saved cockpit profiles
+                os.makedirs(OFPDIR, exist_ok=True)
+                name = rest.strip("/")
+                if not name:
+                    out = []
+                    for f in sorted(os.listdir(OFPDIR)):
+                        if f.endswith(".json"):
+                            try:
+                                with open(os.path.join(OFPDIR, f), "r", encoding="utf-8") as fh:
+                                    j = json.load(fh)
+                                out.append({"name": j.get("name") or f[:-5], "file": f, "saved": j.get("saved"), "aria": j.get("aria")})
+                            except Exception:
+                                pass
+                    return self.send_json(200, {"profiles": out, "folder": OFPDIR})
+                from urllib.parse import unquote
+                f = os.path.join(OFPDIR, os.path.basename(unquote(name)))
+                if not f.endswith(".json") or not os.path.exists(f):
+                    return self.send_json(404, {"error": "no such profile"})
+                with open(f, "r", encoding="utf-8") as fh:
+                    return self.send_json(200, json.load(fh))
             elif kind == "macros":
                 return self.send_json(200, {"macros": load_macros(), "file": os.path.basename(MACROS)})
             elif kind == "refimg":  # community reference charts, fetched once and kept in cache/ (fixed list — no open proxy)
@@ -699,6 +720,18 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, {"ok": True})
         if u.path == "/api/bind":
             return self.send_json(*do_bind(payload))
+        if u.path == "/api/ofp/save":
+            import re as _re
+            name = str(payload.get("name") or "").strip()[:40]
+            data = payload.get("data")
+            if not name or not isinstance(data, dict):
+                return self.send_json(400, {"ok": False, "error": "name and data needed"})
+            os.makedirs(OFPDIR, exist_ok=True)
+            fname = _re.sub(r"[^A-Za-z0-9 _\-.]", "", name).strip().replace(" ", "_") + ".json"
+            data["name"] = name
+            with open(os.path.join(OFPDIR, fname), "w", encoding="utf-8") as fh:
+                json.dump(data, fh, indent=1, ensure_ascii=False)
+            return self.send_json(200, {"ok": True, "file": fname, "folder": OFPDIR})
         if u.path == "/api/macros":
             macros, errors = clean_macros(payload.get("macros"))
             if errors:

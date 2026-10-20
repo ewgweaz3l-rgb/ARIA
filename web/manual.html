@@ -227,6 +227,13 @@ table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}td,th{bord
 <p><b>Install flight data add-on</b> adds one line to <code>Saved Games\DCS\Scripts\Export.lua</code> (your old file is backed up; Tacview / SRS / DCS-BIOS lines are left alone) and a small script that sends your own jet's position, altitude, speeds, heading, AoA, G and fuel to ARIA five times a second. It reads only your aircraft, so it works on any server and in single player. <b>Remove add-on</b> takes the line back out.</p>
 </section>
 
+<section id="ofp"><h2>Cockpit profiles (OFP)</h2>
+<p>Like a jet's Operational Flight Program, a cockpit profile (OFP) saves your whole setup as one named version: MFD pages, button assignments, alignment, the center bezel, map filters and DCS displays. After the update, the setup you were flying is saved automatically as <b>OFP 1</b>.</p>
+<ul><li><b>Save as…</b> (Settings → Data) saves a new version.</li>
+<li><b>Load</b> switches back to any saved version.</li>
+<li>Profiles live in <code>ofp_profiles</code> next to ARIA and are never touched by updates.</li>
+<li>The built-in page layouts of OFP 1 are recorded in <code>web/ofp/OFP-1.pages.json</code>, and the code is tagged <code>OFP-1</code> on GitHub.</li></ul></section>
+
 <section id="share"><h2>Installing & sharing</h2>
 <ul>
 <li><b>Requirements:</b> Windows 10/11, Chrome or Edge, Python 3.9+ (the installer fetches it if missing), internet for prices. Cougars, vJoy, HOTAS and a headset are all optional.</li>

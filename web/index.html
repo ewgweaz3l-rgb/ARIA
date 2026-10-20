@@ -3222,6 +3222,37 @@ function parseBind(text) {
   return m ? m[1].replace(/\s+(to|on)\s+(voice|a voice command)$/, '').trim() : null;
 }
 
+/* ---------------- OFP: the whole cockpit setup saved as a named version (OFP 1, OFP 2 …) ---------------- */
+const OFP_KEYS = ['ckRects', 'osbGeo', 'ckBezel', 'osbAssign', 'mfdPageL', 'mfdPageR', 'mfdSoi', 'mfdBrt', 'mmFilt', 'cockpit', 'dcsLayout', 'dcsPit', 'theme'];
+const OFP = {
+  snap(name) { const st = {}; for (const k of OFP_KEYS) { const v = store.get(k, undefined); if (v !== undefined) st[k] = v; }
+    return {name, saved: new Date().toISOString(), aria: (typeof STAT !== 'undefined' && STAT.version) || '', store: st}; },
+  async save(name) {
+    const d = this.snap(name);
+    try { d.pages = await (await fetch('/ofp/OFP-1.pages.json')).json(); } catch {}  // the built-in page layouts this was flown with
+    try { const j = await (await fetch('/api/ofp/save', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, data: d})})).json();
+      if (j.ok) { store.set('ofpCur', name); const c = $('#ofpCur'); if (c) c.textContent = name; } return j; } catch { return {ok: false}; }
+  },
+  async list() { try { return (await (await fetch('/api/ofp')).json()).profiles || []; } catch { return []; } },
+  next() { const n = (this._last || []).map(p => +((p.name.match(/^OFP (\d+)$/) || [])[1] || 0)); return 'OFP ' + (Math.max(0, ...n) + 1); },
+  async load(file) {
+    let j; try { j = await (await fetch('/api/ofp/' + encodeURIComponent(file))).json(); } catch { toast('Couldn’t read that profile.'); return; }
+    if (!j.store) { toast('That isn’t an OFP file.'); return; }
+    if (!confirm(`Load ${j.name}? Your current cockpit setup is replaced (save it first if you want to keep it).`)) return;
+    for (const k of OFP_KEYS) if (k in j.store) store.set(k, j.store[k]);
+    store.set('ofpCur', j.name); toast(`Loaded <b>${esc(j.name)}</b> — restarting the page…`); setTimeout(() => location.reload(), 800);
+  },
+  async listUi() {
+    const el = $('#ofpList'); if (!el) return;
+    const l = this._last = await this.list();
+    el.innerHTML = l.length ? l.map(p => `<button class="btn ghost small" data-ofp="${esc(p.file)}" title="Saved ${esc((p.saved || '').slice(0, 16).replace('T', ' '))}${p.aria ? ' · ARIA ' + esc(p.aria) : ''}">Load ${esc(p.name)}</button>`).join('') : '<span class="sub">none saved yet</span>';
+    $$('[data-ofp]', el).forEach(b => b.onclick = () => this.load(b.dataset.ofp));
+  }
+};
+// the setup you've been flying becomes OFP 1, once
+setTimeout(async () => { if (store.get('ofpAuto1', false)) return;
+  const l = await OFP.list(); if (!l.some(p => p.name === 'OFP 1')) { const j = await OFP.save('OFP 1'); if (!j.ok) return; } store.set('ofpAuto1', true); if (!store.get('ofpCur', '')) store.set('ofpCur', 'OFP 1'); }, 6000);
+
 /* ---------------- assistant name (ARIA → MAX → whatever) ---------------- */
 const AI = () => store.get('aiName', 'ARIA');
 function applyName() {
@@ -4640,6 +4671,9 @@ async function openSettings() {
     <h3 style="margin:14px 0 4px">Your stuff</h3>
     <p>Hangar (${hangar.list().length} ships), owned blueprints (${owned.set.size}) and the fabrication queue live in this browser. Back them up or move them to another PC:</p>
     <div class="row"><button class="btn ghost small" id="expBtn">Export backup</button><label class="btn ghost small" style="cursor:pointer">Import backup<input type="file" id="impIn" accept=".json" hidden></label></div>
+    <h3 style="margin:14px 0 4px">Cockpit profile (OFP)</h3>
+    <p>Like a jet's Operational Flight Program: your MFD layout, button assignments, alignment, bezel, map filters and DCS displays saved as one named version on this PC (<span class="mono">ofp_profiles</span>, kept through updates). Now flying: <b id="ofpCur">${esc(store.get('ofpCur', '—'))}</b></p>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn ghost small" id="ofpSave">Save as…</button><span id="ofpList" class="row" style="gap:6px;flex-wrap:wrap"></span></div>
     <div class="row" style="justify-content:space-between;margin-top:18px"><button class="btn ghost small" id="manualBtn">📖 Open the manual</button><button class="btn ghost small" id="modalClose">Close</button></div>`;
   $('#modal').classList.add('on'); $('#modalBox').scrollTop = 0;
   $('#modalClose').onclick = $('#modalX').onclick = () => $('#modal').classList.remove('on');
@@ -4716,6 +4750,8 @@ async function openSettings() {
   };
   $('#tokSave').onclick = async () => { await fetch('/api/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({uex_token: $('#tokIn').value})}); toast('Token saved.'); $('#modal').classList.remove('on'); };
   $('#cacheClr').onclick = async () => { await fetch('/api/cache/clear', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}); toast('Cache cleared. Pulling fresh data…'); $('#modal').classList.remove('on'); refreshAll(); };
+  $('#ofpSave').onclick = async () => { const n = prompt('Name this OFP:', OFP.next()); if (!n) return; const j = await OFP.save(n.trim()); if (j.ok) { toast(`Saved <b>${esc(n)}</b>.`); OFP.listUi(); } };
+  OFP.listUi();
   $('#expBtn').onclick = () => {
     const blob = new Blob([JSON.stringify({hangar: hangar.list(), ownedBlueprints: [...owned.set], fabQueue: queue}, null, 2)], {type: 'application/json'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'aria-backup.json'; a.click();
