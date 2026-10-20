@@ -40,7 +40,7 @@ function applyGameMode() {
   const dcs = GAMEMODE.get() === 'dcs';
   document.body.classList.toggle('dcsmode', dcs);
   $('.brand span').textContent = dcs ? 'OVERWATCH' : 'QUARTERMASTER';
-  $('#ttName').textContent = AI().toUpperCase();
+  $('#ttName').textContent = AI().toUpperCase(); $('#ttName').title = 'Quit ' + AI(); $('#ttName').onclick = () => quitAria();
   const lb = $('#btnLaunch'); if (lb) { lb.title = dcs ? 'Start DCS World' : 'Start the RSI Launcher'; const im = $('#launchIco'); im.hidden = true; $('#launchSvg').style.display = ''; im.src = (dcs ? '/api/gameicon/dcs' : '/api/launcher_icon') + '?t=' + Date.now(); }
   if (dcs) { if (typeof CK !== 'undefined' && CK.on && !CK.cal) setCockpit(false); const v = store.get('dcsView', 'dcslog'); show(v.startsWith('dcs') ? v : 'dcslog'); }
   else if ($$('.view.on').some(v => v.id.startsWith('view-dcs'))) show('rich');

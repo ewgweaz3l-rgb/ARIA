@@ -228,11 +228,29 @@ table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}td,th{bord
 </section>
 
 <section id="ofp"><h2>Cockpit profiles (OFP)</h2>
-<p>Like a jet's Operational Flight Program, a cockpit profile (OFP) saves your whole setup as one named version: MFD pages, button assignments, alignment, the center bezel, map filters and DCS displays. After the update, the setup you were flying is saved automatically as <b>OFP 1</b>.</p>
-<ul><li><b>Save as…</b> (Settings → Data) saves a new version.</li>
-<li><b>Load</b> switches back to any saved version.</li>
-<li>Profiles live in <code>ofp_profiles</code> next to ARIA and are never touched by updates.</li>
-<li>The built-in page layouts of OFP 1 are recorded in <code>web/ofp/OFP-1.pages.json</code>, and the code as of OFP 1 is kept on the <code>ofp-1</code> branch on GitHub.</li></ul></section>
+<p>Like a jet's Operational Flight Program, a cockpit profile (OFP) saves your whole setup as one named version: page layout, button assignments, alignment, the center bezel, map filters and DCS displays. Star Citizen always starts in cockpit mode.</p>
+<ul><li><b>OFP 1 · Classic</b> is ARIA's original layout, saved automatically as OFP 1.</li>
+<li><b>OFP 2 · Hornet</b> is the F/A-18 logic (below). It's built and loaded the first time you run 3.7.</li>
+<li><b>Switching:</b> SUPT ▸ <b>OFP</b> on any MFD lists the built-ins and every profile you've saved. Press one to load it, or <b>SAVE</b> to save this setup as the next number. You can also do it from Settings → Data → Cockpit profile.</li>
+<li>Profiles live in <code>ofp_profiles</code> next to ARIA and updates never touch them. The code as of OFP 1 is kept on the <code>ofp-1</code> branch on GitHub.</li></ul>
+<h3>OFP 2 · Hornet</h3>
+<ul><li><b>MENU</b> sits bottom-center (OSB 13) on all three MFDs. Press it for the <b>TAC</b> menu, press again for <b>SUPT</b>. Selected options are boxed, like the jet.</li>
+<li><b>TAC:</b> SA (map), STORES, RADAR, EW, SHLD · MINE, SALV, UFC, GAME · HELP.</li>
+<li><b>SUPT:</b> HSI, ENG, FCS, FUEL, CHKLST · DATA, CARGO, TIMER, COMM, BIT · OFP, HELP.</li>
+<li><b>Master modes</b> (16 NAV, 17 A/A, 18 A/G on both menus) load that mode's formats on the left · center · right MFDs:
+<ul><li><b>NAV:</b> HSI · SA · DATA.</li>
+<li><b>A/A:</b> STORES · SA · RADAR. Also presses your missile-mode key.</li>
+<li><b>A/G:</b> MINE · SA · RADAR. Also presses your mining-mode key.</li></ul></li>
+<li><b>New formats:</b>
+<ul><li><b>EW:</b> decoy, noise and countermeasure cycle.</li>
+<li><b>MINE:</b> mode, laser switch, power ±, modules, jettison.</li>
+<li><b>SALV:</b> mode, beam, modifier, spacing, tractor.</li>
+<li><b>FCS:</b> decoupled, G-safe, speed limiter, ESP, cruise, QT.</li>
+<li><b>FUEL:</b> planned jump fuel and QT distance for the job. Live fuel isn't exported by the game.</li>
+<li><b>CHKLST:</b> pre-takeoff steps that press the key and tick off.</li>
+<li><b>TIMER:</b> 15 m to 8 h countdowns for refinery jobs and contracts; ARIA calls them out when they finish.</li></ul></li>
+<li>Every button looks its action up by name in your keybinds; unbound ones offer a vJoy bind on a second press.</li></ul>
+<p><b>Quit:</b> tap ARIA's name in the bottom panel (the teletype in DCS) to close ARIA.</p></section>
 
 <section id="share"><h2>Installing & sharing</h2>
 <ul>

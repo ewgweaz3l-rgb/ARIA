@@ -142,6 +142,17 @@ def shape_aria(rects, topmost=True, holes=None):
     return bool(wins)
 
 
+def close_aria():
+    """Close ARIA's app window (WM_CLOSE) — used by Quit."""
+    if not IS_WINDOWS:
+        return False
+    user32.PostMessageW.argtypes = (wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
+    wins = aria_windows()
+    for hwnd in wins:
+        user32.PostMessageW(hwnd, 0x0010, 0, 0)
+    return bool(wins)
+
+
 def raise_aria():
     """Put ARIA's (shaped) window back on top of DCS without taking focus."""
     if not IS_WINDOWS:

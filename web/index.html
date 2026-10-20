@@ -174,7 +174,8 @@ body:not(.dcsmode) #dcsTT{display:none}
 body.dcsmode main{padding-bottom:110px}
 #dcsTT{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#020604;border-top:1px solid #1d3a26;padding:6px 14px 8px;font:500 13px/1.45 var(--mono);color:#7cf59a;text-shadow:0 0 6px rgba(124,245,154,.35);height:96px;overflow:hidden;display:flex;gap:14px}
 #dcsTT .tthd{flex:0 0 auto;display:flex;flex-direction:column;gap:2px;border-right:1px solid #1d3a26;padding-right:12px;font-size:10px;letter-spacing:.16em;color:#4c9c63;min-width:110px}
-#dcsTT .tthd b{color:#7cf59a;font-size:12px}
+#dcsTT .tthd b{color:#7cf59a;font-size:12px;cursor:pointer}
+.quitname{cursor:pointer}.quitname:hover,#ttName:hover{color:var(--red,#ff6b5b)!important}
 #dcsTT .ttlines{flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
 #dcsTT .ttl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dcsTT .ttl i{color:#4c9c63;font-style:normal;margin-right:10px}#dcsTT .ttl.warn{color:#f2c14e}#dcsTT .ttl.alert{color:#ff6b5b}#dcsTT .ttl.dl{color:#5fd3f0}
 .logrow{display:grid;grid-template-columns:90px 80px 70px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px}.logrow i{font-style:normal;color:var(--dim);font-family:var(--mono);font-size:12px}
@@ -388,6 +389,7 @@ body.cockpit #jobBar{margin:0!important}
 .osb.left,.osb.right{transform:translateY(-50%)}
 .osb:hover{border-color:rgba(var(--mgrgb),0.5)}
 .osb.on{background:var(--mg);color:#031;text-shadow:none}
+body.ofphornet .mfd .osb.on{background:transparent;color:var(--mw);box-shadow:inset 0 0 0 1.5px var(--mw);text-shadow:inherit}
 .osb.hit{background:var(--mw);color:#000;text-shadow:none}
 .osb.calnum{background:var(--macc);color:#000;text-shadow:none;font-weight:700;min-width:1.6em;text-align:center;border-radius:50%}
 .mbody{position:absolute;left:16%;right:16%;top:13%;bottom:13%;display:flex;flex-direction:column;gap:.25em;font-size:1em;overflow:hidden;container-type:inline-size}
@@ -3222,8 +3224,15 @@ function parseBind(text) {
   return m ? m[1].replace(/\s+(to|on)\s+(voice|a voice command)$/, '').trim() : null;
 }
 
+// tap ARIA's name in the bottom panel to shut ARIA down (window and helper)
+async function quitAria() {
+  if (!confirm(`Quit ${AI()}?`)) return;
+  try { await fetch('/api/quit', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}); } catch {}
+  document.body.innerHTML = `<div style="display:grid;place-items:center;height:100vh;font:600 14px var(--mono);color:var(--dim);letter-spacing:.2em">${esc(AI().toUpperCase())} OFFLINE</div>`;
+  setTimeout(() => { try { window.close(); } catch {} }, 300);
+}
 /* ---------------- OFP: the whole cockpit setup saved as a named version (OFP 1, OFP 2 …) ---------------- */
-const OFP_KEYS = ['ckRects', 'osbGeo', 'ckBezel', 'osbAssign', 'mfdPageL', 'mfdPageR', 'mfdSoi', 'mfdBrt', 'mmFilt', 'cockpit', 'dcsLayout', 'dcsPit', 'theme'];
+const OFP_KEYS = ['ofpMode', 'ofpMM', 'ckRects', 'osbGeo', 'ckBezel', 'osbAssign', 'mfdPageL', 'mfdPageR', 'mfdSoi', 'mfdBrt', 'mmFilt', 'cockpit', 'dcsLayout', 'dcsPit', 'theme'];
 const OFP = {
   snap(name) { const st = {}; for (const k of OFP_KEYS) { const v = store.get(k, undefined); if (v !== undefined) st[k] = v; }
     return {name, saved: new Date().toISOString(), aria: (typeof STAT !== 'undefined' && STAT.version) || '', store: st}; },
@@ -3239,14 +3248,16 @@ const OFP = {
     let j; try { j = await (await fetch('/api/ofp/' + encodeURIComponent(file))).json(); } catch { toast('Couldn’t read that profile.'); return; }
     if (!j.store) { toast('That isn’t an OFP file.'); return; }
     if (!confirm(`Load ${j.name}? Your current cockpit setup is replaced (save it first if you want to keep it).`)) return;
+    if (!('ofpMode' in j.store)) j.store.ofpMode = 'classic';  // saved before OFP 2 existed
     for (const k of OFP_KEYS) if (k in j.store) store.set(k, j.store[k]);
     store.set('ofpCur', j.name); toast(`Loaded <b>${esc(j.name)}</b> — restarting the page…`); setTimeout(() => location.reload(), 800);
   },
   async listUi() {
     const el = $('#ofpList'); if (!el) return;
     const l = this._last = await this.list();
-    el.innerHTML = l.length ? l.map(p => `<button class="btn ghost small" data-ofp="${esc(p.file)}" title="Saved ${esc((p.saved || '').slice(0, 16).replace('T', ' '))}${p.aria ? ' · ARIA ' + esc(p.aria) : ''}">Load ${esc(p.name)}</button>`).join('') : '<span class="sub">none saved yet</span>';
+    el.innerHTML = `<button class="btn small" data-ofpb="classic">OFP 1 · Classic</button><button class="btn small" data-ofpb="hornet">OFP 2 · Hornet</button>` + (l.length ? l.map(p => `<button class="btn ghost small" data-ofp="${esc(p.file)}" title="Saved ${esc((p.saved || '').slice(0, 16).replace('T', ' '))}${p.aria ? ' · ARIA ' + esc(p.aria) : ''}">Load ${esc(p.name)}</button>`).join('') : '');
     $$('[data-ofp]', el).forEach(b => b.onclick = () => this.load(b.dataset.ofp));
+    $$('[data-ofpb]', el).forEach(b => b.onclick = () => { ofpUseBuiltin(b.dataset.ofpb); const c = $('#ofpCur'); if (c) c.textContent = store.get('ofpCur', ''); });
   }
 };
 // the setup you've been flying becomes OFP 1, once
@@ -3536,7 +3547,7 @@ function gameBtn(side, id, l, opts = {}) {
 }
 function gameRows(side, ids) {
   const pending = ids.filter(id => MFDS.resolved[id] === undefined && !store.get('osbAssign', {})['game:' + id]);
-  if (pending.length) Promise.all(pending.map(gameKeys)).then(() => { if (['ATC', 'CARGO', 'WPN'].includes(MFDS[side].page)) mfdRender(side); });
+  if (pending.length) Promise.all(pending.map(gameKeys)).then(() => { if (!['MAP', 'GAME'].includes(MFDS[side].page)) mfdRender(side); });
   return ids.map(id => { const k = store.get('osbAssign', {})['game:' + id] || MFDS.resolved[id];
     const a = (MFDS.found || {})[id];
     return `<div class="mrow"><span>${GAME_LBL[id]}</span><b class="${k ? '' : 'amber'}">${k === undefined ? '…' : k ? esc(prettyKeys(k).toUpperCase()) : a ? 'UNBOUND · TAP ×2' : 'NO BIND'}</b></div>`; }).join('');
@@ -4055,6 +4066,7 @@ function ufcRender() {
     <div class="ukeys"><button>SAY</button><button>RTB</button><button>MAP</button></div>`;
   const acts = [() => say(UFC.msg || 'Nothing to report.'), () => rtb(), () => { show('starmap'); setSystem('job'); }];
   const kt = $('.ukeystog', el); if (kt) kt.onclick = () => setKeysLive(!$('#keysLive').checked);
+  const nm = $('.uhead b', el); if (nm) { nm.classList.add('quitname'); nm.title = 'Quit ARIA'; nm.onclick = quitAria; }
   $$('.ukeys button', el).forEach((b, i) => b.onclick = acts[i]);
   if (UFC.typed < UFC.msg.length) ufcType();
   if (MFDS.C.page === 'UFC') mfdRender('C');
@@ -5105,7 +5117,7 @@ async function bootFinish() {
   const nav = store.get('nav', null); if (nav) { $('#navFrom').value = nav.from || ''; $('#navTo').value = nav.to || ''; }
   setupMapInput(); connectPTT(); loadVoicePack(); loadMacros(); renderHomeUI();
   bootTrack('Launcher linked', fetch('/api/status').then(r => r.json()).then(st => { Object.assign(STAT, st); $('#bootVer').textContent = 'v' + (st.version || '?') + (st.update_repo ? ' · ' + st.update_repo : ''); }));
-  if (store.get('cockpit', false)) setTimeout(() => setCockpit(true), 300);
+  if (store.get('game', 'sc') !== 'dcs') setTimeout(() => setCockpit(true), 300);  // Star Citizen always starts in cockpit mode
   if (store.get('voiceOn', false)) setTimeout(() => setListening(true), 800);
   show(store.get('view', 'rich'));
   // warm the other sources so tabs open instantly — and so the boot bar means something
@@ -5119,5 +5131,6 @@ async function bootFinish() {
 <script src="squad.js"></script>
 <script src="dcs.js"></script>
 <script src="pit.js"></script>
+<script src="ofp.js"></script>
 </body>
 </html>

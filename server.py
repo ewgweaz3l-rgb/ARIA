@@ -715,8 +715,9 @@ class Handler(SimpleHTTPRequestHandler):
             subprocess.Popen([exe, launcher, "--wait-pid", str(os.getpid()), "--no-window"], cwd=ROOT)
             threading.Timer(0.5, lambda: SRV and SRV.shutdown()).start()
             return self.send_json(200, {"ok": True})
-        if u.path == "/api/quit":
-            threading.Timer(0.3, lambda: SRV and SRV.shutdown()).start()
+        if u.path == "/api/quit":  # ARIA's name in the bottom panel: close the app window and stop the helper
+            threading.Timer(0.6, winsys.close_aria).start()
+            threading.Timer(0.9, lambda: SRV and SRV.shutdown()).start()
             return self.send_json(200, {"ok": True})
         if u.path == "/api/bind":
             return self.send_json(*do_bind(payload))
