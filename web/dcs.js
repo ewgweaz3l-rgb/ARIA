@@ -3,7 +3,15 @@
    DCS: viewports (the real DDIs / AMPCD drawn by DCS onto the boxes you aligned on your MFD screen),
    live flight data from an Export.lua add-on, FLY mode that shrinks ARIA out of the displays' way. */
 
-const GAMEMODE = {get: () => store.get('game', 'sc'), set(g) { store.set('game', g); applyGameMode(); }};
+// DCS (OVERWATCH) is owner-only during the pre-alpha: it unlocks on this PC with the owner's name + password.
+// A soft lock for testers, not security — the check is a hash, but the app's code is readable.
+const DCS_KEY = '91656f8a87f87f8e5a955c27356662f34c53e91d903d71dfd87c5cd7c44c5588';
+const dcsOpen = () => store.get('dcsKey', '') === DCS_KEY;
+async function dcsHash(name, pass) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`aria-dcs|${name.trim().toLowerCase()}|${pass}`));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+const GAMEMODE = {get: () => store.get('game', 'sc') === 'dcs' && dcsOpen() ? 'dcs' : 'sc', set(g) { if (g === 'dcs' && !dcsOpen()) g = 'sc'; store.set('game', g); applyGameMode(); }};
 // displays you can add (DCS viewport names). The Hornet's center one is the AMPCD ⇄ UFC swap.
 const VP_KINDS = [['LEFT_MFCD', 'Left DDI'], ['RIGHT_MFCD', 'Right DDI'], ['CENTER_MFCD', 'AMPCD ⇄ UFC (center)']];
 const vpLabel = k => (VP_KINDS.find(v => v[0] === k) || [k, k.replace(/_/g, ' ')])[1];
@@ -25,19 +33,35 @@ function bootStep() {
   const last = GAMEMODE.get();
   box.innerHTML = `<div class="gamepick">
     <button class="gp ${last === 'sc' ? 'last' : ''}" data-g="sc"><span class="gpico"><img alt="" hidden><i>SC</i></span><b>STAR CITIZEN</b><small>trade · mining · cockpit</small></button>
-    <button class="gp ${last === 'dcs' ? 'last' : ''}" data-g="dcs"><span class="gpico"><img alt="" hidden><i>DCS</i></span><b>DCS WORLD</b><small>viewports · flight data · GCI</small></button></div>`;
+    <button class="gp ${last === 'dcs' ? 'last' : ''}" data-g="dcs"><span class="gpico"><img alt="" hidden><i>DCS</i></span><b>DCS WORLD</b><small>${dcsOpen() ? 'viewports · flight data · GCI' : '🔒 owner only'}</small></button></div>`;
   $$('.gp', box).forEach(b => { const im = $('img', b); im.onload = () => { im.hidden = false; $('i', b).style.display = 'none'; }; im.onerror = () => { im.hidden = true; $('i', b).style.display = ''; };
     im.src = b.dataset.g === 'sc' ? '/api/launcher_icon' : '/api/gameicon/dcs';
-    b.onclick = () => { GAMEMODE.set(b.dataset.g); bootClose(); }; });
+    b.onclick = () => { if (b.dataset.g === 'dcs' && !dcsOpen()) { dcsLoginBoot(); return; } GAMEMODE.set(b.dataset.g); bootClose(); }; });
   $('#csChange').onclick = e => { e.preventDefault(); store.set('callsign', ''); store.set('pilotSet', false); bootStep(); };
-  const k = e => { if (e.key === 'Enter' && !BOOT.dismissed && $('.gp')) { removeEventListener('keydown', k); GAMEMODE.set(last); bootClose(); } };
+  const k = e => { if (e.key === 'Enter' && !BOOT.dismissed && $('.gp') && !$('#dlName')) { removeEventListener('keydown', k); GAMEMODE.set(last); bootClose(); } };
   addEventListener('keydown', k);
   setTimeout(() => { const l = $('.gp.last', box); if (l) l.focus(); }, 200);
+}
+
+// the owner's sign-in for DCS, right on the boot screen
+function dcsLoginBoot() {
+  const box = $('#bootBtns'), msg = $('#bootMsg');
+  msg.innerHTML = 'DCS is owner-only in this test. Sign in:';
+  box.innerHTML = `<div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center"><input id="dlName" type="text" placeholder="Name" autocomplete="off" style="width:150px;text-align:center"><input id="dlPass" type="password" placeholder="Password" style="width:150px;text-align:center">
+    <button class="btn" id="dlGo">Unlock</button><button class="btn ghost" id="dlBack">Back</button></div><div class="sub" id="dlMsg" style="margin-top:6px;text-align:center"></div>`;
+  const go = async () => {
+    if (await dcsHash($('#dlName').value, $('#dlPass').value) === DCS_KEY) { store.set('dcsKey', DCS_KEY); GAMEMODE.set('dcs'); bootClose(); }
+    else { $('#dlMsg').innerHTML = '<span class="warn">Not this time. Star Citizen is all yours, though.</span>'; $('#dlPass').value = ''; $('#dlPass').focus(); }
+  };
+  $('#dlGo').onclick = go; $('#dlBack').onclick = () => bootStep();
+  [$('#dlName'), $('#dlPass')].forEach(i => i.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); go(); } });
+  setTimeout(() => $('#dlName').focus(), 30);
 }
 
 /* ---------------- switching between the two ---------------- */
 function applyGameMode() {
   const dcs = GAMEMODE.get() === 'dcs';
+  const sw = $('#btnGame'); if (sw) sw.style.display = dcsOpen() ? '' : 'none';
   document.body.classList.toggle('dcsmode', dcs);
   $('.brand span').textContent = dcs ? 'OVERWATCH' : 'QUARTERMASTER';
   $('#ttName').textContent = AI().toUpperCase(); const tp = $('#ttPwr'); if (tp && !tp.innerHTML) { tp.innerHTML = pwrSwitch(); wirePwrSwitch(tp); }
@@ -476,3 +500,6 @@ function dcsView(v) {
   if ($('#dlNet')) $('#dlNet').value = DL.net();
   renderTT();
 })();
+
+// testers never see the Star Citizen ⇄ DCS switch
+setTimeout(() => { const sw = $('#btnGame'); if (sw && !dcsOpen()) sw.style.display = 'none'; }, 0);
