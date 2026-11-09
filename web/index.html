@@ -5256,7 +5256,9 @@ async function bootFinish() {
   const nav = store.get('nav', null); if (nav) { $('#navFrom').value = nav.from || ''; $('#navTo').value = nav.to || ''; }
   setupMapInput(); connectPTT(); loadVoicePack(); loadMacros(); renderHomeUI();
   bootTrack('Launcher linked', fetch('/api/status').then(r => r.json()).then(st => { Object.assign(STAT, st); $('#bootVer').textContent = 'v' + (st.version || '?') + (st.update_repo ? ' · ' + st.update_repo : ''); }));
-  setTimeout(() => { if (GAMEMODE.get() !== 'dcs') setCockpit(true); }, 300);  // Star Citizen always starts in cockpit mode
+  // Star Citizen always starts in cockpit mode — after every script has loaded (dcs.js decides the game)
+  const ckStart = () => setTimeout(() => { if (typeof GAMEMODE === 'undefined' || GAMEMODE.get() !== 'dcs') setCockpit(true); }, 300);
+  if (document.readyState === 'complete') ckStart(); else addEventListener('load', ckStart, {once: true});
   if (store.get('voiceOn', false)) setTimeout(() => setListening(true), 800);
   show(store.get('view', 'rich'));
   // warm the other sources so tabs open instantly — and so the boot bar means something
