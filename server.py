@@ -478,6 +478,16 @@ class Handler(SimpleHTTPRequestHandler):
                 vdir = os.path.join(WEB, "voice")
                 files = sorted(f for f in os.listdir(vdir) if f.lower().endswith((".wav", ".mp3", ".ogg", ".m4a", ".flac"))) if os.path.isdir(vdir) else []
                 return self.send_json(200, {"files": files})
+            elif kind == "autobind":  # the editable Auto-Bind config file
+                f = os.path.join(ROOT, "aria_binds.json")
+                data = None
+                if os.path.exists(f):
+                    try:
+                        with open(f, "r", encoding="utf-8") as fh:
+                            data = json.load(fh)
+                    except Exception as e:
+                        return self.send_json(200, {"file": f, "error": f"aria_binds.json isn't valid JSON: {e}"})
+                return self.send_json(200, {"file": f, "data": data})
             elif kind == "binds":
                 cat = scbinds.catalog(load_config())
                 cat["vjoy"] = VJ.status()
@@ -719,6 +729,8 @@ class Handler(SimpleHTTPRequestHandler):
             threading.Timer(0.6, winsys.close_aria).start()
             threading.Timer(0.9, lambda: SRV and SRV.shutdown()).start()
             return self.send_json(200, {"ok": True})
+        if u.path == "/api/autobind":
+            return self.send_json(*autobind(payload))
         if u.path == "/api/bind":
             return self.send_json(*do_bind(payload))
         if u.path == "/api/ofp/save":
@@ -796,6 +808,78 @@ def do_bind(payload):
         scbinds.write_rebind(cat["install"], amap, action, sc_input)
         sys.stderr.write(f"[aria] bound {action} -> {sc_input}\n")
         return 200, {"ok": True, "keys": spec, "input": sc_input, "applied": True, "queued": False}
+
+
+def autobind(payload):
+    """ARIA Auto-Bind. items: [{id, label, map, action, bind}] for every action ARIA uses.
+    bind = "vjoy" (a free virtual button), "kb:<keys>" (that key), "keep" (leave what you have), "skip".
+    Your edits in aria_binds.json win over the defaults. Writes Controls/Mappings/ARIA.xml to load in game."""
+    items = [i for i in (payload.get("items") or []) if i.get("map") and i.get("action")][:400]
+    with _bind_lock:
+        cfg = load_config()
+        cat = scbinds.catalog(cfg)
+        if not cat["install"]:
+            return 400, {"ok": False, "error": "Can't find your Star Citizen install. Set the game folder in Settings."}
+        cfile = os.path.join(ROOT, "aria_binds.json")
+        mine = {}
+        if os.path.exists(cfile):
+            try:
+                with open(cfile, "r", encoding="utf-8") as fh:
+                    for r in (json.load(fh) or {}).get("actions", []):
+                        mine[r.get("id")] = r
+            except Exception as e:
+                return 400, {"ok": False, "error": f"aria_binds.json isn't valid JSON — fix it or delete it ({e})"}
+        st = VJ.status()
+        vj_inst = cat["vjoy_instance"]
+        need_vj = any((mine.get(i.get("id"), {}).get("bind") or i.get("bind")) == "vjoy" for i in items)
+        if need_vj and not st["ok"]:
+            return 400, {"ok": False, "error": "vJoy isn't available: " + str(st.get("error") or "install vJoy") + " (or set those actions to a key / skip in aria_binds.json)"}
+        if need_vj and not vj_inst:
+            return 400, {"ok": False, "error": "Star Citizen hasn't listed vJoy yet. Start the game once with vJoy installed, or set vJoy's joystick number in Settings."}
+        acts = {(a["map"], a["id"]): a for a in cat["actions"]}
+        used = set(cat["vjoy_used"]) - set(int(v[2:]) for v in (cfg.get("autobind") or {}).values() if str(v).startswith("vj"))
+        auto = dict(cfg.get("autobind") or {})
+        binds, rows, nxt = [], [], 1
+        for i in items:
+            r = dict(mine.get(i.get("id")) or {})
+            r.update({"id": i.get("id"), "label": i.get("label"), "map": i["map"], "action": i["action"]})
+            r.setdefault("bind", i.get("bind") or "vjoy")
+            a = acts.get((i["map"], i["action"]), {})
+            key = i["map"] + "|" + i["action"]
+            b = str(r["bind"])
+            if b == "vjoy":
+                have = auto.get(key) or a.get("vjoy")  # keep the same button across rebuilds / one you made yourself
+                if have:
+                    spec = have; used.add(int(have[2:]))
+                else:
+                    while nxt in used:
+                        nxt += 1
+                    if nxt > st.get("buttons", 0):
+                        r["result"] = "no free vJoy button"; rows.append(r); continue
+                    spec = f"vj{nxt}"; used.add(nxt)
+                auto[key] = spec
+                binds.append({"map": i["map"], "action": i["action"], "input": scbinds.aria_to_sc(spec, vj_inst)})
+                r["result"] = spec
+            elif b.startswith("kb:"):
+                auto.pop(key, None)
+                try:
+                    keys.parse(b[3:])
+                    binds.append({"map": i["map"], "action": i["action"], "input": scbinds.aria_to_sc(b[3:])})
+                    r["result"] = b[3:]
+                except ValueError as e:
+                    r["result"] = f"bad key: {e}"
+            else:
+                auto.pop(key, None)
+                r["result"] = b  # keep / skip
+            rows.append(r)
+        path, n = scbinds.write_profile(cat["install"], binds, vj_inst)
+        cfg = load_config(); cfg["autobind"] = auto; save_config(cfg)
+        with open(cfile, "w", encoding="utf-8") as fh:
+            json.dump({"about": "ARIA Auto-Bind. Edit 'bind' for any action: \"vjoy\" (free virtual button), \"kb:ralt+np1\" (a key), "
+                                "\"keep\" (leave your bind alone) or \"skip\". Then Auto-Bind again and reload the ARIA profile in game.",
+                       "actions": [{k: v for k, v in r.items() if k != "result"} for r in rows]}, fh, indent=1)
+        sys.stderr.write(f"[aria] auto-bind: {n} binds -> {path}\n")
+        return 200, {"ok": True, "path": path, "file": cfile, "count": n, "rows": rows, "vjoy_instance": vj_inst}
 
 
 def apply_pending_loop():

@@ -188,6 +188,71 @@ def write_rebind(install, amap, action, sc_input):
     return path
 
 
+def mappings_dir(install):
+    """Where Star Citizen looks for control profiles you can load (Keybindings → Control Profiles)."""
+    return os.path.join(install, "user", "client", "0", "Controls", "Mappings") if install else None
+
+
+def write_profile(install, binds, vj_inst=None, name="ARIA"):
+    """ARIA Auto-Bind: a loadable control profile = everything you already have bound
+    (copied from actionmaps.xml) + ARIA's binds added on top. Nothing of yours is removed:
+    an action can hold a keyboard key, a HOTAS button and a vJoy button at once.
+    binds: [{"map", "action", "input"}] with SC inputs (js3_button12 / kb1_ralt+np1)."""
+    import copy
+    folder = mappings_dir(install)
+    if not folder:
+        raise FileNotFoundError("Can't find your Star Citizen install — set the game folder in Settings.")
+    os.makedirs(folder, exist_ok=True)
+    out = ET.Element("ActionMaps", {"version": "1", "optionsVersion": "2", "rebindVersion": "2", "profileName": name})
+    hdr = ET.SubElement(out, "CustomisationUIHeader", {"label": name, "description": "Made by ARIA Auto-Bind", "image": ""})
+    devs = ET.SubElement(hdr, "devices")
+    ET.SubElement(devs, "keyboard", {"instance": "1"})
+    ET.SubElement(devs, "mouse", {"instance": "1"})
+    maps = {}
+    am_path = actionmaps_path(install)
+    joys = set()
+    if am_path and os.path.exists(am_path):
+        root = ET.parse(am_path).getroot()
+        prof = next((p for p in root.iter("ActionProfiles") if p.get("profileName", "default") == "default"), root)
+        for o in prof.findall("deviceoptions"):  # your deadzones / curves come along too
+            out.append(copy.deepcopy(o))
+        for o in prof.findall("options"):
+            out.append(copy.deepcopy(o))
+            if o.get("type") == "joystick" and o.get("instance"):
+                joys.add(o.get("instance"))
+        for m in prof.findall("modifiers"):
+            out.append(copy.deepcopy(m))
+        for am in prof.findall("actionmap"):
+            c = copy.deepcopy(am)
+            out.append(c)
+            maps[am.get("name")] = c
+    if vj_inst:
+        joys.add(str(vj_inst))
+    for j in sorted(joys, key=lambda x: int(x) if x.isdigit() else 99):
+        ET.SubElement(devs, "joystick", {"instance": j})
+    added = 0
+    for b in binds:
+        am = maps.get(b["map"])
+        if am is None:
+            am = maps[b["map"]] = ET.SubElement(out, "actionmap", {"name": b["map"]})
+        act = next((a for a in am.findall("action") if a.get("name") == b["action"]), None)
+        if act is None:
+            act = ET.SubElement(am, "action", {"name": b["action"]})
+        dev = b["input"].split("_", 1)[0]
+        for rb in list(act.findall("rebind")):  # replace only the same device's bind (vJoy for vJoy, keyboard for keyboard)
+            if (rb.get("input") or "").split("_", 1)[0] == dev:
+                act.remove(rb)
+        ET.SubElement(act, "rebind", {"input": b["input"]})
+        added += 1
+    path = os.path.join(folder, name + ".xml")
+    if os.path.exists(path):
+        os.makedirs(BACKUPS, exist_ok=True)
+        shutil.copy2(path, os.path.join(BACKUPS, time.strftime(f"{name}-profile-%Y%m%d-%H%M%S.xml")))
+    ET.indent(out) if hasattr(ET, "indent") else None
+    ET.ElementTree(out).write(path, encoding="utf-8", xml_declaration=False)
+    return path, added
+
+
 def catalog(cfg=None):
     cfg = cfg or {}
     install = find_install(cfg.get("sc_path"))
@@ -252,6 +317,11 @@ def catalog(cfg=None):
                             e.setdefault("devices", []).append(inp)
         except Exception as ex:
             sources.append(f"actionmaps.xml unreadable ({ex})")
+    for k, vj in (cfg.get("autobind") or {}).items():  # Auto-Bind profile: known as soon as it's written
+        mp, _, an = k.partition("|")
+        e = acts.get((mp, an))
+        if e is not None and not e.get("vjoy"):
+            e["vjoy"] = vj
     for pb in pending:  # binds waiting for the game to close
         e = acts.get((pb["map"], pb["action"]))
         if e is not None:

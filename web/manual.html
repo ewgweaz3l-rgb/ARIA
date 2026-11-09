@@ -236,6 +236,15 @@ table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}td,th{bord
 <li><b>Which process for which ore:</b> ores are ranked by refined value and matched to a process. High value gets the best-yield process, cheap ore gets the fastest and cheapest, and the middle gets a balance. The process table shows UEX's yield, cost and speed ratings.</li>
 <li><b>Price check:</b> every refinery in every system in one sortable table, with the best refined sell at each station.</li></ul></section>
 
+<section id="autobind"><h2>⚡ Auto-Bind</h2>
+<p>Instead of binding every MFD button and voice command by hand, <b>Macros → Keybinds → Build the ARIA profile</b> does it all at once:</p>
+<ol><li>ARIA finds every game action its buttons and voice use in your keybind files.</li>
+<li>Each action with no key gets its own <b>vJoy</b> button. Tick <i>Put everything on vJoy</i> to move the keyed ones over too, so chat can never eat a keypress.</li>
+<li>It writes a control profile called <b>ARIA</b>, with all your own keyboard and HOTAS binds copied in untouched, deadzones included.</li>
+<li>In game: <b>Options → Keybindings → Advanced Controls Customization → Control Profiles → ARIA</b>. You only do this once; build again after you change something.</li></ol>
+<p><b>Changing it:</b> <code>aria_binds.json</code> in ARIA's folder lists every action. Set <code>"bind"</code> to <code>"vjoy"</code>, <code>"kb:ralt+np1"</code> (a key), <code>"keep"</code> or <code>"skip"</code>, then build again. vJoy buttons stay the same between builds.</p>
+<p><b>Needs</b> vJoy installed and seen by the game once (start Star Citizen with vJoy plugged in), and the game's full action list (<code>defaultProfile.xml</code>, see README) so ARIA can find every action. Big patches sometimes rename actions: anything ARIA couldn't find is listed after a build.</p></section>
+
 <section id="ofp"><h2>Cockpit profiles (OFP)</h2>
 <p>Like a jet's Operational Flight Program, a cockpit profile (OFP) saves your whole setup as one named version: page layout, button assignments, alignment, the center bezel, map filters and DCS displays. Star Citizen always starts in cockpit mode.</p>
 <ul><li><b>OFP 1 · Classic</b> is ARIA's original layout, saved automatically as OFP 1.</li>

@@ -987,6 +987,14 @@ body.cockpit .cocktop #brief{display:none}
     </div>
     <p class="sub" style="margin:8px 0 6px">Find any game action and turn it into a voice command. Type it here, or say <span class="mono">“bind center turret”</span>. Unbound actions get a virtual vJoy button so your keyboard stays untouched.</p>
     <div class="sub" id="vjoyState" style="margin-bottom:10px">Checking vJoy…</div>
+    <div class="panel inset" id="abPanel" style="margin:0 0 12px">
+      <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div><b>⚡ Auto-Bind</b> <span class="sub">every action ARIA's buttons and voice use, in one go</span></div>
+        <div class="row" style="gap:8px;align-items:center"><label class="chk"><input type="checkbox" id="abAll"> Put everything on vJoy (even actions that already have a key)</label><button class="btn small" id="abGo">Build the ARIA profile</button></div>
+      </div>
+      <div class="sub" style="margin-top:6px">ARIA gives each action it needs its own vJoy button and writes a control profile called <b>ARIA</b>. Your own binds are copied in untouched. Load it once in game: <b>Options → Keybindings → Advanced Controls Customization → Control Profiles → ARIA</b>. To change anything, edit <span class="mono">aria_binds.json</span> in ARIA's folder ("vjoy", "kb:ralt+np1", "keep" or "skip") and build again.</div>
+      <div id="abOut" style="margin-top:8px"></div>
+    </div>
     <div class="row">
       <input id="bindQ" type="search" placeholder="center turret, stagger fire, cycle missiles…" style="flex:1;min-width:220px">
       <button class="btn small" id="bindGo">Find</button>
@@ -3169,6 +3177,27 @@ function scoreAction(qt, a) {
   if (a.has_label === false) sc -= .05;                // unnamed internal actions rank a touch lower
   return sc;
 }
+/* ---------------- Auto-Bind: every game action ARIA uses → a control profile you load once ---------------- */
+async function autoBind() {
+  const out = $('#abOut'); out.innerHTML = '<div class="muted">Finding every action ARIA uses in your game files…</div>';
+  await loadBinds(true); MFDS.resolved = {}; MFDS.found = {};
+  const ids = Object.keys(GAME), items = [], missing = [];
+  for (const id of ids) { await gameKeys(id); const a = MFDS.found[id];
+    if (!a) { missing.push(GAME_LBL[id] || id); continue; }
+    const keyed = a.keys && !/^vj\d+/.test(a.keys);
+    items.push({id, label: GAME_LBL[id] || (GAME[id] || [id])[0], map: a.map, action: a.id, bind: keyed && !$('#abAll').checked ? 'keep' : 'vjoy'}); }
+  const seen = new Set(), uniqItems = items.filter(i => { const k = i.map + '|' + i.action; if (seen.has(k)) return false; seen.add(k); return true; });
+  let j; try { j = await (await fetch('/api/autobind', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({items: uniqItems})})).json(); }
+  catch { out.innerHTML = '<div class="bad">Couldn’t reach ARIA’s helper.</div>'; return; }
+  if (!j.ok) { out.innerHTML = `<div class="bad">${esc(j.error)}</div>`; return; }
+  MFDS.resolved = {}; await loadBinds(true); mfdRenderAll && mfdRenderAll();
+  const rows = j.rows || [], vj = rows.filter(r => /^vj\d+$/.test(r.result)), kb = rows.filter(r => r.bind && String(r.bind).startsWith('kb:')), keep = rows.filter(r => r.result === 'keep');
+  out.innerHTML = `<div class="good"><b>ARIA profile written</b> — ${vj.length} on vJoy, ${kb.length} on keys you chose, ${keep.length} kept as you had them.</div>
+    <div class="sub">File: <span class="mono">${esc(j.path)}</span> · your settings: <span class="mono">${esc(j.file)}</span></div>
+    <div class="sub" style="margin-top:4px"><b>Now in game:</b> Options → Keybindings → Advanced Controls Customization → Control Profiles → <b>ARIA</b>. Every MFD button and voice command works from then on.</div>
+    ${missing.length ? `<div class="sub warn" style="margin-top:4px">Not in your game's action list (${missing.length}), so left out: ${esc(missing.slice(0, 20).join(', '))}${missing.length > 20 ? ' …' : ''}${BINDS.data && !BINDS.data.full ? ' — add defaultProfile.xml (README) so ARIA sees every action' : ''}</div>` : ''}
+    <details style="margin-top:6px"><summary class="sub">What went where</summary><table>${rows.map(r => `<tr><td>${esc(r.label || r.id)}</td><td class="mono sub">${esc(r.action)}</td><td class="r">${esc(/^vj/.test(r.result) ? prettyKeys(r.result) : r.result)}</td></tr>`).join('')}</table></details>`;
+}
 async function findBind(q) {
   const d = await loadBinds();
   const qt = btok(q);
@@ -5184,6 +5213,7 @@ $('#mSave').onclick = saveMacros;
 $('#mExport').onclick = exportVoiceLines;
 $('#pttLearn').onclick = () => pttPost('/api/ptt/learn');
 $('#pttClear').onclick = () => pttPost('/api/ptt/clear');
+$('#abGo').onclick = autoBind;
 $('#bindGo').onclick = () => runBind($('#bindQ').value);
 $('#bindQ').onkeydown = e => { if (e.key === 'Enter') runBind($('#bindQ').value); };
 
