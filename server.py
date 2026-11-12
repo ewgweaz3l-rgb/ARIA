@@ -466,7 +466,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(200, {"running": GAME_STATE["running"], "windows": sys.platform.startswith("win")})
             elif kind == "report":  # this PC's own job reports
                 return self.send_json(200, {"reports": SQUAD.load_reports()})
-            elif kind in ("scores", "lobby", "reports", "dl"):
+            elif kind in ("scores", "lobby", "reports", "dl", "prices"):
                 cfg = load_config()
                 if not cfg.get("squad_host"):
                     return self.send_json(404, {"error": "This ARIA isn't hosting a squad board."}, CORS)
@@ -565,7 +565,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         u = urllib.parse.urlsplit(self.path)
-        if u.path in ("/api/scores", "/api/reports", "/api/dl") or u.path.startswith("/api/lobby"):  # squad: friends post here from their own ARIA
+        if u.path in ("/api/scores", "/api/reports", "/api/dl", "/api/prices") or u.path.startswith("/api/lobby"):  # squad: friends post here from their own ARIA
             n = int(self.headers.get("Content-Length") or 0)
             try:
                 payload = json.loads(self.rfile.read(n) if n else b"{}")

@@ -104,6 +104,54 @@ class Squad:
                 json.dump(all_, f)
         return r
 
+    # ---------------- squad price log: trades + "was that price right?" checks ----------------
+    # Our own database next to UEX: what we actually paid / got, and votes on UEX prices.
+    def _prices_path(self):
+        return os.path.join(self.root, "prices.json")
+
+    def load_prices(self):
+        try:
+            with open(self._prices_path(), "r", encoding="utf-8") as f:
+                d = json.load(f)
+            return d if isinstance(d, list) else []
+        except Exception:
+            return []
+
+    @staticmethod
+    def clean_price(e):
+        if not isinstance(e, dict) or e.get("kind") not in ("buy", "sell", "check"):
+            return None
+        def n(v, lo=0, hi=10**9):
+            try:
+                v = float(v)
+            except (TypeError, ValueError):
+                return None
+            return v if lo <= v <= hi else None
+        out = {"id": str(e.get("id") or secrets.token_hex(6))[:24], "t": int(n(e.get("t"), 0, 10**14) or time.time() * 1000),
+               "name": str(e.get("name") or "CMDR")[:12], "kind": e["kind"],
+               "cid": int(n(e.get("cid"), 0, 10**7) or 0), "commodity": str(e.get("commodity") or "")[:40],
+               "term": int(n(e.get("term"), 0, 10**7) or 0), "termName": str(e.get("termName") or "")[:60],
+               "side": e.get("side") if e.get("side") in ("buy", "sell") else None,
+               "price": n(e.get("price"), 0, 10**8), "scu": n(e.get("scu"), 0, 10**6), "uex": n(e.get("uex"), 0, 10**8),
+               "accurate": e.get("accurate") if isinstance(e.get("accurate"), bool) else None,
+               "note": str(e.get("note") or "")[:160]}
+        if not out["cid"] or not out["term"]:
+            return None
+        return out
+
+    def add_prices(self, entries):
+        clean = [c for c in (self.clean_price(e) for e in (entries or [])[:50]) if c]
+        if not clean:
+            return []
+        cutoff = (time.time() - 30 * 86400) * 1000  # a month of prices is plenty — the game moves on
+        with self.lock:
+            ids = {c["id"] for c in clean}
+            all_ = [x for x in self.load_prices() if x.get("id") not in ids and x.get("t", 0) > cutoff] + clean
+            all_ = all_[-5000:]
+            with open(self._prices_path(), "w", encoding="utf-8") as f:
+                json.dump(all_, f)
+        return clean
+
     # ---------------- DL99: squad datalink (positions, map marks, text) ----------------
     # Kept in memory: positions expire in 30 s, marks in 12 h, the last 100 messages per net.
     def _net(self, name):
@@ -324,6 +372,15 @@ class Squad:
                 return 200, {"reports": [r for r in self.load_reports() if r.get("t", 0) > since], "host": self.name_fn()}
             r = self.add_report(payload.get("report"))
             return (200, {"ok": True, "id": r["id"]}) if r else (400, {"error": "empty report"})
+        if path == "/api/prices":
+            k = query.get("key") if method == "GET" else str(payload.get("key") or "")
+            if key != (k or ""):
+                return 403, {"error": "Wrong squad key."}
+            if method == "GET":
+                since = int(query.get("since") or 0)
+                return 200, {"prices": [p for p in self.load_prices() if p.get("t", 0) > since], "host": self.name_fn()}
+            added = self.add_prices(payload.get("entries"))
+            return (200, {"ok": True, "added": len(added)}) if added else (400, {"error": "nothing usable"})
         if path == "/api/dl":
             src = query if method == "GET" else payload
             if key != str(src.get("key") or ""):

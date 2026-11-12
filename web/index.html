@@ -184,6 +184,30 @@ body.dcsmode main{padding-bottom:110px}
 .pwrsw span:first-child{color:#7cf59a}.pwrsw.off span:first-child{color:#4c9c63}.pwrsw.off span:last-child{color:#ff6b5b}
 .pwrsw:hover{border-color:#7cf59a}
 tr.dim td{opacity:.6}
+/* cargo hold blueprint */
+#cargoWin{position:fixed;left:50%;top:50px;transform:translateX(-50%);width:min(1100px,calc(100vw - 32px));max-height:calc(100vh - 90px);overflow:auto;z-index:81;
+  background:#0b2a4a;background-image:linear-gradient(rgba(120,180,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(120,180,255,.08) 1px,transparent 1px);background-size:20px 20px;
+  border:1px solid #6fb3ff;border-radius:10px;padding:12px 16px;color:#dbeaff;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#cargoWin .cg-hd{display:flex;justify-content:space-between;align-items:center}#cargoWin .cg-hd b{font:700 14px var(--head);letter-spacing:.18em;color:#9fd0ff}
+#cargoWin .cg-body{display:flex;flex-direction:column;gap:16px}
+#cargoWin .cg-grid{border:1px dashed rgba(159,208,255,.45);border-radius:8px;padding:10px}
+#cargoWin .cg-gt,#cargoWin .cg-lt{font:600 10px var(--mono);letter-spacing:.14em;color:#9fd0ff;margin-bottom:4px}
+#cargoWin .cg-layers{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-top:8px}
+#cargoWin .cg-iso-wrap{overflow-x:auto;flex:0 0 auto}#cargoWin .cg-row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+#cargoWin .cg-floor{fill:rgba(111,179,255,.08);stroke:#6fb3ff;stroke-width:1.5}
+#cargoWin .cg-line{stroke:rgba(111,179,255,.35);stroke-width:1}
+#cargoWin .cg-txt{font:700 11px var(--mono);fill:#0b2a4a;text-anchor:middle}
+#cargoWin .cg-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font:600 11px var(--mono)}
+#cargoWin .cg-legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-2px}
+#cargoWin input,#cargoWin select,#cargoWin textarea{background:#08213b;color:#dbeaff;border-color:#2f5f93}
+
+/* shop answer card */
+#shopCard{position:fixed;left:50%;top:70px;transform:translateX(-50%);width:min(860px,calc(100vw - 32px));max-height:calc(100vh - 140px);overflow:auto;z-index:80;background:var(--panel,#0e141a);border:1px solid var(--amber,#f2a83b);border-radius:10px;padding:12px 14px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#shopCard .sc-hd{display:flex;justify-content:space-between;align-items:center;gap:8px}#shopCard .sc-hd b{font:700 13px var(--head);letter-spacing:.12em;color:var(--amber,#f2a83b)}
+#shopCard .sc-line{margin:6px 0 8px;font-size:14px}
+#shopCard table{width:100%}#shopCard tr.stale td{opacity:.7}
+.sc-form{border:1px dashed var(--line,#2a3440);border-radius:8px;padding:8px 10px;margin-top:8px}
+
 #dcsTT .ttlines{flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
 #dcsTT .ttl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dcsTT .ttl i{color:#4c9c63;font-style:normal;margin-right:10px}#dcsTT .ttl.warn{color:#f2c14e}#dcsTT .ttl.alert{color:#ff6b5b}#dcsTT .ttl.dl{color:#5fd3f0}
 .logrow{display:grid;grid-template-columns:90px 80px 70px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px}.logrow i{font-style:normal;color:var(--dim);font-family:var(--mono);font-size:12px}
@@ -640,6 +664,11 @@ body.cockpit .cocktop #brief{display:none}
   <div id="brief"></div>
   <div class="panel" id="jobBar" style="display:none;margin-bottom:14px;padding:10px 14px"></div>
   <div class="panel tablewrap" id="routesPanel" style="display:none"><table id="routes"></table></div>
+  <div class="panel" id="tradeLogPanel" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><h3 style="margin:0">Squad price log</h3><div class="sub">What we actually paid and got. Newer than UEX? It wins. Ask ARIA <span class="mono">“best price for aluminum”</span> or <span class="mono">“what does Baijini Point buy”</span>.</div></div>
+      <div class="row" style="gap:6px"><button class="btn ghost small" id="cgOpen" title="Stack plan for the ship you picked">Cargo hold ▦</button><button class="btn small" id="tlAdd">+ Log a trade</button></div></div>
+    <div id="tlForm"></div><div id="tradeLogList" style="margin-top:8px"></div>
+  </div>
   <datalist id="shipList"></datalist><datalist id="locList"></datalist>
 </section>
 
@@ -1552,6 +1581,7 @@ async function runCommand(text) {
     $('#navTo').value = nav.to;
     return plotNav();
   }
+  if (typeof shopQuery === 'function') { const spoken = VOICE.heardCommand; if (await shopQuery(text, spoken)) { VOICE.heardCommand = false; return; } }
   try { await tradeData(); } catch {}
   const c = parseCommand(text);
   if (c.ship) setShip(c.ship);
@@ -1723,6 +1753,7 @@ function shipDrawerHtml(s, w) {
       ${s.web || w.web_url ? `<a class="btn ghost small" target="_blank" rel="noopener" href="${esc(s.web || w.web_url)}">Wiki ↗</a>` : ''}
       ${w.pledge_url ? `<a class="btn ghost small" target="_blank" rel="noopener" href="${esc(w.pledge_url)}">RSI ↗</a>` : ''}
       <a class="btn ghost small" target="_blank" rel="noopener" href="https://erkul.games/calculator" title="Erkul's loadout calculator: DPS, power, cooling, components">Erkul loadout ↗</a>
+      <button class="btn ghost small" data-cargo="1" title="Blueprint of the cargo grid and the best way to stack it">Cargo hold ▦</button>
     </div>
     ${loadoutHtml(s)}
     <div class="specs">
@@ -1761,6 +1792,7 @@ function loadoutHtml(s) {
 }
 function wireDrawer(s) {
   const d = $('#drawer');
+  const cb = $('[data-cargo]', d); if (cb) cb.onclick = () => openCargo(s.name);
   const ll = $('[data-ldlink]', d), ln = $('[data-ldnotes]', d);
   if (ll) { const save = () => { LOADOUT.set(s.name, {link: ll.value.trim(), notes: ln.value}); }; ll.onchange = () => { save(); if (ll.value.trim() && !/^https:\/\/(www\.)?erkul\.games\//i.test(ll.value.trim())) toast('Saved — but that isn’t an erkul.games link.'); d.innerHTML = shipDrawerHtml(s, s._w || s.raw); wireDrawer(s); }; ln.oninput = save; }
   $('[data-close]', d).onclick = closeDrawer;
@@ -3018,7 +3050,7 @@ function handleUtterance(raw) {
   if (bq) { vlog(`→ bind: ${bq}`); show('voice'); $('#bindQ').value = bq; runBind(bq, true); return; }
   const m = matchMacro(t);
   if (m) return fireMacro(m);
-  if (/make me rich|haul|trade|\bnav\b|navigate|course|take me|how far|distance|route|go to|jump to|\brtb\b|return to base|go home|head home|where am i|where are we|locate|find me|\bscan\b|\bping\b|signature|\b(i'?m|i am|we'?re|we are) (at|in|on|docked|landed|parked)|position/.test(t) || /\d+(\.\d+)?\s*(k|m|million|thousand)\b/.test(t)) {
+  if (/make me rich|haul|trade|\bprices?\b|\bbuys?\b|\bsells?\b|\bworth\b|\bcost\b|\bnav\b|navigate|course|take me|how far|distance|route|go to|jump to|\brtb\b|return to base|go home|head home|where am i|where are we|locate|find me|\bscan\b|\bping\b|signature|\b(i'?m|i am|we'?re|we are) (at|in|on|docked|landed|parked)|position/.test(t) || /\d+(\.\d+)?\s*(k|m|million|thousand)\b/.test(t)) {
     VOICE.heardCommand = true; $('#cmd').value = t; vlog(`→ ARIA: ${t}`); runCommand(t); return;
   }
   vlog(`no match: ${t}`);
@@ -5214,6 +5246,7 @@ $('#mExport').onclick = exportVoiceLines;
 $('#pttLearn').onclick = () => pttPost('/api/ptt/learn');
 $('#pttClear').onclick = () => pttPost('/api/ptt/clear');
 $('#abGo').onclick = autoBind;
+$('#cgOpen').onclick = () => openCargo();
 $('#bindGo').onclick = () => runBind($('#bindQ').value);
 $('#bindQ').onkeydown = e => { if (e.key === 'Enter') runBind($('#bindQ').value); };
 
@@ -5273,5 +5306,7 @@ async function bootFinish() {
 <script src="dcs.js"></script>
 <script src="pit.js"></script>
 <script src="ofp.js"></script>
+<script src="shop.js"></script>
+<script src="cargo.js"></script>
 </body>
 </html>
